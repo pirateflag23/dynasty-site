@@ -39,6 +39,11 @@ jobs:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
           FORCE: ${{ inputs.force && '1' || '' }}
         run: node .github/workflows/scripts/build-player-stats.mjs
+      - name: Update dynasty history archive
+        env:
+          DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
+          FORCE: ${{ inputs.force && '1' || '' }}
+        run: node .github/workflows/scripts/build-history.mjs
       - name: Register slash commands (only when they change)
         if: ${{ hashFiles('discord.config.json') != '' }}
         env:
