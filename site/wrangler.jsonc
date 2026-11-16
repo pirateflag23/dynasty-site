@@ -1,0 +1,13 @@
+// The league website (thedynastycfb.com). Deployed by .github/workflows/deploy-site.yml
+// whenever site/public changes. Same Cloudflare Worker (pf-07) that used to be uploaded by hand.
+{
+  "name": "pf-07",
+  "account_id": "94040c1270d9dc5406fa79b47377f21f",
+  "compatibility_date": "2026-11-16",
+  "assets": { "directory": "./public" },
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "thedynastycfb.com", "custom_domain": true },
+    { "pattern": "www.thedynastycfb.com", "custom_domain": true }
+  ]
+}
