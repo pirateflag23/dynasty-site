@@ -5,9 +5,6 @@
   "account_id": "94040c1270d9dc5406fa79b47377f21f",
   "compatibility_date": "2026-11-16",
   "assets": { "directory": "./public" },
-  "workers_dev": true,
-  "routes": [
-    { "pattern": "thedynastycfb.com", "custom_domain": true },
-    { "pattern": "www.thedynastycfb.com", "custom_domain": true }
-  ]
+  "workers_dev": true
+  // thedynastycfb.com + www are attached in the dashboard (Domains); deploys leave them alone
 }
