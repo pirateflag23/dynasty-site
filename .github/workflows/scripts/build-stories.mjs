@@ -278,7 +278,7 @@ async function main() {
     if (x.class_year === "SR" || !x.team_key) continue;
     const tk = x.team_key, PT = P(x.player_key, x.name), TT = tTok(tk), seed = x.player_key + "pw", st = statOf.get(x.player_key) || {};
     const pos = POS_WORD[x.position] || x.position, mkt = market(x), nil = x.nil_compensation ?? 0, gp = teamGames(tk);
-    const ov = `${an(x.overall)} ${x.overall}-overall`, archPos = x.archetype ? `${x.archetype.toLowerCase()} (${x.position})` : pos, pay = nil ? `making ${nil}K` : "making nothing in NIL";
+    const ov = `${an(x.overall)} ${x.overall}-overall`, archPos = x.archetype ? `${x.archetype.toLowerCase()} ${({ LEDG: "edge", REDG: "edge", HB: "back", FB: "fullback", WR: "receiver", TE: "tight end", CB: "corner", FS: "safety", SS: "safety", MIKE: "linebacker", WILL: "linebacker", SAM: "linebacker" })[x.position] || x.position}` : pos, pay = nil ? `making ${nil}K` : "making nothing in NIL";
     const rank = (depth.get(`${tk}|${x.position}`) || []).findIndex((y) => y.player_key === x.player_key) + 1, starter = rank > 0 && rank <= (STARTERS[x.position] || 1);
     const boost = (userTeams.has(tk) ? 25 : 0) + (ranked(tk) ? 5 : 0) + (x.overall - 80);
     const nilR = nilRank.get(tk) || 99;
@@ -292,17 +292,17 @@ async function main() {
       d: `The ${yr[x.class_year] || ""} ${pos} is up ${jump.d} point${jump.d === 1 ? "" : "s"} since ${jump.when}${x.dev_trait && x.dev_trait !== "Normal" ? ` (${x.dev_trait} dev)` : ""}. He's ${nil ? `earning ${nil}K in NIL` : "earning nothing in NIL"}${mkt ? `; ${pos}s rated around ${x.overall} draw a median of ${mkt}K across FBS` : ""}. ${afford || pick(seed + "b2", ["Expect collectives around the country to take notice.", "Keeping him could get expensive."])}` });
     // 2) underpaid star
     else if (mkt && x.overall >= 84 && nil <= mkt * 0.5 && mkt - nil >= 40) add({ kind: "underpaid", kick: "Underpaid", score: 40 + (mkt - nil) / 4 + boost,
-      h: pick(seed + "u", [`${PT} is one of the best bargains in college football. How long can ${TT} keep it that way?`, `Rival collectives are circling ${TT}'s ${PT}`, `${PT} is playing like a star and getting paid like a backup`, `Somebody is going to back up the truck for ${PT}. Will it be ${TT}?`]),
+      h: ([`${PT} is one of the best bargains in college football. How long can ${TT} keep it that way?`, `Rival collectives are circling ${TT}'s ${PT}`, `${PT} is playing like a star and getting paid like a backup`, `Somebody is going to back up the truck for ${PT}. Will it be ${TT}?`]),
       d: `${cap(ov)} ${pos} ${pay}, while players at his position and rating command around ${mkt}K. ${afford || "That gap tends to close in the portal."}` });
     // 3) scheme mismatch
     const sr = styleRank(x);
     if (sr && x.overall >= 80 && sr.rank > sr.of * 0.75 && starter && !["K", "P"].includes(x.position)) add({ kind: "fit", kick: "Bad fit?", score: 35 + (sr.rank / sr.of) * 20 + boost,
-      h: pick(seed + "f", [`${cap(an(archPos))} ${archPos} in the wrong system? ${PT} could be a portal name to watch`, `${PT} and ${TT}'s scheme aren't a match. Will he look elsewhere this offseason?`]),
+      h: ([`${cap(an(archPos))} ${archPos} in the wrong system? ${PT} could be a portal name to watch`, `${PT} and ${TT}'s scheme aren't a match. Will he look elsewhere this offseason?`]),
       d: `${tName(tk)} ranks ${ord(sr.rank)} of ${sr.of} in ${String(sr.stat).toLowerCase()}, not where ${ov} ${archPos} wants to be. Players with that kind of mismatch often test the market.` });
     // 4) buried on the depth chart
     const downs = st.genDownsPlayed || 0;
     if (x.overall >= 80 && !starter && gp >= 3 && downs / gp < 15 && x.class_year !== "FR") add({ kind: "buried", kick: "Buried", score: 30 + (x.overall - 80) * 3 + boost,
-      h: pick(seed + "d", [`${PT} is too good to sit. Is a transfer coming?`, `Stuck at No. ${rank} on the ${tName(tk)} depth chart, ${PT} might not wait around`]),
+      h: ([`${PT} is too good to sit. Is a transfer coming?`, `Stuck at No. ${rank} on the ${tName(tk)} depth chart, ${PT} might not wait around`]),
       d: `${cap(ov)} ${yr[x.class_year]} ${pos} with ${downs} snaps in ${gp} games. Someone in the portal market would start him tomorrow.` });
     // 5) struggling star
     let bad = null;
@@ -313,16 +313,16 @@ async function main() {
       if (x.position === "K" && st.kickFieldGoalAttempts >= 5 && st.kickFieldGoalsMade / st.kickFieldGoalAttempts < 0.65) bad = `${st.kickFieldGoalsMade}-of-${st.kickFieldGoalAttempts} on field goals`;
     }
     if (bad) add({ kind: "struggling", kick: "Under fire", score: 45 + (x.overall - 85) * 3 + boost,
-      h: pick(seed + "s", [`Is ${TT} ready to go a different direction than ${PT}?`, `${PT} was supposed to be a star. The numbers say otherwise`, `Ratings say ${x.overall}. The stat sheet says something else for ${PT}`]),
+      h: ([`Is ${TT} ready to go a different direction than ${PT}?`, `${PT} was supposed to be a star. The numbers say otherwise`, `Ratings say ${x.overall}. The stat sheet says something else for ${PT}`]),
       d: `${bad}. For ${ov} ${pos}${ranked(tk) ? ` on a ranked team` : ""}, that won't cut it. ${pick(seed + "s2", ["The staff will have a big decision this offseason.", "Don't be surprised if the coaches shop the portal at his position.", "One more rough month and the whispers get louder."])}` });
     // 6) star on a sinking ship
     if (x.overall >= 88 && ["SO", "JR"].includes(x.class_year) && gp >= 3 && winPct(tk) <= 0.35) add({ kind: "sinking", kick: "Sinking ship", score: 40 + (x.overall - 88) * 4 + boost,
-      h: pick(seed + "k", [`${PT} deserves better than ${recOf(tk)}. Contenders will be calling`, `Wasted on ${an(recOf(tk))} ${recOf(tk)} team? ${PT} would be the portal's top prize`]),
+      h: ([`${PT} deserves better than ${recOf(tk)}. Contenders will be calling`, `Wasted on ${an(recOf(tk))} ${recOf(tk)} team? ${PT} would be the portal's top prize`]),
       d: `${cap(ov)} ${yr[x.class_year]} ${pos} stuck on ${an(tName(tk))} ${tName(tk)} team that's ${recOf(tk)}. ${pick(seed + "k2", ["Every contender in the country knows his name.", "If he hits the portal, it'll be the story of the offseason."])}` });
   }
-  const pCaps = { breakout: 5, underpaid: 4, fit: 3, buried: 3, struggling: 4, sinking: 3 }, pUsed = {}, pSeen = new Set();
+  const pCaps = { breakout: 5, underpaid: 4, fit: 3, buried: 3, struggling: 4, sinking: 3 }, pUsed = {}, pSeen = new Set(), pRot = {};
   const portalStories = portal.sort((a, b) => b.score - a.score).filter((s) => { if (pSeen.has(s.player)) return false; pUsed[s.kind] = (pUsed[s.kind] || 0) + 1; if (pUsed[s.kind] > (pCaps[s.kind] || 3)) return false; pSeen.add(s.player); return true; })
-    .map((s) => ({ ...s, h: capH(s.h) })).slice(0, 18);
+    .slice(0, 18).map((s, i) => { const v = Array.isArray(s.h) ? s.h[(pRot[s.kind] = (pRot[s.kind] ?? hash(s.player) % s.h.length) + 1) % s.h.length] : s.h; return { ...s, h: capH(v.replace(/\.(\]\])?\./g, ".$1")) }; });
 
   /* ===================== GAMES ===================== */
   const latestWeek = playedGames.length ? Math.max(...playedGames.map((g) => g.week)) : null;
@@ -348,17 +348,17 @@ async function main() {
 
     // headline result
     if (lr && (!wr || wr > lr)) add({ kind: "upset", kick: "Upset", score: base + 60 + Math.min(lr <= 10 ? 20 : 0, 20),
-      h: pick(seed + "u", [`Stunner: ${wr ? `No. ${wr} ` : "Unranked "}${WT} topples No. ${lr} ${LT}, ${sc}`, `${WT} shocks No. ${lr} ${LT} ${sc}${userTeams.has(W.team_key) ? ` and ${coachTok(W.team_key)} has the whole league talking` : ""}`, `Chaos: No. ${lr} ${LT} goes down to ${WT}`]),
+      h: ([`Stunner: ${wr ? `No. ${wr} ` : "Unranked "}${WT} topples No. ${lr} ${LT}, ${sc}`, `${WT} shocks No. ${lr} ${LT} ${sc}${userTeams.has(W.team_key) ? ` and ${coachTok(W.team_key)} has the whole league talking` : ""}`, `Chaos: No. ${lr} ${LT} goes down to ${WT}`]),
       d: `${W.team} ${WS.totalYardsGained >= LS.totalYardsGained ? `outgained ${L.team} ${WS.totalYardsGained} to ${LS.totalYardsGained}` : `won despite being outgained ${LS.totalYardsGained} to ${WS.totalYardsGained}`}${LS.turnovers >= 2 ? ` and forced ${num(LS.turnovers)} turnovers` : ""}. ${pick(seed + "u2", ["Expect a fall in the polls for " + L.team + ".", "The rankings committee will be busy this week.", "Somewhere a playoff bracket just broke."])}`,
       quote: wSay ? { text: pick(seed + "uq", ["Nobody gave us a chance. We heard it all week.", "We're not surprised. This locker room believed.", "Put some respect on it."]), by: wSay } : null });
     if (deficit3 >= 10) add({ kind: "comeback", kick: "Comeback", score: base + 55 + deficit3,
-      h: pick(seed + "c", [`${WT} erases a ${deficit3}-point fourth-quarter deficit to stun ${LT}, ${sc}`, `Never in doubt? ${WT} storms back from ${deficit3} down in the 4th to beat ${LT}`]),
+      h: ([`${WT} erases a ${deficit3}-point fourth-quarter deficit to stun ${LT}, ${sc}`, `Never in doubt? ${WT} storms back from ${deficit3} down in the 4th to beat ${LT}`]),
       d: `${W.team} trailed ${thru3(LQ)}-${thru3(WQ)} after three quarters, then won the fourth ${WQ[3] || 0}-${LQ[3] || 0}${ot ? " and finished it in overtime" : ""}. ${L.team} will be replaying that final quarter for a while.`,
       quote: wSay ? { text: pick(seed + "cq", ["I told them at the end of the third: 15 minutes, all gas.", "That's who we are. We don't flinch."]), by: wSay } : lSay ? { text: `We let one get away. That's on me.`, by: lSay } : null });
     if (ot && deficit3 < 10) add({ kind: "ot", kick: "Overtime", score: base + 45, h: `${WT} outlasts ${LT} in overtime, ${sc}`, d: `Regulation couldn't settle it. ${W.team} took the extra period ${WQ[4] || 0}-${LQ[4] || 0}.` });
-    if (rival && !lr) add({ kind: "rivalry", kick: rival, score: base + 40, h: pick(seed + "r", [`${WT} claims the ${rival} over ${LT}, ${sc}`, `Bragging rights: ${WT} wins the ${rival}`]), d: margin <= 7 ? `It came down to the final possession, as these always seem to.` : `It wasn't close. ${W.team} owns this one for another year.` });
-    if (L.score === 0) add({ kind: "shutout", kick: "Shutout", score: base + 35, h: pick(seed + "s", [`${WT} blanks ${LT}, ${sc}`, `Goose egg: ${WT}'s defense pitches a shutout against ${LT}`]), d: `${L.team} managed just ${LS.totalYardsGained} yards and ${LS.offFirstdown ?? 0} first downs.` });
-    else if (margin >= 35) add({ kind: "blowout", kick: "Blowout", score: base + 20, h: pick(seed + "b", [`${WT} runs ${LT} out of the building, ${sc}`, `No mercy: ${WT} hangs ${W.score} on ${LT}`]), d: `${W.team} rolled up ${WS.totalYardsGained} yards. ${L.team} has a long film session ahead.` });
+    if (rival && !lr) add({ kind: "rivalry", kick: rival, score: base + 40, h: ([`${WT} claims the ${rival} over ${LT}, ${sc}`, `Bragging rights: ${WT} wins the ${rival}`]), d: margin <= 7 ? `It came down to the final possession, as these always seem to.` : `It wasn't close. ${W.team} owns this one for another year.` });
+    if (L.score === 0) add({ kind: "shutout", kick: "Shutout", score: base + 35, h: ([`${WT} blanks ${LT}, ${sc}`, `Goose egg: ${WT}'s defense pitches a shutout against ${LT}`]), d: `${L.team} managed just ${LS.totalYardsGained} yards and ${LS.offFirstdown ?? 0} first downs.` });
+    else if (margin >= 35) add({ kind: "blowout", kick: "Blowout", score: base + 20, h: ([`${WT} runs ${LT} out of the building, ${sc}`, `No mercy: ${WT} hangs ${W.score} on ${LT}`]), d: `${W.team} rolled up ${WS.totalYardsGained} yards. ${L.team} has a long film session ahead.` });
 
     // strategy and mistakes
     for (const [S, me, op, won] of [[WS, W, L, true], [LS, L, W, false]]) {
