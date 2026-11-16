@@ -44,6 +44,11 @@ jobs:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
           FORCE: ${{ inputs.force && '1' || '' }}
         run: node .github/workflows/scripts/build-history.mjs
+      - name: Write ODL Wire stories
+        env:
+          DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
+          FORCE: ${{ inputs.force && '1' || '' }}
+        run: node .github/workflows/scripts/build-stories.mjs
       - name: Register slash commands (only when they change)
         if: ${{ hashFiles('discord.config.json') != '' }}
         env:
