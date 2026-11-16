@@ -348,17 +348,17 @@ async function main() {
 
     // headline result
     if (lr && (!wr || wr > lr)) add({ kind: "upset", kick: "Upset", score: base + 60 + Math.min(lr <= 10 ? 20 : 0, 20),
-      h: ([`Stunner: ${wr ? `No. ${wr} ` : "Unranked "}${WT} topples No. ${lr} ${LT}, ${sc}`, `${WT} shocks No. ${lr} ${LT} ${sc}${userTeams.has(W.team_key) ? ` and ${coachTok(W.team_key)} has the whole league talking` : ""}`, `Chaos: No. ${lr} ${LT} goes down to ${WT}`]),
+      h: pick(seed + "u", [`Stunner: ${wr ? `No. ${wr} ` : "Unranked "}${WT} topples No. ${lr} ${LT}, ${sc}`, `${WT} shocks No. ${lr} ${LT} ${sc}${userTeams.has(W.team_key) ? ` and ${coachTok(W.team_key)} has the whole league talking` : ""}`, `Chaos: No. ${lr} ${LT} goes down to ${WT}`]),
       d: `${W.team} ${WS.totalYardsGained >= LS.totalYardsGained ? `outgained ${L.team} ${WS.totalYardsGained} to ${LS.totalYardsGained}` : `won despite being outgained ${LS.totalYardsGained} to ${WS.totalYardsGained}`}${LS.turnovers >= 2 ? ` and forced ${num(LS.turnovers)} turnovers` : ""}. ${pick(seed + "u2", ["Expect a fall in the polls for " + L.team + ".", "The rankings committee will be busy this week.", "Somewhere a playoff bracket just broke."])}`,
       quote: wSay ? { text: pick(seed + "uq", ["Nobody gave us a chance. We heard it all week.", "We're not surprised. This locker room believed.", "Put some respect on it."]), by: wSay } : null });
     if (deficit3 >= 10) add({ kind: "comeback", kick: "Comeback", score: base + 55 + deficit3,
-      h: ([`${WT} erases a ${deficit3}-point fourth-quarter deficit to stun ${LT}, ${sc}`, `Never in doubt? ${WT} storms back from ${deficit3} down in the 4th to beat ${LT}`]),
+      h: pick(seed + "c", [`${WT} erases a ${deficit3}-point fourth-quarter deficit to stun ${LT}, ${sc}`, `Never in doubt? ${WT} storms back from ${deficit3} down in the 4th to beat ${LT}`]),
       d: `${W.team} trailed ${thru3(LQ)}-${thru3(WQ)} after three quarters, then won the fourth ${WQ[3] || 0}-${LQ[3] || 0}${ot ? " and finished it in overtime" : ""}. ${L.team} will be replaying that final quarter for a while.`,
       quote: wSay ? { text: pick(seed + "cq", ["I told them at the end of the third: 15 minutes, all gas.", "That's who we are. We don't flinch."]), by: wSay } : lSay ? { text: `We let one get away. That's on me.`, by: lSay } : null });
     if (ot && deficit3 < 10) add({ kind: "ot", kick: "Overtime", score: base + 45, h: `${WT} outlasts ${LT} in overtime, ${sc}`, d: `Regulation couldn't settle it. ${W.team} took the extra period ${WQ[4] || 0}-${LQ[4] || 0}.` });
-    if (rival && !lr) add({ kind: "rivalry", kick: rival, score: base + 40, h: ([`${WT} claims the ${rival} over ${LT}, ${sc}`, `Bragging rights: ${WT} wins the ${rival}`]), d: margin <= 7 ? `It came down to the final possession, as these always seem to.` : `It wasn't close. ${W.team} owns this one for another year.` });
-    if (L.score === 0) add({ kind: "shutout", kick: "Shutout", score: base + 35, h: ([`${WT} blanks ${LT}, ${sc}`, `Goose egg: ${WT}'s defense pitches a shutout against ${LT}`]), d: `${L.team} managed just ${LS.totalYardsGained} yards and ${LS.offFirstdown ?? 0} first downs.` });
-    else if (margin >= 35) add({ kind: "blowout", kick: "Blowout", score: base + 20, h: ([`${WT} runs ${LT} out of the building, ${sc}`, `No mercy: ${WT} hangs ${W.score} on ${LT}`]), d: `${W.team} rolled up ${WS.totalYardsGained} yards. ${L.team} has a long film session ahead.` });
+    if (rival && !lr) add({ kind: "rivalry", kick: rival, score: base + 40, h: pick(seed + "r", [`${WT} claims the ${rival} over ${LT}, ${sc}`, `Bragging rights: ${WT} wins the ${rival}`]), d: margin <= 7 ? `It came down to the final possession, as these always seem to.` : `It wasn't close. ${W.team} owns this one for another year.` });
+    if (L.score === 0) add({ kind: "shutout", kick: "Shutout", score: base + 35, h: pick(seed + "s", [`${WT} blanks ${LT}, ${sc}`, `Goose egg: ${WT}'s defense pitches a shutout against ${LT}`]), d: `${L.team} managed just ${LS.totalYardsGained} yards and ${LS.offFirstdown ?? 0} first downs.` });
+    else if (margin >= 35) add({ kind: "blowout", kick: "Blowout", score: base + 20, h: pick(seed + "b", [`${WT} runs ${LT} out of the building, ${sc}`, `No mercy: ${WT} hangs ${W.score} on ${LT}`]), d: `${W.team} rolled up ${WS.totalYardsGained} yards. ${L.team} has a long film session ahead.` });
 
     // strategy and mistakes
     for (const [S, me, op, won] of [[WS, W, L, true], [LS, L, W, false]]) {
