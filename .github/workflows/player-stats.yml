@@ -30,7 +30,7 @@ jobs:
         env:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
           FORCE: ${{ inputs.force && '1' || '' }}
-        run: node scripts/build-player-stats.mjs
+        run: node .github/workflows/scripts/build-player-stats.mjs
       - name: Commit if changed
         run: |
           if git diff --quiet -- data/; then echo "No changes"; exit 0; fi
