@@ -3,8 +3,8 @@
 import { readFile } from "node:fs/promises";
 
 const cfg = JSON.parse(await readFile("discord.config.json", "utf8"));
-const { DISCORD_BOT_TOKEN: TOKEN, DISCORD_APP_ID: APP } = process.env;
-if (!TOKEN || !APP) { console.error("Set DISCORD_BOT_TOKEN and DISCORD_APP_ID"); process.exit(1); }
+const TOKEN = process.env.DISCORD_BOT_TOKEN, APP = process.env.DISCORD_APP_ID || cfg.app_id;
+if (!TOKEN || !APP) { console.error("Set the DISCORD_BOT_TOKEN secret (and app_id in discord.config.json)"); process.exit(1); }
 
 const S = 3, team = (desc = "Team name, e.g. Penn State") => ({ type: S, name: "team", description: desc, required: true });
 const choices = (a) => a.map((v) => ({ name: v, value: v }));
