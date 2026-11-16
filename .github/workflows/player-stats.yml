@@ -1,0 +1,41 @@
+name: Build player stats (all FBS)
+
+on:
+  schedule:
+    - cron: "17 * * * *"   # hourly; exits fast when no new games have synced
+  workflow_dispatch:         # "Run workflow" button on the Actions tab
+    inputs:
+      force:
+        description: "Rebuild even if nothing changed"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: player-stats
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build data/player-stats-all.json
+        env:
+          DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
+          FORCE: ${{ inputs.force && '1' || '' }}
+        run: node scripts/build-player-stats.mjs
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- data/; then echo "No changes"; exit 0; fi
+          git config user.name "odl-stats-bot"
+          git config user.email "odl-stats-bot@users.noreply.github.com"
+          git add data/player-stats-all.json
+          git commit -m "Update player stats"
+          git push
