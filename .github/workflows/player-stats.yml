@@ -1,12 +1,20 @@
-name: Build player stats (all FBS)
+name: ODL sync (stats + Discord)
 
 on:
   schedule:
-    - cron: "17 * * * *"   # hourly; exits fast when no new games have synced
-  workflow_dispatch:         # "Run workflow" button on the Actions tab
+    - cron: "*/10 * * * *"   # every 10 min; GitHub may run it a few minutes late
+  workflow_dispatch:
     inputs:
       force:
-        description: "Rebuild even if nothing changed"
+        description: "Rebuild player stats even if nothing changed"
+        type: boolean
+        default: false
+      replay:
+        description: "Re-post the latest of: final,big,scores,top25,potw,recruiting,portal (comma list) — for testing"
+        type: string
+        default: ""
+      dry_run:
+        description: "Print Discord posts in the log instead of posting"
         type: boolean
         default: false
 
@@ -14,28 +22,38 @@ permissions:
   contents: write
 
 concurrency:
-  group: player-stats
+  group: odl-sync
   cancel-in-progress: false
 
 jobs:
-  build:
+  sync:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - name: Build data/player-stats-all.json
         env:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
           FORCE: ${{ inputs.force && '1' || '' }}
         run: node .github/workflows/scripts/build-player-stats.mjs
+      - name: Post to Discord
+        if: ${{ hashFiles('discord.config.json') != '' }}
+        env:
+          DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          REPLAY: ${{ inputs.replay }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: node .github/workflows/scripts/discord-feed.mjs
       - name: Commit if changed
+        if: always()
         run: |
           if [ -z "$(git status --porcelain -- data/)" ]; then echo "No changes"; exit 0; fi
           git config user.name "odl-stats-bot"
           git config user.email "odl-stats-bot@users.noreply.github.com"
-          git add data/player-stats-all.json
-          git commit -m "Update player stats"
+          git add data/
+          git commit -m "Update ODL data"
+          git pull --rebase --autostash || true
           git push

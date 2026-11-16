@@ -1,0 +1,38 @@
+{
+  "guild_id": "1569397791313232013",
+  "site_url": "https://pf-07.jw1388954.workers.dev",
+
+  "channels": {
+    "final": "final",
+    "scores": "scores",
+    "top25": "top-25",
+    "big_performances": "big-performances",
+    "recruiting": "recruiting",
+    "portal": "transfer-portal",
+    "potw": "players-of-the-week",
+    "commish": "commish-board",
+    "matchups_category": "Matchups"
+  },
+
+  "conferences": {
+    "ACC":     { "role": "ACC", "channel": "acc" },
+    "Big 12":  { "role": "B12", "channel": "big-12" },
+    "Big Ten": { "role": "B10", "channel": "big-ten" },
+    "SEC":     { "role": "SEC", "channel": "sec" }
+  },
+
+  "coaches": {},
+  "commish_role": "Commish",
+
+  "matchups": {
+    "keep_previous_weeks": 1
+  },
+
+  "big_performances": {
+    "pass_yards": 400, "pass_td": 5,
+    "rush_yards": 200, "rush_td": 4,
+    "rec_yards": 200, "rec_td": 3,
+    "total_td": 5,
+    "sacks": 3, "def_int": 2, "tackles": 15
+  }
+}

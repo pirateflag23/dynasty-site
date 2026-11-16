@@ -1,0 +1,538 @@
+// ODL Discord feed. Runs after every sync (GitHub Action) and posts what's new:
+//   #final            box score for every game with a user team
+//   #scores           weekly roundup once a week's games are all played
+//   #top-25           poll after each advance, with movement
+//   #big-performances standout stat lines from every FBS game
+//   #recruiting       per-user-team recruiting report at each advance
+//   #transfer-portal  portal entries and commitments
+//   #players-of-the-week + conference channels (role ping)
+//   #commish-board    one live message: RTA, unplayed games, autopilot
+//   Matchups category one chat per user-vs-user game each week, with a preview
+//
+// Env: DYNASTY_API_KEY, DISCORD_BOT_TOKEN (required)
+//      DRY_RUN=1  print instead of posting   REPLAY=final,top25,...  re-post latest
+// Files: discord.config.json (settings), data/discord-state.json (what's been posted),
+//        data/player-stats-all.json (from build-player-stats.mjs), data/bot/*.json (written for the slash bot)
+
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+
+const API = (process.env.DYNASTY_API_BASE || "https://dynasty.prestonchoate.dev/v1").replace(/\/$/, "");
+const KEY = process.env.DYNASTY_API_KEY;
+const TOKEN = process.env.DISCORD_BOT_TOKEN;
+const DRY = !!process.env.DRY_RUN;
+const REPLAY = new Set((process.env.REPLAY || "").split(",").map((s) => s.trim()).filter(Boolean));
+const STATE_FILE = "data/discord-state.json";
+const DC = "https://discord.com/api/v10";
+const RED = 0xc8102e, GOLD = 0xf2b134, BLUE = 0x2b6cb0, GREEN = 0x2f9e44;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const log = (...a) => console.log(...a);
+
+/* ---------------- HTTP ---------------- */
+async function api(path, tries = 5) {
+  for (let i = 1; ; i++) {
+    const r = await fetch(API + path, { headers: { Authorization: `Bearer ${KEY}` } });
+    if (r.ok) return r.json();
+    if ((r.status === 429 || r.status >= 500) && i < tries) { await sleep((Number(r.headers.get("retry-after")) || 5 * i) * 1000); continue; }
+    throw new Error(`API ${path} → ${r.status} ${await r.text()}`);
+  }
+}
+async function dc(method, path, body, tries = 6) {
+  if (DRY && method !== "GET") { log(`[dry] ${method} ${path}`, body ? JSON.stringify(body).slice(0, 4000) : ""); return { id: "dry-" + Math.random().toString(36).slice(2) }; }
+  for (let i = 1; ; i++) {
+    const r = await fetch(DC + path, {
+      method, body: body ? JSON.stringify(body) : undefined,
+      headers: { Authorization: `Bot ${TOKEN}`, "Content-Type": "application/json", "User-Agent": "DiscordBot (https://github.com, 1.0) ODL" },
+    });
+    if (r.status === 429 && i < tries) { const j = await r.json().catch(() => ({})); await sleep((j.retry_after || 1) * 1000 + 250); continue; }
+    if (r.status >= 500 && i < tries) { await sleep(2000 * i); continue; }
+    if (!r.ok) throw new Error(`Discord ${method} ${path} → ${r.status} ${await r.text()}`);
+    return r.status === 204 ? null : r.json();
+  }
+}
+async function pool(items, n, fn) {
+  const out = []; let i = 0;
+  await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) { const j = i++; out[j] = await fn(items[j]); } }));
+  return out;
+}
+
+/* ---------------- formatting helpers ---------------- */
+const f1 = (v) => (v == null || !isFinite(v) ? "—" : (Math.round(v * 10) / 10).toFixed(1));
+const n0 = (v) => (v == null ? "—" : Number(v).toLocaleString("en-US"));
+const stars = (n) => "★".repeat(n || 0);
+const pad = (s, n) => String(s).slice(0, n).padEnd(n);
+const lpad = (s, n) => String(s).slice(0, n).padStart(n);
+const rk = (r) => (r > 0 && r <= 25 ? `#${r} ` : "");
+const chunk = (a, n) => a.reduce((o, x, i) => (i % n ? o[o.length - 1].push(x) : o.push([x]), o), []);
+const clip = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+const mmss = (sec) => `${Math.floor((sec || 0) / 60)}:${String((sec || 0) % 60).padStart(2, "0")}`;
+// Split lines into embed descriptions under Discord's 4096-char limit.
+function pages(lines, max = 3900) {
+  const out = [""];
+  for (const l of lines) { if ((out[out.length - 1] + l).length + 1 > max) out.push(""); out[out.length - 1] += l + "\n"; }
+  return out.filter((s) => s.trim());
+}
+
+/* ---------------- main ---------------- */
+async function main() {
+  if (!KEY || (!TOKEN && !DRY)) throw new Error("DYNASTY_API_KEY and DISCORD_BOT_TOKEN must be set");
+  const cfg = JSON.parse(await readFile("discord.config.json", "utf8"));
+  let state, seeding = false;
+  try { state = JSON.parse(await readFile(STATE_FILE, "utf8")); } catch { state = { posted: {}, chats: {} }; seeding = true; }
+  state.posted ??= {}; state.chats ??= {};
+  const seen = (k) => !!state.posted[k];
+  const mark = (k) => { state.posted[k] = new Date().toISOString().slice(0, 10); };
+
+  /* ---- load league data ---- */
+  const [league, schedule, standings, teamStats, members, awards, periods] = await Promise.all([
+    api("/league"), api("/schedule"), api("/standings"), api("/team-stats"), api("/members"), api("/awards"), api("/periods"),
+  ]);
+  const cur = league.data.current_period;
+  const prevPeriod = periods.data.find((p) => p.id !== cur.id);
+  const standingsPrev = prevPeriod ? await api(`/standings?period=${prevPeriod.id}`).catch(() => null) : null;
+  const games = schedule.data;
+  const teams = new Map(standings.data.map((t) => [t.team_key, t]));
+  const tstats = new Map(teamStats.data.map((t) => [t.team_key, t]));
+  const byTeamId = new Map(teamStats.data.map((t) => [t.team_id, t.team_key]));
+  const userTeams = new Set(members.data.map((m) => m.team_key));
+  const memberByTeam = new Map(members.data.map((m) => [m.team_key, m]));
+  const coachId = (teamKey) => { const id = cfg.coaches?.[teams.get(teamKey)?.name]; return /^\d{15,22}$/.test(id || "") ? id : null; }; // ignores blanks/placeholders
+  const coachTag = (teamKey) => { const id = coachId(teamKey); const m = memberByTeam.get(teamKey); return id ? `<@${id}>` : m ? m.user_name : "CPU"; };
+  const site = (hash) => `${cfg.site_url.replace(/\/$/, "")}/#${hash}`;
+  const tName = (k) => teams.get(k)?.name || tstats.get(k)?.name || "?";
+  const isUserGame = (g) => g.kind !== "cpu_vs_cpu";
+  const weekLabel = (g) => g.bowl_name || g.displayed_week || `Week ${g.week}`;
+
+  let allPlayers = [];
+  try {
+    const j = JSON.parse(await readFile("data/player-stats-all.json", "utf8"));
+    for (const p of j.data) for (const k of j.stat_keys) p.stats[k] ??= 0;
+    allPlayers = j.data;
+  } catch { log("No data/player-stats-all.json yet; previews will skip player leaders."); }
+
+  /* ---- Discord guild lookup ---- */
+  let chan = {}, roles = {}, botId = null, guild = cfg.guild_id;
+  if (!DRY || TOKEN) {
+    const [chs, rls, me] = await Promise.all([dc("GET", `/guilds/${guild}/channels`), dc("GET", `/guilds/${guild}/roles`), dc("GET", "/users/@me")]);
+    for (const c of chs) chan[`${c.type}:${c.name.toLowerCase()}`] = c.id;
+    for (const r of rls) roles[r.name.toLowerCase()] = r.id;
+    botId = me.id;
+  }
+  const textCh = (name) => (name ? chan[`0:${name.toLowerCase()}`] || chan[`5:${name.toLowerCase()}`] : null) || (DRY ? `#${name}` : null);
+  const roleId = (name) => (name ? roles[name.toLowerCase()] : null) || (DRY ? `@${name}` : null);
+  const missing = new Set();
+  async function send(chName, payload) {
+    const id = textCh(chName);
+    if (!id) { if (!missing.has(chName)) log(`⚠️  Channel #${chName} not found — skipping its posts.`); missing.add(chName); return false; }
+    // Discord allows 10 embeds and 6000 characters per message: split as needed.
+    const esz = (e) => (e.title || "").length + (e.description || "").length + (e.footer?.text || "").length + (e.fields || []).reduce((a, f) => a + f.name.length + f.value.length, 0);
+    const parts = []; let cur_ = [], sz = 0;
+    for (const e of payload.embeds || []) {
+      const n = esz(e);
+      if (cur_.length && (cur_.length === 10 || sz + n > 5800)) { parts.push(cur_); cur_ = []; sz = 0; }
+      cur_.push(e); sz += n;
+    }
+    if (cur_.length || !parts.length) parts.push(cur_);
+    for (let i = 0; i < parts.length; i++) {
+      await dc("POST", `/channels/${id}/messages`, {
+        content: i === 0 ? payload.content : undefined, embeds: parts[i],
+        allowed_mentions: payload.allowed_mentions || { parse: [] },
+      });
+    }
+    return true;
+  }
+  // Post `build()` to a channel once per key. During the first run (seeding) everything that
+  // already exists is just marked as seen, so the channels don't get flooded with history.
+  async function once(key, feature, chName, build) {
+    const replay = REPLAY.has(feature) && !state._replayed?.[feature + chName];
+    if (seen(key) && !replay) return;
+    if (seeding && !replay) { mark(key); return; }
+    const payload = await build();
+    if (!payload) return;
+    if (await send(chName, payload)) { mark(key); if (replay) (state._replayed ??= {})[feature + chName] = true; log(`posted ${key}`); }
+  }
+
+  state.abbr ??= {};
+  const abbr = (k) => state.abbr[k] || (() => { const w = tName(k).replace(/[^A-Za-z ]/g, "").split(" ").filter(Boolean); return (w.length > 1 ? w.map((x) => x[0]).join("") : w[0] || "?").slice(0, 4).toUpperCase(); })();
+  // Save progress even if a later step fails, so nothing is posted twice.
+  try {
+  /* ---- box scores for played games we haven't posted ---- */
+  const played = games.filter((g) => g.played && g.has_box_score);
+  const needBox = played.filter((g) => (isUserGame(g) && !seen(`final:${g.key}`)) || !seen(`big:${g.key}`) || REPLAY.size);
+  const latestFirst = [...needBox].sort((a, b) => b.week - a.week);
+  const boxList = seeding && !REPLAY.size ? [] : await pool(REPLAY.size ? latestFirst.slice(0, 40) : needBox, 4, (g) => api(`/games/${g.key}`).then((r) => r.data).catch(() => null));
+  const box = new Map(boxList.filter(Boolean).map((d) => [d.key, d.box_score]));
+  for (const [gk, b] of box) { const g = games.find((x) => x.key === gk); if (g && b?.Home?.Abbrev) { state.abbr[g.home.team_key] = b.Home.Abbrev; state.abbr[g.away.team_key] = b.Away.Abbrev; } }
+
+  /* ============ #final ============ */
+  for (const g of [...played].filter(isUserGame).sort((a, b) => b.week - a.week)) {
+    await once(`final:${g.key}`, "final", cfg.channels.final, () => box.get(g.key) && finalEmbed(g, box.get(g.key)));
+  }
+
+  /* ============ #big-performances ============ */
+  const bpLines = [];
+  for (const g of played) {
+    if (seen(`big:${g.key}`) && !REPLAY.has("big")) continue;
+    if (seeding && !REPLAY.has("big")) { mark(`big:${g.key}`); continue; }
+    const b = box.get(g.key); if (!b) continue;
+    const lines = bigPerformances(g, b, cfg.big_performances || {});
+    bpLines.push(...lines); mark(`big:${g.key}`);
+  }
+  if (REPLAY.has("big") && bpLines.length > 20) bpLines.length = 20;
+  if (bpLines.length) await send(cfg.channels.big_performances, { embeds: pages(bpLines).map((d, i) => ({ title: i ? undefined : "🔥 Big performances", description: d, color: GOLD })) });
+
+  /* ============ #scores weekly roundup ============ */
+  const weeksDone = [...new Set(games.map((g) => g.week))].filter((w) => games.filter((g) => g.week === w).every((g) => g.played));
+  for (const w of weeksDone.sort((a, b) => b - a).slice(0, 3)) {
+    await once(`scores:${league.data.calendar_year}:${w}`, "scores", cfg.channels.scores, () => scoresEmbed(w));
+  }
+
+  /* ============ #top-25 ============ */
+  if (standings.period?.id === cur.id) {
+    await once(`top25:${cur.id}`, "top25", cfg.channels.top25, () => top25Embed());
+  }
+
+  /* ============ Players of the week ============ */
+  const awardWeeks = [...new Set(awards.data.map((a) => `${a.season}:${a.week}`))];
+  const wkNum = (s) => s.split(":").map(Number);
+  awardWeeks.sort((a, b) => wkNum(b)[0] - wkNum(a)[0] || wkNum(b)[1] - wkNum(a)[1]);
+  for (const wk of awardWeeks.slice(0, 3)) {
+    const list = awards.data.filter((a) => `${a.season}:${a.week}` === wk);
+    await once(`potw:${wk}:National`, "potw", cfg.channels.potw, () => potwEmbed(list, "National"));
+    for (const [conf, c] of Object.entries(cfg.conferences || {})) {
+      await once(`potw:${wk}:${conf}`, "potw", c.channel, () => {
+        const e = potwEmbed(list, conf); if (!e) return null;
+        const r = roleId(c.role);
+        return { ...e, content: r ? `<@&${r}>` : undefined, allowed_mentions: { roles: r && !DRY ? [r] : [] } };
+      });
+    }
+  }
+
+  /* ============ Recruiting (weekly, per user team) ============ */
+  const classes = await api("/recruits/classes").catch(() => null);
+  if (classes && (classes.period?.id ?? cur.id) === cur.id) {
+    await once(`recruit:${cur.id}`, "recruiting", cfg.channels.recruiting, () => recruitingEmbeds(classes));
+  }
+
+  /* ============ Transfer portal ============ */
+  await transferPortal();
+
+  /* ============ Matchup chats + previews ============ */
+  await matchupChats();
+
+  /* ============ Conference roles for coaches ============ */
+  await syncRoles();
+
+  /* ============ Commish board (one message, edited every run) ============ */
+  await commishBoard();
+
+  /* ---- data for the slash-command bot ---- */
+  await writeBotData();
+
+  if (seeding) log("First run: marked existing games/awards/commits as already posted (no backlog flood).");
+  } finally {
+    delete state._replayed;
+    await mkdir("data", { recursive: true });
+    await writeFile(STATE_FILE, JSON.stringify(state, null, 1));
+  }
+
+  /* =================== builders =================== */
+
+  function sideLeaders(b, teamKey) {
+    const ps = b.Players.filter((p) => p.Team === teamKey);
+    const top = (k) => ps.filter((p) => p.Stats[k] > 0).sort((a, c) => c.Stats[k] - a.Stats[k])[0];
+    const out = [];
+    const qb = top("passAttempts"); if (qb) { const s = qb.Stats; out.push(`🎯 **${qb.Name}** ${s.passCompletion}/${s.passAttempts}, ${s.passYards} yds, ${s.passTD} TD${s.passINT ? `, ${s.passINT} INT` : ""}`); }
+    const rb = top("rushYards"); if (rb) { const s = rb.Stats; out.push(`🏃 **${rb.Name}** ${s.rushAttempts}-${s.rushYards}${s.rushTD ? `, ${s.rushTD} TD` : ""}`); }
+    const wr = top("receivingYards"); if (wr) { const s = wr.Stats; out.push(`🙌 **${wr.Name}** ${s.receiveReceptions}-${s.receivingYards}${s.receiveTouchdowns ? `, ${s.receiveTouchdowns} TD` : ""}`); }
+    const df = ps.filter((p) => p.Stats.defenseTotalTackles + p.Stats.defenseSacks * 3 + p.Stats.defenseInterceptions * 4 > 0)
+      .sort((a, c) => (c.Stats.defenseTotalTackles + c.Stats.defenseSacks * 3 + c.Stats.defenseInterceptions * 4) - (a.Stats.defenseTotalTackles + a.Stats.defenseSacks * 3 + a.Stats.defenseInterceptions * 4))[0];
+    if (df) { const s = df.Stats; out.push(`🛡️ **${df.Name}** ${s.defenseTotalTackles} tkl${s.defenseSacks ? `, ${s.defenseSacks} sk` : ""}${s.defenseInterceptions ? `, ${s.defenseInterceptions} INT` : ""}`); }
+    return out.join("\n") || "—";
+  }
+
+  function finalEmbed(g, b) {
+    const H = b.Home, A = b.Away, hk = g.home.team_key, ak = g.away.team_key;
+    const win = g.home.score > g.away.score ? "home" : g.home.score < g.away.score ? "away" : null;
+    const nm = (side) => `${rk(g[side].rank_at_game)}${g[side].team} ${g[side].score}`;
+    const title = win === "away" ? `${nm("away")}, ${nm("home")}` : `${nm("home")}, ${nm("away")}`;
+    const q = (t) => t.Quarters || [];
+    const ot = q(H).length > 4 && (q(H)[4] || q(A)[4]);
+    const hdr = `${pad("", 6)}${["1", "2", "3", "4"].concat(ot ? ["OT"] : []).map((x) => lpad(x, 4)).join("")}${lpad("T", 5)}`;
+    const row = (t) => `${pad(t.Abbrev, 6)}${q(t).slice(0, ot ? 5 : 4).map((x) => lpad(x, 4)).join("")}${lpad(t.Score, 5)}`;
+    const s = (t, k) => t.Stats?.[k] ?? 0;
+    const st = [
+      ["Total yds", (t) => s(t, "totalYardsGained") || s(t, "offYardsGained")],
+      ["Pass", (t) => s(t, "offPassYards")], ["Rush", (t) => s(t, "offRushYards")],
+      ["1st downs", (t) => s(t, "offFirstdown")],
+      ["3rd down", (t) => `${s(t, "thirdDownConversions")}/${s(t, "thirdDowns")}`],
+      ["Turnovers", (t) => s(t, "turnovers")],
+      ["Penalties", (t) => `${s(t, "penalties")}-${s(t, "penaltyYards")}`],
+      ["Possession", (t) => mmss(s(t, "possessionSeconds"))],
+    ];
+    const table = [`${pad("", 11)}${lpad(A.Abbrev, 7)}${lpad(H.Abbrev, 7)}`, ...st.map(([l, f]) => `${pad(l, 11)}${lpad(f(A), 7)}${lpad(f(H), 7)}`)].join("\n");
+    return { embeds: [{
+      title: `FINAL · ${title}`, url: site(`game/${g.key}`), color: RED,
+      description: "```\n" + [hdr, row(A), row(H)].join("\n") + "\n```",
+      fields: [
+        { name: "Team stats", value: "```\n" + table + "\n```" },
+        { name: `${A.Abbrev} leaders`, value: clip(sideLeaders(b, ak), 1024), inline: true },
+        { name: `${H.Abbrev} leaders`, value: clip(sideLeaders(b, hk), 1024), inline: true },
+      ],
+      footer: { text: `${league.data.calendar_year} · ${weekLabel(g)} · ${g.away.team} (${g.away.user_name}) at ${g.home.team} (${g.home.user_name})` },
+    }] };
+  }
+
+  function bigPerformances(g, b, T) {
+    const out = [];
+    for (const p of b.Players) {
+      const s = p.Stats, bits = [];
+      if (s.passYards >= T.pass_yards || s.passTD >= T.pass_td) bits.push(`${s.passCompletion}/${s.passAttempts}, ${s.passYards} pass yds, ${s.passTD} TD`);
+      if (s.rushYards >= T.rush_yards || s.rushTD >= T.rush_td) bits.push(`${s.rushAttempts} car, ${s.rushYards} rush yds, ${s.rushTD} TD`);
+      if (s.receivingYards >= T.rec_yards || s.receiveTouchdowns >= T.rec_td) bits.push(`${s.receiveReceptions} rec, ${s.receivingYards} yds, ${s.receiveTouchdowns} TD`);
+      if (s.defenseSacks >= T.sacks) bits.push(`${s.defenseSacks} sacks`);
+      if (s.defenseInterceptions >= T.def_int) bits.push(`${s.defenseInterceptions} INT`);
+      if (s.defenseTotalTackles >= T.tackles) bits.push(`${s.defenseTotalTackles} tackles`);
+      const tds = (s.passTD || 0) + (s.rushTD || 0) + (s.receiveTouchdowns || 0);
+      if (!bits.length && tds >= T.total_td) bits.push(`${tds} total TD (${[["pass", s.passTD], ["rush", s.rushTD], ["rec", s.receiveTouchdowns]].filter(([, v]) => v).map(([l, v]) => `${v} ${l}`).join(", ")})`);
+      if (!bits.length) continue;
+      const mine = p.Team === g.home.team_key ? g.home : g.away, opp = mine === g.home ? g.away : g.home;
+      const res = mine.score > opp.score ? "W" : mine.score < opp.score ? "L" : "T";
+      const user = userTeams.has(p.Team) ? "🎮 " : "";
+      out.push(`${user}**[${p.Name}](${site(`player/${p.Key}`)})** (${mine.team}) — ${bits.join(" · ")}  ·  ${res} ${mine.score}-${opp.score} vs ${opp.team} · ${weekLabel(g)}`);
+    }
+    return out;
+  }
+
+  function scoresEmbed(w) {
+    const wg = games.filter((g) => g.week === w);
+    const res = (g) => { const [W, L] = g.home.score >= g.away.score ? [g.home, g.away] : [g.away, g.home]; return { W, L }; };
+    const line = (g) => { const { W, L } = res(g); return `**${rk(W.rank_at_game)}${W.team} ${W.score}**, ${rk(L.rank_at_game)}${L.team} ${L.score} · [box](${site(`game/${g.key}`)})`; };
+    const user = wg.filter(isUserGame).map(line);
+    const ranked = wg.filter((g) => !isUserGame(g) && ((g.home.rank_at_game || 99) <= 25 || (g.away.rank_at_game || 99) <= 25)).map(line);
+    const upsets = wg.filter((g) => { const { W, L } = res(g); return (L.rank_at_game || 99) <= 25 && (W.rank_at_game || 99) > (L.rank_at_game || 99); })
+      .map((g) => { const { W, L } = res(g); return `😱 ${rk(W.rank_at_game) || "Unranked "}${W.team} over #${L.rank_at_game} ${L.team}, ${W.score}-${L.score}`; });
+    const label = weekLabel(wg[0]);
+    const embeds = [];
+    if (user.length) embeds.push(...pages(user).map((d, i) => ({ title: i ? undefined : `🏈 ${label} scores · League games`, description: d, color: RED })));
+    if (upsets.length) embeds.push({ title: "Upsets", description: pages(upsets)[0], color: GOLD });
+    if (ranked.length) embeds.push(...pages(ranked).map((d, i) => ({ title: i ? undefined : "Top 25 around the country", description: d, color: BLUE })));
+    return embeds.length ? { embeds } : null;
+  }
+
+  function top25Embed() {
+    const prev = new Map((standingsPrev?.data || []).map((t) => [t.team_key, t.rank]));
+    const top = standings.data.filter((t) => t.rank > 0 && t.rank <= 25).sort((a, b) => a.rank - b.rank);
+    const mv = (t) => { const p = prev.get(t.team_key); if (!p || p > 25) return "🆕"; return p === t.rank ? "—" : p > t.rank ? `▲${p - t.rank}` : `▼${t.rank - p}`; };
+    const lines = top.map((t) => `\`${lpad(t.rank, 2)}\` ${userTeams.has(t.team_key) ? "**" : ""}${t.name}${userTeams.has(t.team_key) ? "** 🎮" : ""} (${t.record}) ${mv(t)}`);
+    const out = [...prev.entries()].filter(([k, r]) => r > 0 && r <= 25 && !top.some((t) => t.team_key === k)).map(([k]) => tName(k));
+    return { embeds: [{ title: `🏆 Top 25 · ${cur.season_text}`, url: site("standings"), color: RED, description: lines.join("\n"),
+      footer: out.length ? { text: `Dropped out: ${out.join(", ")}` } : undefined }] };
+  }
+
+  function potwEmbed(list, conf) {
+    const a = list.filter((x) => x.conference === conf);
+    if (!a.length) return null;
+    const off = (x) => (x.award.startsWith("Off") ? 0 : 1);
+    const f = a.sort((x, y) => off(x) - off(y)).map((x) => ({
+      name: `${x.award.startsWith("Off") ? "⚡ Offense" : "🧱 Defense"}`,
+      value: `**[${x.name}](${site(`player/${x.player_key}`)})** · ${x.position} · ${rk(x.team_rank)}${x.team_name}${userTeams.has(x.team_key) ? " 🎮" : ""}\n${x.game}\n\`${String(x.stat_line).replace(/\n/g, " · ")}\``,
+    }));
+    const wk = a[0].week; const g = games.find((x) => x.week === wk + 1);
+    return { embeds: [{ title: `${conf === "National" ? "🇺🇸 National" : conf} Players of the Week · ${g ? weekLabel(g) : `Week ${wk}`}`, color: conf === "National" ? GOLD : BLUE, fields: f }] };
+  }
+
+  async function recruitingEmbeds(cls) {
+    const prevCls = prevPeriod ? await api(`/recruits/classes?period=${prevPeriod.id}`).catch(() => null) : null;
+    const prevRank = new Map((prevCls?.data || []).map((c) => [c.team_key, c.rank]));
+    const [commits, board] = await Promise.all([api("/recruits/commits?type=recruits"), api("/recruits?type=recruits&committed=false")]);
+    const thisWeek = commits.data.filter((c) => c.period_id === cur.id);
+    const embeds = [];
+    // National header
+    const top10 = cls.data.slice(0, 10).map((c) => `\`${lpad(c.rank, 2)}\` ${userTeams.has(c.team_key) ? `**${c.name}** 🎮` : c.name} · ${c.commits.total} commits · ${f1(c.points)} pts`);
+    const big = thisWeek.filter((c) => c.kind !== "decommit" && (c.stars >= 5 || c.national_rank <= 50)).slice(0, 8)
+      .map((c) => `${c.kind === "commit" && c.previous_school ? "🔄 Flip" : c.kind === "sign" ? "✍️ Signed" : "✅"} ${stars(c.stars)} ${c.position} **${c.name}** (#${c.national_rank}) → ${c.school?.name}`);
+    embeds.push({ title: `📋 Recruiting report · ${cur.season_text}`, color: GREEN, fields: [
+      { name: "Top 10 classes", value: top10.join("\n") || "—" },
+      ...(big.length ? [{ name: "Top recruits on the move", value: clip(big.join("\n"), 1024) }] : []),
+    ] });
+    // One embed per user team
+    for (const tk of [...userTeams].sort((a, b) => tName(a).localeCompare(tName(b)))) {
+      const t = tstats.get(tk); const c = cls.data.find((x) => x.team_key === tk);
+      const tid = t?.team_id;
+      const pr = prevRank.get(tk);
+      const mv = c && pr ? (pr === c.rank ? "" : pr > c.rank ? ` ▲${pr - c.rank}` : ` ▼${c.rank - pr}`) : "";
+      const mine = thisWeek.filter((x) => x.school?.team_id === tid || x.previous_school?.team_id === tid);
+      const moves = mine.map((x) => {
+        const lost = x.previous_school?.team_id === tid && x.school?.team_id !== tid;
+        const icon = x.kind === "decommit" ? "❌ Decommit" : lost ? "💔 Flipped away" : x.previous_school ? "🔄 Flipped to you" : x.kind === "sign" ? "✍️ Signed" : "✅ Commit";
+        return `${icon}: ${stars(x.stars)} ${x.position} ${x.name} (#${x.national_rank})${lost ? ` → ${x.school?.name}` : ""}`;
+      });
+      const battles = board.data.filter((r) => (r.top_schools || []).some((s) => s.team_id === tid)).slice(0, 6).map((r) => {
+        const i = r.top_schools.findIndex((s) => s.team_id === tid), lead = r.top_schools[0], me = r.top_schools[i];
+        const status = i === 0 ? `🟢 leading (${me.influence}${r.top_schools[1] ? ` vs ${r.top_schools[1].name} ${r.top_schools[1].influence}` : ""})` : `🟡 ${i + 1}${["st", "nd", "rd"][i] || "th"} · ${me.influence} vs ${lead.name} ${lead.influence}`;
+        return `${stars(r.stars)} ${r.position} **${r.name}** (#${r.national_rank}, ${r.state}) — ${status}`;
+      });
+      embeds.push({
+        title: `${tName(tk)} · Class #${c?.rank ?? "—"}${mv}`, url: site(`team/${tk}`), color: GREEN,
+        description: c ? `${c.commits.total} commits · ★5 ${c.commits.five_star} · ★4 ${c.commits.four_star} · ★3 ${c.commits.three_star} · ${f1(c.points)} pts${memberByTeam.get(tk) ? ` · ${memberByTeam.get(tk).recruiting_hours} hrs` : ""}` : "No class yet",
+        fields: [
+          { name: "This week", value: clip(moves.join("\n") || "No changes", 1024) },
+          { name: "Top battles (uncommitted)", value: clip(battles.join("\n") || "Not in anyone's top 5 yet", 1024) },
+        ],
+      });
+    }
+    return { embeds };
+  }
+
+  async function transferPortal() {
+    const [moves, pool_] = await Promise.all([api("/recruits/commits?type=transfers").catch(() => ({ data: [] })), api("/recruits?type=transfers").catch(() => ({ data: [] }))]);
+    const fromName = (r) => (typeof r.transfer_from === "string" ? r.transfer_from : r.transfer_from?.name) || "?";
+    const fromKey = (r) => (r.transfer_from?.team_id ? byTeamId.get(r.transfer_from.team_id) : standings.data.find((t) => t.name === fromName(r))?.team_key);
+    const lines = [];
+    for (const r of pool_.data) {
+      const k = `portal-in:${r.prospect_key}`;
+      if (seen(k) && !REPLAY.has("portal")) continue;
+      mark(k); if (seeding && !REPLAY.has("portal")) continue;
+      const user = userTeams.has(fromKey(r));
+      if (!user && (r.stars || 0) < 3) continue; // keep the feed readable: 3★+ or leaving a user team
+      lines.push(`📥 ${user ? "**🎮 " : ""}${stars(r.stars)} ${r.position} ${r.name}${user ? "**" : ""} entered from **${fromName(r)}** (#${r.national_rank} overall)`);
+    }
+    for (const m of moves.data) {
+      const k = `portal-mv:${m.prospect_key}:${m.kind}:${m.school?.team_id || ""}`;
+      if (seen(k) && !REPLAY.has("portal")) continue;
+      mark(k); if (seeding && !REPLAY.has("portal")) continue;
+      const user = userTeams.has(byTeamId.get(m.school?.team_id));
+      const icon = m.kind === "decommit" ? "❌ Decommitted" : m.kind === "sign" ? "✍️ Signed with" : m.previous_school ? "🔄 Flipped to" : "✅ Committed to";
+      lines.push(`${icon} ${user ? "**🎮 " : ""}${m.school?.name || ""}${user ? "**" : ""}: ${stars(m.stars)} ${m.position} ${m.name}${m.previous_school ? ` (was ${m.previous_school.name})` : ""}`);
+    }
+    if (REPLAY.has("portal") && lines.length > 25) lines.length = 25;
+    if (lines.length) await send(cfg.channels.portal, { embeds: pages(lines).map((d, i) => ({ title: i ? undefined : `🔁 Transfer portal · ${cur.season_text}`, description: d, color: BLUE })) });
+  }
+
+  function previewEmbed(g) {
+    const A = g.away.team_key, H = g.home.team_key;
+    const ta = teams.get(A) || {}, th = teams.get(H) || {}, sa = tstats.get(A)?.stats || {}, sh = tstats.get(H)?.stats || {};
+    const rows = [
+      ["Record", ta.record, th.record], ["Rank", ta.rank > 0 && ta.rank <= 25 ? `#${ta.rank}` : "NR", th.rank > 0 && th.rank <= 25 ? `#${th.rank}` : "NR"],
+      ["OVR/OFF/DEF", `${ta.overall}/${ta.offense}/${ta.defense}`, `${th.overall}/${th.offense}/${th.defense}`],
+      ["Points/g", f1(sa.OffPointsPerGame), f1(sh.OffPointsPerGame)], ["Yards/g", f1(sa.OffYardsPerGame), f1(sh.OffYardsPerGame)],
+      ["Pass/g", f1(sa.OffPassYardsPerGame), f1(sh.OffPassYardsPerGame)], ["Rush/g", f1(sa.OffRushYardsPerGame), f1(sh.OffRushYardsPerGame)],
+      ["Allowed/g", f1(sa.DefPointsPerGame), f1(sh.DefPointsPerGame)], ["Yds allowed/g", f1(sa.DefYardsPerGame), f1(sh.DefYardsPerGame)],
+      ["TO margin", sa.TurnoverDiff ?? "—", sh.TurnoverDiff ?? "—"], ["Sacks", sa.DefSacks ?? "—", sh.DefSacks ?? "—"],
+    ];
+    const table = [`${pad("", 14)}${lpad(abbr(A), 10)}${lpad(abbr(H), 10)}`, ...rows.map(([l, a, h]) => `${pad(l, 14)}${lpad(a ?? "—", 10)}${lpad(h ?? "—", 10)}`)].join("\n");
+    const leaders = (tk) => {
+      const ps = allPlayers.filter((p) => p.team_key === tk);
+      const top = (k) => ps.filter((p) => p.stats[k] > 0).sort((a, b) => b.stats[k] - a.stats[k])[0];
+      const out = [];
+      const qb = top("passYards"); if (qb) out.push(`🎯 ${qb.name} ${n0(qb.stats.passYards)} yds, ${qb.stats.passTD} TD, ${qb.stats.passINT} INT`);
+      const rb = top("rushYards"); if (rb) out.push(`🏃 ${rb.name} ${n0(rb.stats.rushYards)} yds, ${rb.stats.rushTD} TD`);
+      const wr = top("receivingYards"); if (wr) out.push(`🙌 ${wr.name} ${wr.stats.receiveReceptions}-${n0(wr.stats.receivingYards)}, ${wr.stats.receiveTouchdowns} TD`);
+      const tk_ = top("defenseTotalTackles"); if (tk_) out.push(`🛡️ ${tk_.name} ${tk_.stats.defenseTotalTackles} tkl`);
+      const sk = top("defenseSacks"); if (sk) out.push(`💥 ${sk.name} ${sk.stats.defenseSacks} sack${sk.stats.defenseSacks === 1 ? "" : "s"}`);
+      return out.join("\n") || "No stats yet";
+    };
+    const last = (tk) => { const p = games.filter((x) => x.played && (x.home.team_key === tk || x.away.team_key === tk)).sort((a, b) => b.week - a.week)[0];
+      if (!p) return "—"; const me = p.home.team_key === tk ? p.home : p.away, o = me === p.home ? p.away : p.home;
+      return `${me.score > o.score ? "W" : me.score < o.score ? "L" : "T"} ${me.score}-${o.score} ${me === p.home ? "vs" : "@"} ${o.team}`; };
+    return {
+      title: `${weekLabel(g)} preview · ${rk(ta.rank)}${g.away.team} at ${rk(th.rank)}${g.home.team}`, url: site(`game/${g.key}`), color: RED,
+      description: `${g.date || ""} · Last: ${ta.name} ${last(A)} | ${th.name} ${last(H)}`,
+      fields: [
+        { name: "Tale of the tape", value: "```\n" + table + "\n```" },
+        { name: `${ta.name} leaders`, value: clip(leaders(A), 1024), inline: true },
+        { name: `${th.name} leaders`, value: clip(leaders(H), 1024), inline: true },
+      ],
+      footer: { text: "Schedule your game here. Final box score posts to #final after the next sync." },
+    };
+  }
+
+  async function matchupChats() {
+    const cat = chan[`4:${(cfg.channels.matchups_category || "").toLowerCase()}`] || (DRY ? "cat" : null);
+    if (!cat) { log(`⚠️  Category "${cfg.channels.matchups_category}" not found — skipping matchup chats.`); return; }
+    const open = games.filter((g) => !g.played);
+    if (!open.length) return;
+    const wk = Math.min(...open.map((g) => g.week));
+    const uvu = games.filter((g) => g.week === wk && g.kind === "user_vs_user");
+    const VIEW = 1 << 10, SEND = 1 << 11, EMBED = 1 << 14, ATTACH = 1 << 15, HIST = 1 << 16, REACT = 1 << 6;
+    for (const g of uvu) {
+      if (state.chats[g.key]) continue;
+      const slug = (s) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const name = `${slug(weekLabel(g)).replace("week-", "wk")}-${slug(g.away.team)}-at-${slug(g.home.team)}`.slice(0, 95);
+      const coaches = [coachId(g.away.team_key), coachId(g.home.team_key)].filter(Boolean);
+      const overwrites = [
+        { id: guild, type: 0, allow: String(VIEW | HIST), deny: String(SEND) }, // everyone can watch, only coaches talk
+        ...coaches.map((id) => ({ id, type: 1, allow: String(VIEW | SEND | EMBED | ATTACH | HIST | REACT), deny: "0" })),
+        ...(botId ? [{ id: botId, type: 1, allow: String(VIEW | SEND | EMBED | HIST), deny: "0" }] : []),
+        ...(roleId(cfg.commish_role) && !DRY ? [{ id: roleId(cfg.commish_role), type: 0, allow: String(VIEW | SEND | HIST), deny: "0" }] : []),
+      ];
+      if (seeding && !REPLAY.has("matchups")) { /* still create this week's chats on first run */ }
+      const ch = await dc("POST", `/guilds/${guild}/channels`, { name, type: 0, parent_id: cat, topic: `${weekLabel(g)}: ${g.away.team} at ${g.home.team}. Set your game time here.`, permission_overwrites: overwrites });
+      state.chats[g.key] = { id: ch.id, week: wk };
+      await dc("POST", `/channels/${ch.id}/messages`, {
+        content: `${coachTag(g.away.team_key)} vs ${coachTag(g.home.team_key)} — your ${weekLabel(g)} matchup. Work out a time here; games stream in #live-stream.`,
+        embeds: [previewEmbed(g)], allowed_mentions: { users: coaches },
+      });
+      log(`created chat ${name}`);
+    }
+    // Clean up chats from older weeks (their box scores live in #final).
+    const keep = cfg.matchups?.keep_previous_weeks ?? 1;
+    for (const [gk, c] of Object.entries(state.chats)) {
+      if (c.week < wk - keep) { await dc("DELETE", `/channels/${c.id}`).catch((e) => log("delete failed", e.message)); delete state.chats[gk]; }
+    }
+  }
+
+  async function syncRoles() {
+    state.roles ??= {};
+    for (const [teamName, uid] of Object.entries(cfg.coaches || {})) {
+      if (!/^\d{15,22}$/.test(uid)) continue;
+      const t = standings.data.find((x) => x.name === teamName);
+      const c = t && cfg.conferences?.[t.conference];
+      const r = c && roleId(c.role);
+      if (!r || state.roles[uid] === r) continue;
+      await dc("PUT", `/guilds/${guild}/members/${uid}/roles/${r}`).then(() => { state.roles[uid] = r; log(`role ${c.role} → ${teamName}`); }).catch((e) => log("role failed", teamName, e.message));
+    }
+  }
+
+  async function commishBoard() {
+    const id = textCh(cfg.channels.commish); if (!id) return;
+    const rta = members.data.filter((m) => m.ready_to_advance).length;
+    const open = games.filter((g) => !g.played); const wk = open.length ? Math.min(...open.map((g) => g.week)) : null;
+    const lines = [...members.data].sort((a, b) => a.ready_to_advance - b.ready_to_advance || a.team_name.localeCompare(b.team_name)).map((m) => {
+      const g = wk != null && games.find((x) => x.week === wk && (x.home.team_key === m.team_key || x.away.team_key === m.team_key));
+      const game = !g ? "bye" : g.played ? `✅ ${m.game_result}` : `⏳ vs ${m.opponent}${state.chats[g.key] ? ` · <#${state.chats[g.key].id}>` : ""}`;
+      return `${m.ready_to_advance ? "🟢" : "🔴"} **${m.team_name}** · ${coachTag(m.team_key)} · ${game}${m.auto_pilot !== "Off" ? " · 🤖 autopilot" : ""}${m.online ? "" : " · offline"}`;
+    });
+    const unplayed = wk == null ? [] : games.filter((g) => g.week === wk && isUserGame(g) && !g.played);
+    const embed = {
+      title: `🧑‍⚖️ Commish board · ${cur.season_text}`, color: rta === members.data.length ? GREEN : RED,
+      description: `**Ready to advance: ${rta}/${members.data.length}** · Unplayed league games: **${unplayed.length}**\n\n` + clip(lines.join("\n"), 3800),
+      footer: { text: `Updated ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })} ET · last sync ${league.data.last_sync_at}` },
+    };
+    const body = { embeds: [embed], allowed_mentions: { parse: [] } };
+    if (state.commish_msg && !DRY) {
+      try { await dc("PATCH", `/channels/${id}/messages/${state.commish_msg}`, body); return; } catch { /* deleted → repost */ }
+    }
+    const m = await dc("POST", `/channels/${id}/messages`, body);
+    state.commish_msg = m.id;
+  }
+
+  async function writeBotData() {
+    await mkdir("data/bot", { recursive: true });
+    const idx = allPlayers.filter((p) => p.stats.gamesPlayed > 0).map((p) => {
+      const s = p.stats;
+      return { k: p.player_key, n: p.name, f: p.first_name, l: p.last_name, p: p.position, t: p.team_key, tn: tName(p.team_key), u: !!p.user_team, o: p.overall, j: p.jersey,
+        s: Object.fromEntries(["gamesPlayed", "passCompletion", "passAttempts", "passYards", "passTD", "passINT", "passerRating", "rushAttempts", "rushYards", "rushTD", "receiveReceptions", "receivingYards", "receiveTouchdowns", "defenseTotalTackles", "defenseSacks", "defenseInterceptions", "defenseTacklesForLoss", "kickFieldGoalsMade", "kickFieldGoalAttempts", "puntsAverage", "punts"].filter((k) => s[k]).map((k) => [k, s[k]])) };
+    });
+    const cats = { passing: "passYards", rushing: "rushYards", receiving: "receivingYards", tackles: "defenseTotalTackles", sacks: "defenseSacks", interceptions: "defenseInterceptions" };
+    const leaders = {};
+    for (const [c, k] of Object.entries(cats)) for (const scope of ["all", "league"]) {
+      leaders[`${c}:${scope}`] = idx.filter((p) => p.s[k] && (scope === "all" || p.u)).sort((a, b) => b.s[k] - a.s[k]).slice(0, 10).map((p) => ({ k: p.k, n: p.n, tn: p.tn, p: p.p, g: p.s.gamesPlayed, v: p.s[k], s: p.s }));
+    }
+    await writeFile("data/bot/players.json", JSON.stringify({ period: cur.season_text, data: idx }));
+    await writeFile("data/bot/leaders.json", JSON.stringify({ period: cur.season_text, leaders }));
+  }
+}
+
+main().catch((e) => { console.error(e); process.exit(1); });
