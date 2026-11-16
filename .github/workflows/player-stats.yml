@@ -39,6 +39,11 @@ jobs:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
           FORCE: ${{ inputs.force && '1' || '' }}
         run: node .github/workflows/scripts/build-player-stats.mjs
+      - name: Register slash commands (only when they change)
+        if: ${{ hashFiles('discord.config.json') != '' }}
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: node .github/workflows/scripts/register-commands.mjs
       - name: Post to Discord
         if: ${{ hashFiles('discord.config.json') != '' }}
         env:
