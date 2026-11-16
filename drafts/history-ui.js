@@ -26,6 +26,36 @@ const H_CSS = `
 .h-season h3{margin:0 0 6px;font:800 16px var(--head)}
 .h-season ul{margin:0;padding-left:18px;font-size:13px;line-height:1.6}
 .h-note{padding:10px 14px;font-size:12px;color:var(--dim)}
+.h-sec{margin:18px 14px 8px;font:800 17px var(--head);border-bottom:2px solid var(--red);padding-bottom:4px}
+.h-natty{margin:12px 14px;padding:14px;border-radius:10px;color:#fff;background:radial-gradient(ellipse at 20% 0,color-mix(in srgb,#f2b134 45%,transparent),transparent 60%),var(--nav-2)}
+.h-natty .lbl{font:800 13px var(--head);letter-spacing:.5px;text-transform:uppercase;color:#f2b134;margin-bottom:8px}
+.h-natty .h-res b a,.h-natty .h-res a{color:#fff}.h-natty small{color:var(--nav-dim)}
+.h-res{display:flex;align-items:center;gap:10px;min-width:0}.h-res .tb{flex:none}
+.h-res-m{flex:1;min-width:0;font-size:14px;line-height:1.35}.h-res-m small{display:block;color:var(--dim);font-size:12px}
+.h-res .sc{font:800 15px var(--head);margin:0 6px 0 4px;font-variant-numeric:tabular-nums}.h-res .sc.l{color:var(--dim)}
+.h-res .vs{color:var(--dim);font-size:12px;margin-right:6px}
+.h-res.big .h-res-m{font-size:20px}.h-res.big .sc{font-size:24px}
+.h-bracket{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;padding:0 14px}
+.h-round h4,.h-agrp h4{margin:6px 0;font:800 12px var(--head);text-transform:uppercase;letter-spacing:.5px;color:var(--dim)}
+.h-bowl{padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px}
+.h-bowl .bn{display:block;font:700 11px var(--head);color:var(--red);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.h-bowl .bn:empty{display:none}
+.h-confs{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0 10px;padding:0 14px}
+.h-agrp{padding:0 14px}
+.h-awards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;padding:0 0 8px}
+.h-sec + .h-awards{padding:0 14px 8px}
+.h-award{border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.h-award small{display:block;font:700 11px var(--head);color:#b07d10;text-transform:uppercase;letter-spacing:.3px}
+.h-award b{display:block;font:800 15px var(--head);margin:2px 0}.h-award span{font-size:12px;color:var(--dim)}
+.h-aa{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 12px;font-size:13px;padding-bottom:8px}
+.h-aa b{display:inline-block;min-width:40px;color:var(--dim);font-size:11px}
+.h-trophies{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding:14px}
+.h-tcard{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.h-tcard h4{margin:0;padding:9px 12px;font:800 15px var(--head);background:var(--bg-2,#f4f4f5);border-bottom:1px solid var(--line)}
+.h-tcard h4 small{display:block;font:500 11px var(--body);color:var(--dim)}
+.h-tcard.cfp h4{background:color-mix(in srgb,#f2b134 22%,var(--bg-2,#f4f4f5))}
+.h-trow{display:grid;grid-template-columns:42px 1fr;align-items:center;gap:6px;padding:8px 12px;border-top:1px solid var(--line-2)}
+.h-trow:first-of-type{border-top:0}.h-trow .yr{font:800 13px var(--head);color:var(--dim)}
 `;
 
 const H = { cache: {} };
@@ -40,7 +70,7 @@ const hPct = (v) => (v == null ? "—" : v.toFixed(3).replace(/^0/, ""));
 const hNum = (v) => (v == null ? "—" : Number(v).toLocaleString("en-US"));
 
 function hShell(sub, inner) {
-  const tabs = [["coaches", "Coaches"], ["careers", "Career leaders"], ["seasons", "Season leaders"], ["champions", "Champions"]];
+  const tabs = [["coaches", "Coaches"], ["careers", "Career leaders"], ["seasons", "Season leaders"], ["champions", "Champions"], ["trophies", "Trophy room"]];
   return `<section class="card"><h2 class="card-h">Dynasty history <small>${esc(D.league?.data?.name || "")}</small></h2>
     <nav class="h-sub">${tabs.map(([k, l]) => `<a href="#history/${k}" ${k === sub ? 'aria-current="page"' : ""}>${l}</a>`).join("")}</nav>
     <div id="h-in">${inner}</div></section>`;
@@ -81,21 +111,100 @@ async function renderHistory(sub = "coaches") {
     };
     draw();
   } else if (sub === "champions") {
-    const idx = await hGet("index.json");
-    const seasons = [...(idx?.seasons || [])].reverse();
-    const all = await Promise.all(seasons.map((y) => hGet(`seasons/${y}.json`)));
-    const coaches = (await hGet("coaches.json"))?.coaches || [];
-    const userCoach = (s, teamKey) => { const g = s.games.find((x) => (x.type === "natty" || x.type === "confchamp") && (x.a.k === teamKey || x.h.k === teamKey)); const side = g && (g.a.k === teamKey ? g.a : g.h); const c = side?.u && coaches.find((c) => c.gamertag === side.u); return c ? ` · ${coachLabel(c)}` : ""; };
-    $("#h-in").innerHTML = all.filter(Boolean).map((s) => {
-      const nat = s.champions.find((c) => c.kind === "national_championship");
-      const confs = s.champions.filter((c) => c.kind === "conference_championship");
-      const awards = s.annual_awards.filter((a) => !/HC|OC|DC/.test(a.position || ""));
-      return `<div class="h-season"><h3>${s.season}${s.final ? "" : " <small>(in progress)</small>"}</h3>
-        ${nat ? `<p style="margin:0 0 8px">🏆 <b>National champion: ${esc(nat.team.name)}</b> (${esc(nat.team.record || "")}) def. ${esc(nat.opponent?.name || "")}, ${esc(nat.result || "")}${userCoach(s, nat.team.team_key)}</p>` : ""}
-        ${confs.length ? `<ul>${confs.map((c) => `<li><b>${esc(c.conference)}:</b> ${esc(c.team.name)} def. ${esc(c.opponent?.name || "")}, ${esc(c.result || "")}${userCoach(s, c.team.team_key)}</li>`).join("")}</ul>` : ""}
-        ${awards.length ? `<p style="margin:8px 0 0;font-size:13px">${awards.map((a) => `<b>${esc(a.title)}:</b> ${esc(a.name)} (${esc(a.position || "")}, ${esc(a.team?.name || "")})`).join(" · ")}</p>` : ""}</div>`;
-    }).join("") || '<div class="empty">No seasons archived yet.</div>';
+    await renderChampions();
+  } else if (sub === "trophies") {
+    await renderTrophies();
   }
+}
+
+/* ---------- shared: archived seasons + coach lookup ---------- */
+async function hSeasons() {
+  const idx = await hGet("index.json");
+  const years = [...(idx?.seasons || [])].sort((a, b) => b - a);
+  const list = (await Promise.all(years.map((y) => hGet(`seasons/${y}.json`)))).filter(Boolean);
+  const coaches = (await hGet("coaches.json"))?.coaches || [];
+  const byTag = new Map(coaches.map((c) => [c.gamertag, c]));
+  return { list, byTag };
+}
+const hSide = (g, won) => { const aw = g.a.s > g.h.s; return won === aw ? g.a : g.h; };
+const hTeam = (x) => `${x.r ? `<span class="rk">${x.r}</span>` : ""}${tLink(x.t, x.k)}`;
+const hCoachOf = (x, byTag) => (x.u ? (byTag.get(x.u) ? coachLabel(byTag.get(x.u)) : esc(x.u)) : "");
+function hResult(g, byTag, opts = {}) {
+  const W = hSide(g, true), L = hSide(g, false);
+  const wc = hCoachOf(W, byTag), lc = hCoachOf(L, byTag);
+  return `<div class="h-res${opts.big ? " big" : ""}">${badge(W.t)}<div class="h-res-m"><div><b>${hTeam(W)}</b> <span class="sc">${W.s}</span><span class="vs">def.</span>${hTeam(L)} <span class="sc l">${L.s}</span></div>
+    ${wc || lc ? `<small>${wc ? `🎮 ${wc}` : ""}${wc && lc ? " · " : ""}${lc ? `vs 🎮 ${lc}` : ""}</small>` : ""}</div><a class="bx-link" href="#game/${g.key}">Box</a></div>`;
+}
+
+// Award titles grouped so the season page reads like a trophy case, not a list.
+const AWARD_GROUPS = [
+  ["Player of the year", /heisman|maxwell|walter camp|player of the year|archie griffin/i],
+  ["Offense", /o'?brien|unitas|manning|doak walker|biletnikoff|mackey|hornung|offensive/i],
+  ["Line", /outland|rimington|lombardi|joe moore|lineman/i],
+  ["Defense", /bednarik|nagurski|butkus|thorpe|lott|hendricks|defensive/i],
+  ["Special teams", /groza|ray guy|returner|special/i],
+  ["Freshman", /freshman/i],
+];
+const awardGroup = (title) => (AWARD_GROUPS.find(([, re]) => re.test(title)) || ["Other"])[0];
+
+let hChampYear = null;
+async function renderChampions() {
+  const { list, byTag } = await hSeasons();
+  if (!list.length) { $("#h-in").innerHTML = '<div class="empty">No seasons archived yet.</div>'; return; }
+  if (!list.some((s) => s.season === hChampYear)) hChampYear = (list.find((s) => s.final) || list[0]).season;
+  const s = list.find((x) => x.season === hChampYear);
+  const played = s.games.filter((g) => g.played);
+  const natty = played.find((g) => g.type === "natty");
+  // CFP rounds: First Round games, then the New Year's Six bowls (earlier week = quarterfinals, later = semifinals)
+  const cfp = played.filter((g) => g.type === "cfp");
+  const first = cfp.filter((g) => /First Round/i.test(g.label));
+  const ny6 = cfp.filter((g) => !/First Round/i.test(g.label));
+  const wks = [...new Set(ny6.map((g) => g.w))].sort((a, b) => a - b);
+  const qf = wks.length > 1 ? ny6.filter((g) => g.w === wks[0]) : ny6.slice(0, 4);
+  const sf = wks.length > 1 ? ny6.filter((g) => g.w !== wks[0]) : ny6.slice(4);
+  const round = (title, games) => (games.length ? `<div class="h-round"><h4>${title}</h4>${games.map((g) => `<div class="h-bowl"><span class="bn">${esc(/First Round/i.test(g.label) ? "" : g.label)}</span>${hResult(g, byTag)}</div>`).join("")}</div>` : "");
+  const confG = played.filter((g) => g.type === "confchamp").sort((a, b) => a.label.localeCompare(b.label));
+  const awards = s.annual_awards.filter((a) => !/HC|OC|DC/.test(a.position || ""));
+  const coachAw = s.annual_awards.filter((a) => /HC|OC|DC/.test(a.position || ""));
+  const groups = {}; for (const a of awards) (groups[awardGroup(a.title)] ??= []).push(a);
+  const order = [...AWARD_GROUPS.map(([g]) => g), "Other"];
+  const awardCard = (a) => `<div class="h-award"><small>${esc(a.title)}</small><b>${esc(a.name)}</b><span>${esc(a.position || "")} · ${esc(a.team?.name || "")}</span></div>`;
+  const aa = s.all_americans.filter((t) => t.conf === "National");
+
+  $("#h-in").innerHTML = `
+    <div class="ctrl">${list.map((x) => `<button class="pill" data-cy="${x.season}" aria-pressed="${x.season === hChampYear}">${x.season}${x.final ? "" : " •"}</button>`).join("")}</div>
+    ${natty ? `<div class="h-natty"><div class="lbl">🏆 ${s.season} National Champion</div>${hResult(natty, byTag, { big: true })}</div>` : `<div class="h-note">${s.season} is still in progress. The national champion appears here after the title game.</div>`}
+    ${cfp.length || natty ? `<h3 class="h-sec">College Football Playoff</h3><div class="h-bracket">${round("First round", first)}${round("Quarterfinals", qf)}${round("Semifinals", sf)}${natty ? round("National Championship", [natty]) : ""}</div>` : ""}
+    ${confG.length ? `<h3 class="h-sec">Conference champions</h3><div class="h-confs">${confG.map((g) => `<div class="h-bowl"><span class="bn">${esc(g.label.replace(/ Championship$/, ""))}</span>${hResult(g, byTag)}</div>`).join("")}</div>` : ""}
+    ${awards.length ? `<h3 class="h-sec">Player awards</h3>${order.filter((g) => groups[g]).map((g) => `<div class="h-agrp"><h4>${g}</h4><div class="h-awards">${groups[g].map(awardCard).join("")}</div></div>`).join("")}` : ""}
+    ${coachAw.length ? `<h3 class="h-sec">Coaching awards</h3><div class="h-awards">${coachAw.map(awardCard).join("")}</div>` : ""}
+    ${aa.length ? `<h3 class="h-sec">All-Americans</h3>${aa.map((t) => `<div class="h-agrp"><h4>${esc(t.team)}</h4><div class="h-aa">${t.players.map((p) => `<span><b>${esc(p.p)}</b> <a class="pl-link" href="#player/${p.k}">${esc(p.n)}</a> <small>${esc(p.tn)}</small></span>`).join("")}</div></div>`).join("")}` : ""}`;
+  document.querySelectorAll("[data-cy]").forEach((b) => b.onclick = () => { hChampYear = +b.dataset.cy; renderChampions(); });
+}
+
+/* ---------- trophy room: every title, bowl and rivalry trophy, with its history ---------- */
+let hTrophyFilter = "all";
+async function renderTrophies() {
+  const [{ list, byTag }, rv] = await Promise.all([hSeasons(), fetch(`${HISTORY_BASE.replace(/\/data\/history$/, "")}/rivalries.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : { rivalries: [] })).catch(() => ({ rivalries: [] }))]);
+  const nm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const rivalOf = new Map(); for (const [a, b, n] of rv.rivalries || []) { rivalOf.set(nm(a) + "|" + nm(b), n); rivalOf.set(nm(b) + "|" + nm(a), n); }
+  const T = new Map();
+  const add = (name, kind, rank, season, g) => { const t = T.get(name) || { name, kind, rank, games: [] }; t.games.push({ season, g }); T.set(name, t); };
+  for (const s of list) for (const g of s.games.filter((x) => x.played)) {
+    if (g.type === "natty") add("National Championship", "cfp", 0, s.season, g);
+    else if (g.type === "cfp") add(/First Round/i.test(g.label) ? "CFP First Round" : g.label, "cfp", /First Round/i.test(g.label) ? 2 : 1, s.season, g);
+    else if (g.type === "confchamp") add(g.label, "conf", 3, s.season, g);
+    else if (g.type === "bowl") add(g.label, "bowl", 4, s.season, g);
+    else { const r = rivalOf.get(nm(g.a.t) + "|" + nm(g.h.t)); if (r) add(r, "rivalry", 5, s.season, g); }
+  }
+  const kinds = [["all", "All"], ["cfp", "Playoff"], ["conf", "Conference titles"], ["bowl", "Bowls"], ["rivalry", "Rivalry trophies"]];
+  let rows = [...T.values()].filter((t) => hTrophyFilter === "all" || t.kind === hTrophyFilter).sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
+  const icon = { cfp: "🏆", conf: "🥇", bowl: "🏈", rivalry: "⚔️" };
+  $("#h-in").innerHTML = `<div class="ctrl">${kinds.map(([k, l]) => `<button class="pill" data-tf="${k}" aria-pressed="${k === hTrophyFilter}">${l}</button>`).join("")}</div>
+    <div class="h-trophies">${rows.map((t) => `<div class="h-tcard ${t.kind}"><h4>${icon[t.kind]} ${esc(t.name)}${t.kind === "rivalry" ? ` <small>${esc(t.games[0].g.a.t)} vs ${esc(t.games[0].g.h.t)}</small>` : ""}</h4>
+      ${t.games.sort((a, b) => b.season - a.season || b.g.w - a.g.w).map(({ season, g }) => `<div class="h-trow"><span class="yr">${season}</span>${hResult(g, byTag)}</div>`).join("")}</div>`).join("") || '<div class="empty">No trophies in this category yet.</div>'}</div>
+    <div class="h-note">Every championship, playoff game, bowl and rivalry trophy in this dynasty. 🎮 marks a league coach.</div>`;
+  document.querySelectorAll("[data-tf]").forEach((b) => b.onclick = () => { hTrophyFilter = b.dataset.tf; renderTrophies(); });
 }
 
 async function renderCoach(tag) {
