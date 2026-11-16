@@ -42,6 +42,8 @@ const times = (n) => (n === 1 ? "once" : n === 2 ? "twice" : `${num(n)} times`);
 const plural = (n, w) => `${num(n)} ${w}${n === 1 ? "" : "s"}`;
 // capitalize the first visible letter, even when the headline starts with a link token
 const capH = (s) => s.replace(/^((?:\[\[\w:[^|]*\|)?)([a-z])/, (m, a, c) => a + c.toUpperCase());
+// "an 87-overall", "an SMU team": article from how the word sounds
+const an = (w) => (/^(8|11|18)\d*\b/.test(String(w)) || /^[aeiou]/i.test(String(w)) || /^(SMU|UAB|UCF|UCLA|UNLV|USC|USF|UTEP|UTSA|UL|LSU|FIU|NC|NMSU|MTSU)\b/.test(String(w)) ? "an" : "a");
 const lastName = (n) => String(n || "").replace(/^[A-Z]\.\s*/, "").split(" ").slice(-1)[0];
 
 const TEAM_STATE = { "Air Force": "CO", Akron: "OH", Alabama: "AL", "Appalachian State": "NC", Arizona: "AZ", "Arizona State": "AZ", Arkansas: "AR", "Arkansas State": "AR", Army: "NY", Auburn: "AL", BYU: "UT", "Ball State": "IN", Baylor: "TX", "Boise State": "ID", "Boston College": "MA", "Bowling Green": "OH", Buffalo: "NY", California: "CA", "Central Michigan": "MI", Charlotte: "NC", Cincinnati: "OH", Clemson: "SC", "Coastal Carolina": "SC", Colorado: "CO", "Colorado State": "CO", Delaware: "DE", Duke: "NC", "East Carolina": "NC", "Eastern Michigan": "MI", Florida: "FL", "Florida Atlantic": "FL", "Florida International": "FL", "Florida State": "FL", "Fresno State": "CA", Georgia: "GA", "Georgia Southern": "GA", "Georgia State": "GA", "Georgia Tech": "GA", "Hawai'i": "HI", Houston: "TX", Illinois: "IL", Indiana: "IN", Iowa: "IA", "Iowa State": "IA", "Jacksonville State": "AL", "James Madison": "VA", Kansas: "KS", "Kansas State": "KS", "Kennesaw State": "GA", "Kent State": "OH", Kentucky: "KY", LSU: "LA", Liberty: "VA", Louisiana: "LA", "Louisiana Tech": "LA", Louisville: "KY", Marshall: "WV", Maryland: "MD", Massachusetts: "MA", Memphis: "TN", Miami: "FL", "Miami University": "OH", Michigan: "MI", "Michigan State": "MI", "Middle Tennessee": "TN", Minnesota: "MN", "Mississippi State": "MS", Missouri: "MO", "Missouri State": "MO", "NC State": "NC", Navy: "MD", Nebraska: "NE", Nevada: "NV", "New Mexico": "NM", "New Mexico State": "NM", "North Carolina": "NC", "North Dakota State": "ND", "North Texas": "TX", "Northern Illinois": "IL", Northwestern: "IL", "Notre Dame": "IN", Ohio: "OH", "Ohio State": "OH", Oklahoma: "OK", "Oklahoma State": "OK", "Old Dominion": "VA", "Ole Miss": "MS", Oregon: "OR", "Oregon State": "OR", "Penn State": "PA", Pittsburgh: "PA", Purdue: "IN", Rice: "TX", Rutgers: "NJ", SMU: "TX", "Sacramento State": "CA", "Sam Houston": "TX", "San Diego State": "CA", "San Jose State": "CA", "South Alabama": "AL", "South Carolina": "SC", "Southern Mississippi": "MS", Stanford: "CA", Syracuse: "NY", TCU: "TX", Temple: "PA", Tennessee: "TN", Texas: "TX", "Texas A&M": "TX", "Texas State": "TX", "Texas Tech": "TX", Toledo: "OH", Troy: "AL", Tulane: "LA", Tulsa: "OK", UAB: "AL", UCF: "FL", UCLA: "CA", UConn: "CT", "UL Monroe": "LA", UNLV: "NV", USC: "CA", USF: "FL", UTEP: "TX", UTSA: "TX", Utah: "UT", "Utah State": "UT", Vanderbilt: "TN", Virginia: "VA", "Virginia Tech": "VA", "Wake Forest": "NC", Washington: "WA", "Washington State": "WA", "West Virginia": "WV", "Western Kentucky": "KY", "Western Michigan": "MI", Wisconsin: "WI", Wyoming: "WY" };
@@ -276,6 +278,7 @@ async function main() {
     if (x.class_year === "SR" || !x.team_key) continue;
     const tk = x.team_key, PT = P(x.player_key, x.name), TT = tTok(tk), seed = x.player_key + "pw", st = statOf.get(x.player_key) || {};
     const pos = POS_WORD[x.position] || x.position, mkt = market(x), nil = x.nil_compensation ?? 0, gp = teamGames(tk);
+    const ov = `${an(x.overall)} ${x.overall}-overall`, archPos = `${String(x.archetype || "").toLowerCase()} ${pos}`.trim(), pay = nil ? `making ${nil}K` : "making nothing in NIL";
     const rank = (depth.get(`${tk}|${x.position}`) || []).findIndex((y) => y.player_key === x.player_key) + 1, starter = rank > 0 && rank <= (STARTERS[x.position] || 1);
     const boost = (userTeams.has(tk) ? 25 : 0) + (ranked(tk) ? 5 : 0) + (x.overall - 80);
     const nilR = nilRank.get(tk) || 99;
@@ -286,21 +289,21 @@ async function main() {
     const jump = prev != null ? { d: x.overall - prev, when: "last week" } : start ? { d: x.overall - start.ovr, when: start.when } : null;
     if (jump && jump.d >= 3 && x.overall >= 75) add({ kind: "breakout", kick: "Price tag rising", score: 50 + jump.d * 6 + boost,
       h: mkt && nil < mkt * 0.75 ? pick(seed + "b", [`${PT} is up to ${x.overall} overall. Can ${TT} still afford him next year?`, `${PT}'s stock is soaring, and so is his price: will ${TT} pay up?`]) : `${PT} jumps to ${x.overall} overall, and ${TT} has a raise to budget for`,
-      d: `The ${yr[x.class_year] || ""} ${pos} is up ${jump.d} point${jump.d === 1 ? "" : "s"} since ${jump.when}${x.dev_trait && x.dev_trait !== "Normal" ? ` (${x.dev_trait} dev)` : ""}. He's earning ${nil}K in NIL${mkt ? `; ${pos}s rated around ${x.overall} draw a median of ${mkt}K across FBS` : ""}. ${afford || pick(seed + "b2", ["Expect collectives around the country to take notice.", "Keeping him could get expensive."])}` });
+      d: `The ${yr[x.class_year] || ""} ${pos} is up ${jump.d} point${jump.d === 1 ? "" : "s"} since ${jump.when}${x.dev_trait && x.dev_trait !== "Normal" ? ` (${x.dev_trait} dev)` : ""}. He's ${nil ? `earning ${nil}K in NIL` : "earning nothing in NIL"}${mkt ? `; ${pos}s rated around ${x.overall} draw a median of ${mkt}K across FBS` : ""}. ${afford || pick(seed + "b2", ["Expect collectives around the country to take notice.", "Keeping him could get expensive."])}` });
     // 2) underpaid star
     else if (mkt && x.overall >= 84 && nil <= mkt * 0.5 && mkt - nil >= 40) add({ kind: "underpaid", kick: "Underpaid", score: 40 + (mkt - nil) / 4 + boost,
       h: pick(seed + "u", [`${PT} is one of the best bargains in college football. How long can ${TT} keep it that way?`, `Rival collectives are circling ${TT}'s ${PT}`]),
-      d: `A ${x.overall}-overall ${pos} making ${nil}K, while players at his position and rating command around ${mkt}K. ${afford || "That gap tends to close in the portal."}` });
+      d: `${cap(ov)} ${pos} ${pay}, while players at his position and rating command around ${mkt}K. ${afford || "That gap tends to close in the portal."}` });
     // 3) scheme mismatch
     const sr = styleRank(x);
-    if (sr && x.overall >= 80 && sr.rank > sr.of * 0.75 && starter) add({ kind: "fit", kick: "Bad fit?", score: 35 + (sr.rank / sr.of) * 20 + boost,
-      h: pick(seed + "f", [`A ${x.archetype.toLowerCase()} in the wrong system? ${PT} could be a portal name to watch`, `${PT} and ${TT}'s scheme aren't a match. Will he look elsewhere this offseason?`]),
-      d: `${tName(tk)} ranks ${ord(sr.rank)} of ${sr.of} in ${String(sr.stat).toLowerCase()}, not where a ${x.overall}-overall ${x.archetype.toLowerCase()} ${pos} wants to be. Players with that kind of mismatch often test the market.` });
+    if (sr && x.overall >= 80 && sr.rank > sr.of * 0.75 && starter && !["K", "P"].includes(x.position)) add({ kind: "fit", kick: "Bad fit?", score: 35 + (sr.rank / sr.of) * 20 + boost,
+      h: pick(seed + "f", [`${cap(an(archPos))} ${archPos} in the wrong system? ${PT} could be a portal name to watch`, `${PT} and ${TT}'s scheme aren't a match. Will he look elsewhere this offseason?`]),
+      d: `${tName(tk)} ranks ${ord(sr.rank)} of ${sr.of} in ${String(sr.stat).toLowerCase()}, not where ${ov} ${archPos} wants to be. Players with that kind of mismatch often test the market.` });
     // 4) buried on the depth chart
     const downs = st.genDownsPlayed || 0;
     if (x.overall >= 80 && !starter && gp >= 3 && downs / gp < 15 && x.class_year !== "FR") add({ kind: "buried", kick: "Buried", score: 30 + (x.overall - 80) * 3 + boost,
       h: pick(seed + "d", [`${PT} is too good to sit. Is a transfer coming?`, `Stuck at No. ${rank} on the ${tName(tk)} depth chart, ${PT} might not wait around`]),
-      d: `A ${x.overall}-overall ${yr[x.class_year]} ${pos} with ${downs} snaps in ${gp} games. Someone in the portal market would start him tomorrow.` });
+      d: `${cap(ov)} ${yr[x.class_year]} ${pos} with ${downs} snaps in ${gp} games. Someone in the portal market would start him tomorrow.` });
     // 5) struggling star
     let bad = null;
     if (starter && x.overall >= 85 && (st.gamesPlayed || 0) >= 3) {
@@ -311,11 +314,11 @@ async function main() {
     }
     if (bad) add({ kind: "struggling", kick: "Under fire", score: 45 + (x.overall - 85) * 3 + boost,
       h: pick(seed + "s", [`Is ${TT} ready to go a different direction than ${PT}?`, `${PT} was supposed to be a star. The numbers say otherwise`, `Ratings say ${x.overall}. The stat sheet says something else for ${PT}`]),
-      d: `${bad}. For a ${x.overall}-overall ${pos}${ranked(tk) ? ` on a ranked team` : ""}, that won't cut it. ${pick(seed + "s2", ["The staff will have a big decision this offseason.", "Don't be surprised if the coaches shop the portal at his position.", "One more rough month and the whispers get louder."])}` });
+      d: `${bad}. For ${ov} ${pos}${ranked(tk) ? ` on a ranked team` : ""}, that won't cut it. ${pick(seed + "s2", ["The staff will have a big decision this offseason.", "Don't be surprised if the coaches shop the portal at his position.", "One more rough month and the whispers get louder."])}` });
     // 6) star on a sinking ship
     if (x.overall >= 88 && ["SO", "JR"].includes(x.class_year) && gp >= 3 && winPct(tk) <= 0.35) add({ kind: "sinking", kick: "Sinking ship", score: 40 + (x.overall - 88) * 4 + boost,
-      h: pick(seed + "k", [`${PT} deserves better than ${recOf(tk)}. Contenders will be calling`, `Wasted on a ${recOf(tk)} team? ${PT} would be the portal's top prize`]),
-      d: `A ${x.overall}-overall ${yr[x.class_year]} ${pos} stuck on a ${tName(tk)} team that's ${recOf(tk)}. ${pick(seed + "k2", ["Every contender in the country knows his name.", "If he hits the portal, it'll be the story of the offseason."])}` });
+      h: pick(seed + "k", [`${PT} deserves better than ${recOf(tk)}. Contenders will be calling`, `Wasted on ${an(recOf(tk))} ${recOf(tk)} team? ${PT} would be the portal's top prize`]),
+      d: `${cap(ov)} ${yr[x.class_year]} ${pos} stuck on ${an(tName(tk))} ${tName(tk)} team that's ${recOf(tk)}. ${pick(seed + "k2", ["Every contender in the country knows his name.", "If he hits the portal, it'll be the story of the offseason."])}` });
   }
   const pCaps = { breakout: 5, underpaid: 4, fit: 3, buried: 3, struggling: 4, sinking: 3 }, pUsed = {}, pSeen = new Set();
   const portalStories = portal.sort((a, b) => b.score - a.score).filter((s) => { if (pSeen.has(s.player)) return false; pUsed[s.kind] = (pUsed[s.kind] || 0) + 1; if (pUsed[s.kind] > (pCaps[s.kind] || 3)) return false; pSeen.add(s.player); return true; })
