@@ -195,7 +195,8 @@ export async function buildOutlook(c) {
       const champ = play(play(qf[0], qf[3], true), play(qf[1], qf[2], true), true); tally.get(champ).title++;
       for (const g of watch) { const c2 = cond.get(g.key), hw = outcome.get(g.key) ? 0 : 1; c2.hw[hw]++; if (field.has(g.home.team_key)) c2.hmk[hw]++; if (field.has(g.away.team_key)) c2.amk[hw]++; }
     }
-    const prevOdds = new Map((prevIdx.cfp?.teams || []).map((t) => [t.team, t.make]));
+    const base = prevIdx.cfp?.period === cur.id ? prevIdx.cfp.prev_odds || null : prevIdx.cfp ? Object.fromEntries(prevIdx.cfp.teams.map((t) => [t.team, t.make])) : null;
+    const prevOdds = new Map(Object.entries(base || {}).map(([k, v]) => [+k, v]));
     const pc = (n) => Math.round((n / N) * 1000) / 10;
     const teams = [...tally].map(([k, x]) => {
       const t = fbs.get(k), n = gp.get(k) || 0;
@@ -219,7 +220,7 @@ export async function buildOutlook(c) {
     const g2w = watch.map((g) => { const c2 = cond.get(g.key); const sw = (mk, side) => { const won = side === "h" ? c2.hw[0] : c2.hw[1], lost = side === "h" ? c2.hw[1] : c2.hw[0]; const a = won ? mk[side === "h" ? 0 : 1] / won : 0, b = lost ? mk[side === "h" ? 1 : 0] / lost : 0; return Math.round((a - b) * 100); };
       const hs = sw(c2.hmk, "h"), as = sw(c2.amk, "a"); return { game: g.key, home: g.home.team_key, away: g.away.team_key, home_name: g.home.team, away_name: g.away.team, home_swing: hs, away_swing: as, win_home: Math.round(pWin(g.home.team_key, g.away.team_key) * 100), swing: Math.max(hs, as) }; })
       .filter((g) => g.swing >= 10).sort((a, b) => b.swing - a.swing).slice(0, 5);
-    cfp = { period: cur.id, season_text: text, sims: N, next_week: nextWeek, teams, notes, games: g2w,
+    cfp = { period: cur.id, prev_odds: base, season_text: text, sims: N, next_week: nextWeek, teams, notes, games: g2w,
       method: "Every remaining regular-season game is simulated 4,000 times from team ratings and scoring margin (home field worth about 2.5 points). Conference title games pit the top two in each league. A committee-style ranking weighs wins, losses, strength of schedule, conference titles and the current poll. The field is the five highest-ranked conference champions plus the next seven, with byes for the top four seeds." };
   } else if (!offseasonWindow && prevIdx.cfp) cfp = { ...prevIdx.cfp, final: true };
 
