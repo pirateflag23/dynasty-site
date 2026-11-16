@@ -77,10 +77,12 @@ async function main() {
     ]);
     const conf = new Map((st?.data || prev?.teams || []).map((t) => [t.team_key, { name: t.name, conference: t.conference }]));
     const side = (s) => ({ k: s.team_key, t: s.team, s: s.score, u: s.user_name && s.user_name !== "CPU" ? s.user_name : null, r: s.rank_at_game > 0 && s.rank_at_game <= 25 ? s.rank_at_game : null });
-    const games = (sch.data || []).map((g) => ({ key: g.key, w: g.week, label: g.bowl_name || g.displayed_week, type: gameType(g), played: !!g.played, a: side(g.away), h: side(g.home) }));
+    // Past seasons come back with played=false even when final scores exist, so trust the score line.
+    const wasPlayed = (g) => !!g.played || (year < cur.season && (g.home.score || 0) + (g.away.score || 0) > 0);
+    const games = (sch.data || []).map((g) => ({ key: g.key, w: g.week, label: g.bowl_name || g.displayed_week, type: gameType(g), played: wasPlayed(g), a: side(g.away), h: side(g.home) }));
     const nattyPlayed = games.some((g) => g.type === "natty" && g.played);
     const out = {
-      season: year, final: nattyPlayed && year !== cur.season ? true : nattyPlayed,
+      season: year, final: nattyPlayed,
       teams: st ? st.data.map((t) => ({ team_key: t.team_key, name: t.name, conference: t.conference, record: t.record, rank: t.rank, user: !!t.user_controlled })) : prev?.teams || [],
       games,
       champions: history.filter((h) => h.season === year && h.kind !== "award"),
