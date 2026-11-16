@@ -1,0 +1,127 @@
+// Hero ("Top result") card: Spotlight style. Uses the site's own helpers:
+// winnerLoser, headline, badge, rk, tLink, coach, teamRec, teamColor, teamAccent, esc, loadGame, initials.
+const HERO_CSS = `
+.hero{position:relative;overflow:hidden;isolation:isolate}
+.hero .hero-tag,.hero .hero-body,.hero .hero-line,.hero .hero-extra{position:relative;z-index:2}
+.hero-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:0 18px 6px;position:relative;z-index:2}
+.hero-badges span{font:800 10px/1 var(--head);letter-spacing:.6px;padding:5px 8px;border-radius:3px;background:rgba(255,255,255,.12);color:#fff;text-transform:uppercase;backdrop-filter:blur(2px)}
+.hero-badges .hot{background:var(--red)}
+.hero-badges .gold{background:#f2b134;color:#121213}
+.hero-extra{display:grid;grid-template-columns:1fr;gap:10px;align-items:stretch;margin:0 18px 18px;padding:12px 14px;border-radius:8px;background:rgba(0,0,0,.38);backdrop-filter:blur(3px);border:1px solid rgba(255,255,255,.08)}
+.hero-ls{width:100%;font:700 12px/1.55 var(--body);font-variant-numeric:tabular-nums;border-collapse:collapse;color:#d7d8da}
+.hero-ls th{font-weight:700;color:#8d8f93;padding:0 7px;text-align:center}
+.hero-ls td{padding:0 7px;text-align:center}.hero-ls td:first-child,.hero-ls th:first-child{text-align:left;padding-left:0}
+.hero-ls td:last-child{font-weight:800;color:#fff}
+.hero-pog{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;border-top:1px solid rgba(255,255,255,.12);padding-top:10px}
+.hero-pog div{min-width:0}.hero-pog small{display:block;font:800 10px/1 var(--head);letter-spacing:.5px;color:#8d8f93;text-transform:uppercase;margin-bottom:4px}
+.hero-pog b{display:block;font:700 13px/1.2 var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-pog b a{color:#fff}.hero-pog span{font-size:12px;color:#c9cacd}
+.hero-score span{display:inline-block}
+@keyframes heroIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.hero-score span{animation:heroIn .5s ease-out both}.hero-score span+span{animation-delay:.12s}
+@keyframes sweep{0%{transform:translateX(-120%) skewX(-18deg)}60%,100%{transform:translateX(320%) skewX(-18deg)}}
+.hero .sweep{position:absolute;top:0;bottom:0;left:0;width:30%;z-index:1;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);animation:sweep 6s ease-in-out 1s infinite}
+@media (prefers-reduced-motion:reduce){.hero .sweep,.hero-score span{animation:none}}
+
+/* C · Spotlight (photo-ready) */
+.hero.v-spot{background:#060607}
+.hero.v-spot .bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;filter:saturate(1.1);animation:lightsOn 1.4s ease-out both}
+.hero.v-spot .bg::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 40% 60% at var(--lx) 45%,color-mix(in srgb,var(--cl) 28%,transparent),transparent 70%),linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.86) 76%)}
+.hero.v-spot.has-photo .bg::after{background:linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.88) 72%)}
+.hero.v-spot .glow{position:absolute;z-index:1;pointer-events:none;left:calc(var(--wx) - 45%);top:-35%;width:90%;height:130%;
+  background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--cw) 95%,#fff 5%),color-mix(in srgb,var(--cw) 45%,transparent) 38%,transparent 68%);
+  mix-blend-mode:screen;animation:glowPulse 3.2s ease-in-out infinite}
+.hero.v-spot .beam{position:absolute;z-index:1;top:-6%;width:46%;height:150%;pointer-events:none;transform-origin:50% 0;mix-blend-mode:screen;filter:blur(5px);
+  background:conic-gradient(from 180deg at 50% 0,transparent 0 166deg,rgba(255,255,255,.07) 171deg,color-mix(in srgb,var(--cw) 55%,#fff 45%) 180deg,rgba(255,255,255,.07) 189deg,transparent 194deg 360deg);opacity:.55}
+.hero.v-spot .beam.l{left:-8%;animation:beamL 6.5s ease-in-out infinite alternate}
+.hero.v-spot .beam.r{right:-8%;animation:beamR 7.5s ease-in-out -2s infinite alternate}
+.hero.v-spot .flare{position:absolute;z-index:1;top:-10px;width:120px;height:40px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,#fff,color-mix(in srgb,var(--cw) 60%,transparent) 55%,transparent);filter:blur(2px);opacity:.75;animation:flicker 4s infinite}
+.hero.v-spot .flare.l{left:6%}.hero.v-spot .flare.r{right:6%;animation-delay:-1.7s}
+@keyframes beamL{from{transform:rotate(-34deg)}to{transform:rotate(18deg)}}
+@keyframes beamR{from{transform:rotate(32deg)}to{transform:rotate(-16deg)}}
+@keyframes glowPulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+@keyframes flicker{0%,100%{opacity:.75}47%{opacity:.85}50%{opacity:.45}53%{opacity:.9}}
+@keyframes lightsOn{0%{filter:brightness(0)}35%{filter:brightness(1.6)}100%{filter:brightness(1)}}
+@keyframes scoreGlow{0%,100%{text-shadow:0 0 18px color-mix(in srgb,var(--cw) 70%,transparent),0 0 2px #fff}50%{text-shadow:0 0 38px var(--cw),0 0 70px color-mix(in srgb,var(--cw) 60%,transparent),0 0 2px #fff}}
+.hero.v-spot .grain{position:absolute;inset:0;z-index:1;opacity:.18;mix-blend-mode:overlay;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.hero.v-spot .hero-score span:not(.l){animation:heroIn .5s ease-out both,scoreGlow 3.2s ease-in-out .5s infinite}
+.hero.v-spot .hero-line{border-left:4px solid var(--cw);margin:0 18px 16px;padding:2px 0 2px 12px;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+@media (prefers-reduced-motion:reduce){.hero.v-spot .glow,.hero.v-spot .beam,.hero.v-spot .flare,.hero.v-spot .bg,.hero.v-spot .hero-score span{animation:none!important}}
+`;
+
+function heroBadges(g, h, b) {
+  const out = [];
+  const ra = g.away.rank_at_game, rh = g.home.rank_at_game, ranked = (r) => r > 0 && r <= 25;
+  const margin = Math.abs(g.home.score - g.away.score);
+  if (g.kind === "user_vs_user") out.push(["gold", "Game of the week"]);
+  if (h.upset) out.push(["hot", "Upset"]);
+  if (ranked(ra) && ranked(rh)) out.push(["", "Ranked matchup"]);
+  const q = b?.Home?.Quarters || [];
+  if (q.length > 4 && (q[4] || b.Away.Quarters[4])) out.push(["hot", "Overtime"]);
+  if (margin <= 3) out.push(["", "Nail-biter"]);
+  if (margin >= 28) out.push(["", "Blowout"]);
+  return out.length ? `<div class="hero-badges">${out.map(([c, t]) => `<span class="${c}">${t}</span>`).join("")}</div>` : "";
+}
+
+function heroExtra(g, b) {
+  if (!b) return "";
+  const ot = (b.Home.Quarters || []).length > 4 && (b.Home.Quarters[4] || b.Away.Quarters[4]);
+  const qs = (t) => (t.Quarters || []).slice(0, ot ? 5 : 4);
+  const ls = `<table class="hero-ls"><tr><th></th>${["1", "2", "3", "4"].concat(ot ? ["OT"] : []).map((x) => `<th>${x}</th>`).join("")}<th>T</th></tr>
+    ${[b.Away, b.Home].map((t) => `<tr><td>${esc(t.Abbrev)}</td>${qs(t).map((v) => `<td>${v}</td>`).join("")}<td>${t.Score}</td></tr>`).join("")}</table>`;
+  const P = b.Players || [], ab = (p) => (p.Team === g.home.team_key ? b.Home.Abbrev : b.Away.Abbrev);
+  const best = (score) => P.filter((p) => score(p.Stats) > 0).sort((x, y) => score(y.Stats) - score(x.Stats))[0];
+  const qb = best((s) => s.passYards + 20 * s.passTD - 25 * s.passINT);
+  const sk = best((s) => s.rushYards + s.receivingYards + 20 * (s.rushTD + s.receiveTouchdowns));
+  const df = best((s) => s.defenseTotalTackles + 4 * s.defenseSacks + 6 * s.defenseInterceptions + 2 * s.defenseTacklesForLoss);
+  const pl = (p) => `<a href="#player/${p.Key}">${esc(p.Name)}</a> <span>${esc(ab(p))}</span>`;
+  const cell = (label, p, line) => (p ? `<div><small>${label}</small><b>${pl(p)}</b><span>${line(p.Stats)}</span></div>` : "");
+  const pog = [
+    cell("Passing", qb, (s) => `${s.passCompletion}/${s.passAttempts}, ${s.passYards} yds, ${s.passTD} TD`),
+    cell(sk && sk.Stats.receivingYards > sk.Stats.rushYards ? "Receiving" : "Rushing", sk, (s) => (s.receivingYards > s.rushYards ? `${s.receiveReceptions} rec, ${s.receivingYards} yds, ${s.receiveTouchdowns} TD` : `${s.rushAttempts} car, ${s.rushYards} yds, ${s.rushTD} TD`)),
+    cell("Defense", df, (s) => [`${s.defenseTotalTackles} tkl`, s.defenseSacks && `${s.defenseSacks} sk`, s.defenseInterceptions && `${s.defenseInterceptions} INT`].filter(Boolean).join(", ")),
+  ].join("");
+  return `<div class="hero-extra">${ls}<div class="hero-pog">${pog}</div></div>`;
+}
+
+function heroCard(g) {
+  if (!g) return "";
+  const v = "spot";
+  const [w] = winnerLoser(g);
+  const h = headline(g);
+    const side = (s) => `<div class="hero-team ${g.played && s !== w ? "lost" : ""}">${badge(s.team, true)}
+      <div class="n">${rk(s.rank_at_game)}${tLink(s.team, s.team_key)}</div><div class="u">${esc(coach(s) || "CPU")}${teamRec(s.team_key) ? " · " + esc(teamRec(s.team_key)) : ""}</div></div>`;
+  const wl = g.away === w ? ["25%", "75%"] : ["75%", "25%"];
+  const bg = `<div class="bg"></div><div class="beam l"></div><div class="beam r"></div><div class="glow"></div><div class="flare l"></div><div class="flare r"></div><div class="grain"></div>`;
+  const style = `--cw:${teamColor(w.team)};--cl:${teamColor((g.away === w ? g.home : g.away).team)};--wx:${wl[0]};--lx:${wl[1]}`;
+  setTimeout(() => heroEnrich(g), 0);
+  return `<section class="card hero v-${v}" id="hero" style="${style}">${bg}<div class="sweep"></div>
+    <div class="hero-tag">${g.kind === "user_vs_user" ? "Game of the Week" : "Top result"}</div>
+    <div class="hero-body">${side(g.away)}
+      <div><div class="hero-score"><span class="${g.away === w ? "" : "l"}">${g.away.score}</span><span class="${g.home === w ? "" : "l"}">${g.home.score}</span></div><span class="f">Final · <a class="tl" href="#game/${g.key}" style="text-decoration:underline">Box score</a></span></div>
+      ${side(g.home)}</div>
+    <div id="hero-badges">${heroBadges(g, h, null)}</div>
+    <h1 class="hero-line">${h.upset ? '<span class="flag">UPSET</span>' : ""}${h.html}</h1>
+    <div id="hero-extra"></div>
+  </section>`;
+}
+
+// Adds the line score, players of the game, OT badge and (for Spotlight) a stadium photo if one exists.
+async function heroEnrich(g) {
+  const el = document.getElementById("hero"); if (!el) return;
+  if (g.has_box_score) {
+    const full = await loadGame(g).catch(() => null);
+    const b = full?.box_score;
+    if (b && document.getElementById("hero")) {
+      document.getElementById("hero-extra").innerHTML = heroExtra(g, b);
+      document.getElementById("hero-badges").innerHTML = heroBadges(g, headline(g), b);
+    }
+  }
+  if (el.classList.contains("v-spot")) {
+    const slug = (s) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const src = `img/stadiums/${slug(g.home.team)}.jpg`;
+    const img = new Image();
+    img.onload = () => { const bg = el.querySelector(".bg"); if (bg) { bg.style.backgroundImage = `url("${src}")`; el.classList.add("has-photo"); } };
+    img.src = src;
+  }
+}
