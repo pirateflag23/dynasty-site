@@ -278,7 +278,7 @@ async function main() {
     if (x.class_year === "SR" || !x.team_key) continue;
     const tk = x.team_key, PT = P(x.player_key, x.name), TT = tTok(tk), seed = x.player_key + "pw", st = statOf.get(x.player_key) || {};
     const pos = POS_WORD[x.position] || x.position, mkt = market(x), nil = x.nil_compensation ?? 0, gp = teamGames(tk);
-    const ov = `${an(x.overall)} ${x.overall}-overall`, archPos = `${String(x.archetype || "").toLowerCase()} ${pos}`.trim(), pay = nil ? `making ${nil}K` : "making nothing in NIL";
+    const ov = `${an(x.overall)} ${x.overall}-overall`, archPos = x.archetype ? `${x.archetype.toLowerCase()} (${x.position})` : pos, pay = nil ? `making ${nil}K` : "making nothing in NIL";
     const rank = (depth.get(`${tk}|${x.position}`) || []).findIndex((y) => y.player_key === x.player_key) + 1, starter = rank > 0 && rank <= (STARTERS[x.position] || 1);
     const boost = (userTeams.has(tk) ? 25 : 0) + (ranked(tk) ? 5 : 0) + (x.overall - 80);
     const nilR = nilRank.get(tk) || 99;
@@ -292,7 +292,7 @@ async function main() {
       d: `The ${yr[x.class_year] || ""} ${pos} is up ${jump.d} point${jump.d === 1 ? "" : "s"} since ${jump.when}${x.dev_trait && x.dev_trait !== "Normal" ? ` (${x.dev_trait} dev)` : ""}. He's ${nil ? `earning ${nil}K in NIL` : "earning nothing in NIL"}${mkt ? `; ${pos}s rated around ${x.overall} draw a median of ${mkt}K across FBS` : ""}. ${afford || pick(seed + "b2", ["Expect collectives around the country to take notice.", "Keeping him could get expensive."])}` });
     // 2) underpaid star
     else if (mkt && x.overall >= 84 && nil <= mkt * 0.5 && mkt - nil >= 40) add({ kind: "underpaid", kick: "Underpaid", score: 40 + (mkt - nil) / 4 + boost,
-      h: pick(seed + "u", [`${PT} is one of the best bargains in college football. How long can ${TT} keep it that way?`, `Rival collectives are circling ${TT}'s ${PT}`]),
+      h: pick(seed + "u", [`${PT} is one of the best bargains in college football. How long can ${TT} keep it that way?`, `Rival collectives are circling ${TT}'s ${PT}`, `${PT} is playing like a star and getting paid like a backup`, `Somebody is going to back up the truck for ${PT}. Will it be ${TT}?`]),
       d: `${cap(ov)} ${pos} ${pay}, while players at his position and rating command around ${mkt}K. ${afford || "That gap tends to close in the portal."}` });
     // 3) scheme mismatch
     const sr = styleRank(x);
