@@ -82,7 +82,7 @@ Use **dry_run** to print posts in the log without sending anything.
    - `DISCORD_PUBLIC_KEY` (Secret): Public Key from step 2
    - `DYNASTY_API_KEY` (Secret): make a new API key named `discord-bot` in the Dynasty API dashboard
    - `DISCORD_APP_ID` (Text): Application ID
-   - `SITE_URL` (Text): `https://pf-07.jw1388954.workers.dev`
+   - `SITE_URL` (Text): `https://thedynastycfb.com`
    - `DATA_URL` (Text): `https://pirateflag23.github.io/dynasty-site/data/bot`
 4. Copy the worker's URL (`https://odl-bot.jw1388954.workers.dev`). In the Discord Developer Portal → General
    Information → **Interactions Endpoint URL** → paste → Save. (Discord tests it; it saves only if the Worker answers.)

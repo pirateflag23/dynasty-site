@@ -5,7 +5,7 @@
 //   DISCORD_PUBLIC_KEY  (secret)  Discord Developer Portal → General Information → Public Key
 //   DISCORD_APP_ID      (text)    Application ID
 //   DYNASTY_API_KEY     (secret)  a Dynasty API key
-//   SITE_URL            (text)    https://pf-07.jw1388954.workers.dev
+//   SITE_URL            (text)    https://thedynastycfb.com
 //   DATA_URL            (text)    https://pirateflag23.github.io/dynasty-site/data/bot
 // Then paste this Worker's URL into Discord → General Information → Interactions Endpoint URL.
 
