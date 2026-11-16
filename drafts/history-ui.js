@@ -6,7 +6,7 @@ const HISTORY_BASE = "https://pirateflag23.github.io/dynasty-site/data/history";
 const H_CSS = `
 .h-sub{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
 .h-sub a{font:700 13px var(--head);padding:6px 12px;border-radius:999px;border:1px solid var(--line);color:var(--ink);text-decoration:none}
-.h-sub a[aria-current="page"]{background:var(--ink);color:var(--bg,#fff);border-color:var(--ink)}
+.h-sub a[aria-current="page"]{background:var(--nav-2);color:#fff;border-color:var(--nav-2)}
 .h-tbl th[data-k]{cursor:pointer;user-select:none}.h-tbl th[data-k]:hover{color:var(--ink)}
 .h-tbl th.on{color:var(--red)}
 .h-tbl td small,.h-coach small{color:var(--dim);font-weight:500}
@@ -141,9 +141,9 @@ const AWARD_GROUPS = [
   ["Player of the year", /heisman|maxwell|walter camp|player of the year|archie griffin/i],
   ["Offense", /o'?brien|unitas|manning|doak walker|biletnikoff|mackey|hornung|offensive/i],
   ["Line", /outland|rimington|lombardi|joe moore|lineman/i],
-  ["Defense", /bednarik|nagurski|butkus|thorpe|lott|hendricks|defensive/i],
-  ["Special teams", /groza|ray guy|returner|special/i],
-  ["Freshman", /freshman/i],
+  ["Defense", /bednarik|nagurski|butkus|thorpe|lott|hendricks|defensive|edge rusher/i],
+  ["Special teams", /groza|ray guy|returner|special|jet award/i],
+  ["Freshman", /freshman|shaun alexander/i],
 ];
 const awardGroup = (title) => (AWARD_GROUPS.find(([, re]) => re.test(title)) || ["Other"])[0];
 
@@ -169,7 +169,7 @@ async function renderChampions() {
   const groups = {}; for (const a of awards) (groups[awardGroup(a.title)] ??= []).push(a);
   const order = [...AWARD_GROUPS.map(([g]) => g), "Other"];
   const awardCard = (a) => `<div class="h-award"><small>${esc(a.title)}</small><b>${esc(a.name)}</b><span>${esc(a.position || "")} · ${esc(a.team?.name || "")}</span></div>`;
-  const aa = s.all_americans.filter((t) => t.conf === "National");
+  const aa = s.all_americans.filter((t) => t.conf === "National" && !/preseason/i.test(t.team));
 
   $("#h-in").innerHTML = `
     <div class="ctrl">${list.map((x) => `<button class="pill" data-cy="${x.season}" aria-pressed="${x.season === hChampYear}">${x.season}${x.final ? "" : " •"}</button>`).join("")}</div>
