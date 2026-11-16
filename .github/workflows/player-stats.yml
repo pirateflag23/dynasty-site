@@ -17,6 +17,10 @@ on:
         description: "Print Discord posts in the log instead of posting"
         type: boolean
         default: false
+      test_offseason:
+        description: "Also write a test copy of the offseason features (data/stories/<league>/offseason-test.json)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -48,6 +52,7 @@ jobs:
         env:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
           FORCE: ${{ inputs.force && '1' || '' }}
+          OUTLOOK_TEST: ${{ inputs.test_offseason && '1' || '' }}
         run: node .github/workflows/scripts/build-stories.mjs
       - name: Register slash commands (only when they change)
         if: ${{ hashFiles('discord.config.json') != '' }}

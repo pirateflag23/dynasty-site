@@ -14,6 +14,7 @@
 // get invented quotes, only narration. Quotes come only from generated recruits and league coaches.
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { buildOutlook } from "./stories-outlook.mjs";
 
 const API = (process.env.DYNASTY_API_BASE || "https://dynasty.prestonchoate.dev/v1").replace(/\/$/, "");
 const KEY = process.env.DYNASTY_API_KEY;
@@ -324,6 +325,13 @@ async function main() {
   const portalStories = portal.sort((a, b) => b.score - a.score).filter((s) => { if (pSeen.has(s.player)) return false; pUsed[s.kind] = (pUsed[s.kind] || 0) + 1; if (pUsed[s.kind] > (pCaps[s.kind] || 3)) return false; pSeen.add(s.player); return true; })
     .slice(0, 18).map((s, i) => { const v = Array.isArray(s.h) ? s.h[(pRot[s.kind] = (pRot[s.kind] ?? hash(s.player) % s.h.length) + 1) % s.h.length] : s.h; return { ...s, h: capH(v.replace(/\.(\]\])?\./g, ".$1")) }; });
 
+  /* ===================== OUTLOOK: crystal ball, CFP odds, offseason features ===================== */
+  for (const x of allRos) { if (!rosterCache.has(x.team_key)) rosterCache.set(x.team_key, Promise.resolve(allRos.filter((y) => y.team_key === x.team_key))); }
+  const outlook = await buildOutlook({ api, readJson, DIR, LID, cur, prevIdx, games, standings, teamStats, team, ts, userTeams, tName, tTok, keyOfSchool, reasonsFor, board, events,
+    style, allRos, depth, STARTERS, POS, POS_WORD, nilRank, ranked, recOf, coachTok,
+    h: { pick, hash, ord, T, P, R, capH, an, cap, num, list, STARS, lastName, STATE_NAME, TEAM_STATE } });
+  if (process.env.OUTLOOK_TEST === "1") { await writeFile(`${DIR}/offseason-test.json`, JSON.stringify(outlook.offseason, null, 1)); outlook.offseason = prevIdx.offseason || null; }
+
   /* ===================== GAMES ===================== */
   const latestWeek = playedGames.length ? Math.max(...playedGames.map((g) => g.week)) : null;
   const wk = playedGames.filter((g) => g.week === latestWeek && g.has_box_score);
@@ -418,7 +426,7 @@ async function main() {
     .map((s) => ({ ...s, h: capH(s.h) })).slice(0, 30);
   const recStories = recruiting.sort((a, b) => b.score - a.score).map((s) => ({ ...s, h: capH(s.h) })).slice(0, 40);
 
-  const out = { sig, league_id: LID, period: cur, week: latestWeek, generated_at: new Date().toISOString(), snaps: snapIds, recruiting: recStories, games: gameStories, portal: portalStories };
+  const out = { sig, league_id: LID, period: cur, week: latestWeek, generated_at: new Date().toISOString(), snaps: snapIds, recruiting: recStories, games: gameStories, portal: portalStories, ...outlook };
   await writeFile(`${DIR}/latest.json`, JSON.stringify(out));
   await writeFile(`${DIR}/p${cur.id}.json`, JSON.stringify(out));
   log(`Stories: ${recStories.length} recruiting, ${gameStories.length} game (week ${latestWeek}), ${portalStories.length} portal watch.`);
