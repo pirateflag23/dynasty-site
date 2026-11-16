@@ -20,7 +20,7 @@ Create these **text channels** (names must match `discord.config.json`; rename t
 | #big-performances | 400-yd passers, 200-yd rushers, 3-sack games… (thresholds in config) |
 | #recruiting | Per-user-team report each advance: class rank, commits/flips, top battles |
 | #transfer-portal | Portal entries (3★+ or leaving a user team) and commitments |
-| #players-of-the-week | National offensive + defensive POTW |
+| #national-potw | National offensive + defensive POTW |
 | #acc #big-12 #big-ten #sec | Conference POTW, pinging that conference's role |
 | #commish-board | One message, edited every run: RTA, unplayed games, autopilot |
 | #live-stream | (yours — the bot only mentions it) |
