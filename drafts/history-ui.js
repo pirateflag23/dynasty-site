@@ -35,8 +35,8 @@ const coachLabel = (c, link = true) => {
   const txt = c.name ? `${esc(c.name)} <span class="h-gt">(${esc(c.gamertag)})</span>` : esc(c.gamertag);
   return link ? `<a class="tl" href="#coach/${encodeURIComponent(c.gamertag)}">${txt}</a>` : txt;
 };
-const wl = (w, l, t) => `${w}-${l}${t ? "-" + t : ""}`;
-const pct = (v) => (v == null ? "—" : v.toFixed(3).replace(/^0/, ""));
+const hWl = (w, l, t) => `${w}-${l}${t ? "-" + t : ""}`;
+const hPct = (v) => (v == null ? "—" : v.toFixed(3).replace(/^0/, ""));
 const hNum = (v) => (v == null ? "—" : Number(v).toLocaleString("en-US"));
 
 function hShell(sub, inner) {
@@ -58,9 +58,9 @@ async function renderHistory(sub = "coaches") {
       const rows = [...d.coaches].sort((a, b) => (hSort.k === "name" ? (a.name || a.gamertag).localeCompare(b.name || b.gamertag) : (a[hSort.k] ?? 0) - (b[hSort.k] ?? 0)) * hSort.dir);
       $("#h-in").innerHTML = `<div class="scroll"><table class="tbl h-tbl"><thead><tr>${cols.map(([k, l]) => `<th data-k="${k}" class="${hSort.k === k ? "on" : ""}">${l}</th>`).join("")}</tr></thead><tbody>
         ${rows.map((c) => `<tr><td class="pl">${coachLabel(c)}<br><small>${esc(c.current_team || "")}${c.stints.length > 1 ? ` · ${c.stints.length} jobs` : ""}</small></td>
-          <td>${c.n_seasons}</td><td><b>${wl(c.w, c.l, c.t)}</b></td><td>${pct(c.pct)}</td><td>${wl(c.conf_w, c.conf_l)}</td><td>${wl(c.ranked_w, c.ranked_l)}</td>
-          <td>${wl(c.rival_w, c.rival_l)}</td><td>${wl(c.bowl_w, c.bowl_l)}</td><td>${c.cc_wins}${c.cc_apps ? ` <small>/ ${c.cc_apps}</small>` : ""}</td>
-          <td>${c.cfp_apps}</td><td>${wl(c.cfp_w, c.cfp_l)}</td><td>${c.natty_wins ? "🏆".repeat(c.natty_wins) : "0"}</td></tr>`).join("")}</tbody></table></div>
+          <td>${c.n_seasons}</td><td><b>${hWl(c.w, c.l, c.t)}</b></td><td>${hPct(c.pct)}</td><td>${hWl(c.conf_w, c.conf_l)}</td><td>${hWl(c.ranked_w, c.ranked_l)}</td>
+          <td>${hWl(c.rival_w, c.rival_l)}</td><td>${hWl(c.bowl_w, c.bowl_l)}</td><td>${c.cc_wins}${c.cc_apps ? ` <small>/ ${c.cc_apps}</small>` : ""}</td>
+          <td>${c.cfp_apps}</td><td>${hWl(c.cfp_w, c.cfp_l)}</td><td>${c.natty_wins ? "🏆".repeat(c.natty_wins) : "0"}</td></tr>`).join("")}</tbody></table></div>
         <div class="h-note">Click a column to sort. Conf titles show wins / title-game appearances. Records follow the coach across every job in this dynasty.</div>`;
       document.querySelectorAll(".h-tbl th[data-k]").forEach((th) => th.onclick = () => { const k = th.dataset.k; hSort = { k, dir: hSort.k === k ? -hSort.dir : k === "name" ? 1 : -1 }; draw(); });
     };
@@ -104,8 +104,8 @@ async function renderCoach(tag) {
   const c = d?.coaches?.find((x) => x.gamertag === tag);
   if (!c) { $("#view").innerHTML = `<div class="card"><div class="empty">No history for ${esc(tag)} yet. <a href="#history/coaches">All coaches</a></div></div>`; return; }
   document.title = `${c.name || c.gamertag} · ${CONFIG.SITE_NAME}`;
-  const tiles = [["Record", wl(c.w, c.l, c.t)], ["Win %", pct(c.pct)], ["Conference", wl(c.conf_w, c.conf_l)], ["vs Top 25", wl(c.ranked_w, c.ranked_l)],
-    ["Rivalry", wl(c.rival_w, c.rival_l)], ["Bowls", wl(c.bowl_w, c.bowl_l)], ["Conf titles", `${c.cc_wins}/${c.cc_apps}`], ["CFP apps", c.cfp_apps], ["CFP", wl(c.cfp_w, c.cfp_l)], ["Natl titles", c.natty_wins]];
+  const tiles = [["Record", hWl(c.w, c.l, c.t)], ["Win %", hPct(c.pct)], ["Conference", hWl(c.conf_w, c.conf_l)], ["vs Top 25", hWl(c.ranked_w, c.ranked_l)],
+    ["Rivalry", hWl(c.rival_w, c.rival_l)], ["Bowls", hWl(c.bowl_w, c.bowl_l)], ["Conf titles", `${c.cc_wins}/${c.cc_apps}`], ["CFP apps", c.cfp_apps], ["CFP", hWl(c.cfp_w, c.cfp_l)], ["Natl titles", c.natty_wins]];
   const yrs = Object.keys(c.seasons).sort((a, b) => b - a);
   const h2h = Object.entries(c.h2h).sort((a, b) => b[1].w + b[1].l - (a[1].w + a[1].l));
   const coachBy = new Map((d.coaches || []).map((x) => [x.gamertag, x]));
@@ -116,14 +116,14 @@ async function renderCoach(tag) {
       <section class="card"><h2 class="card-h">Career</h2><div class="h-tiles">${tiles.map(([l, v]) => `<div><b>${v}</b><span>${l}</span></div>`).join("")}</div>
         ${c.titles.length ? `<div class="h-trophy">${c.titles.map((t) => `<span>🏆 ${t.season} ${esc(t.title)} · ${esc(t.team)}</span>`).join("")}</div>` : ""}</section>
       <section class="card"><h2 class="card-h">Season by season</h2><div class="scroll"><table class="tbl"><thead><tr><th>Season</th><th>Team</th><th>W-L</th><th>Conf</th><th>Postseason</th></tr></thead><tbody>
-        ${yrs.map((y) => { const r = c.seasons[y]; return `<tr><td>${y}</td><td>${tLink(r.team, r.team_key)}</td><td><b>${wl(r.w, r.l, r.t)}</b></td><td>${wl(r.conf_w, r.conf_l)}</td><td style="text-align:left;white-space:normal">${esc(r.notes.join(" · ") || "—")}</td></tr>`; }).join("")}</tbody></table></div></section>
+        ${yrs.map((y) => { const r = c.seasons[y]; return `<tr><td>${y}</td><td>${tLink(r.team, r.team_key)}</td><td><b>${hWl(r.w, r.l, r.t)}</b></td><td>${hWl(r.conf_w, r.conf_l)}</td><td style="text-align:left;white-space:normal">${esc(r.notes.join(" · ") || "—")}</td></tr>`; }).join("")}</tbody></table></div></section>
     </div><div>
       <section class="card"><h2 class="card-h">Jobs</h2><div class="scroll"><table class="tbl"><thead><tr><th>Team</th><th>Years</th><th>W-L</th></tr></thead><tbody>
-        ${c.stints.map((s) => `<tr><td>${tLink(s.team, s.team_key)}</td><td>${s.from}${s.to !== s.from ? "–" + s.to : ""}</td><td>${wl(s.w, s.l, s.t)}</td></tr>`).join("")}</tbody></table></div></section>
+        ${c.stints.map((s) => `<tr><td>${tLink(s.team, s.team_key)}</td><td>${s.from}${s.to !== s.from ? "–" + s.to : ""}</td><td>${hWl(s.w, s.l, s.t)}</td></tr>`).join("")}</tbody></table></div></section>
       <section class="card"><h2 class="card-h">Rivalries</h2>${Object.keys(c.rivalry_games).length ? `<div class="scroll"><table class="tbl"><thead><tr><th>Rivalry</th><th>vs</th><th>W-L</th></tr></thead><tbody>
-        ${Object.entries(c.rivalry_games).map(([n, r]) => `<tr><td>${esc(n)}</td><td>${esc(r.vs)}</td><td>${wl(r.w, r.l)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No rivalry games yet.</div>'}</section>
+        ${Object.entries(c.rivalry_games).map(([n, r]) => `<tr><td>${esc(n)}</td><td>${esc(r.vs)}</td><td>${hWl(r.w, r.l)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No rivalry games yet.</div>'}</section>
       <section class="card"><h2 class="card-h">Head to head <small>vs league coaches</small></h2>${h2h.length ? `<div class="scroll"><table class="tbl"><thead><tr><th>Coach</th><th>W-L</th></tr></thead><tbody>
-        ${h2h.map(([u, r]) => `<tr><td>${coachBy.get(u) ? coachLabel(coachBy.get(u)) : esc(u)}</td><td>${wl(r.w, r.l, r.t)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No games against league coaches yet.</div>'}</section>
+        ${h2h.map(([u, r]) => `<tr><td>${coachBy.get(u) ? coachLabel(coachBy.get(u)) : esc(u)}</td><td>${hWl(r.w, r.l, r.t)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No games against league coaches yet.</div>'}</section>
     </div></div>`;
   window.scrollTo(0, 0);
 }
