@@ -345,46 +345,37 @@ async function main() {
   }
 
   async function recruitingEmbeds(cls) {
+    // One league-wide report per advance: top classes, top battles, biggest commits, flips.
     const prevCls = prevPeriod ? await api(`/recruits/classes?period=${prevPeriod.id}`).catch(() => null) : null;
     const prevRank = new Map((prevCls?.data || []).map((c) => [c.team_key, c.rank]));
     const [commits, board] = await Promise.all([api("/recruits/commits?type=recruits"), api("/recruits?type=recruits&committed=false")]);
     const thisWeek = commits.data.filter((c) => c.period_id === cur.id);
-    const embeds = [];
-    // National header
-    const top10 = cls.data.slice(0, 10).map((c) => `\`${lpad(c.rank, 2)}\` ${userTeams.has(c.team_key) ? `**${c.name}** 🎮` : c.name} · ${c.commits.total} commits · ${f1(c.points)} pts`);
-    const big = thisWeek.filter((c) => c.kind !== "decommit" && (c.stars >= 5 || c.national_rank <= 50)).slice(0, 8)
-      .map((c) => `${c.kind === "commit" && c.previous_school ? "🔄 Flip" : c.kind === "sign" ? "✍️ Signed" : "✅"} ${stars(c.stars)} ${c.position} **${c.name}** (#${c.national_rank}) → ${c.school?.name}`);
-    embeds.push({ title: `📋 Recruiting report · ${cur.season_text}`, color: GREEN, fields: [
-      { name: "Top 10 classes", value: top10.join("\n") || "—" },
-      ...(big.length ? [{ name: "Top recruits on the move", value: clip(big.join("\n"), 1024) }] : []),
-    ] });
-    // One embed per user team
-    for (const tk of [...userTeams].sort((a, b) => tName(a).localeCompare(tName(b)))) {
-      const t = tstats.get(tk); const c = cls.data.find((x) => x.team_key === tk);
-      const tid = t?.team_id;
-      const pr = prevRank.get(tk);
-      const mv = c && pr ? (pr === c.rank ? "" : pr > c.rank ? ` ▲${pr - c.rank}` : ` ▼${c.rank - pr}`) : "";
-      const mine = thisWeek.filter((x) => x.school?.team_id === tid || x.previous_school?.team_id === tid);
-      const moves = mine.map((x) => {
-        const lost = x.previous_school?.team_id === tid && x.school?.team_id !== tid;
-        const icon = x.kind === "decommit" ? "❌ Decommit" : lost ? "💔 Flipped away" : x.previous_school ? "🔄 Flipped to you" : x.kind === "sign" ? "✍️ Signed" : "✅ Commit";
-        return `${icon}: ${stars(x.stars)} ${x.position} ${x.name} (#${x.national_rank})${lost ? ` → ${x.school?.name}` : ""}`;
-      });
-      const battles = board.data.filter((r) => (r.top_schools || []).some((s) => s.team_id === tid)).slice(0, 6).map((r) => {
-        const i = r.top_schools.findIndex((s) => s.team_id === tid), lead = r.top_schools[0], me = r.top_schools[i];
-        const status = i === 0 ? `🟢 leading (${me.influence}${r.top_schools[1] ? ` vs ${r.top_schools[1].name} ${r.top_schools[1].influence}` : ""})` : `🟡 ${i + 1}${["st", "nd", "rd"][i] || "th"} · ${me.influence} vs ${lead.name} ${lead.influence}`;
-        return `${stars(r.stars)} ${r.position} **${r.name}** (#${r.national_rank}, ${r.state}) — ${status}`;
-      });
-      embeds.push({
-        title: `${tName(tk)} · Class #${c?.rank ?? "—"}${mv}`, url: site(`team/${tk}`), color: GREEN,
-        description: c ? `${c.commits.total} commits · ★5 ${c.commits.five_star} · ★4 ${c.commits.four_star} · ★3 ${c.commits.three_star} · ${f1(c.points)} pts${memberByTeam.get(tk) ? ` · ${memberByTeam.get(tk).recruiting_hours} hrs` : ""}` : "No class yet",
-        fields: [
-          { name: "This week", value: clip(moves.join("\n") || "No changes", 1024) },
-          { name: "Top battles (uncommitted)", value: clip(battles.join("\n") || "Not in anyone's top 5 yet", 1024) },
-        ],
-      });
-    }
-    return { embeds };
+    const userIds = new Set([...userTeams].map((k) => tstats.get(k)?.team_id).filter(Boolean));
+    const sch = (x) => (x && userIds.has(x.team_id) ? `**${x.name}** 🎮` : x?.name || "?");
+    const who = (r) => `${stars(r.stars)} ${r.position} **${r.name}** (#${r.national_rank}${r.state ? `, ${r.state}` : ""})`;
+    const byStar = (a, b) => (b.stars || 0) - (a.stars || 0) || (a.national_rank || 9999) - (b.national_rank || 9999);
+
+    const classes = cls.data.slice(0, 10).map((c) => {
+      const pr = prevRank.get(c.team_key);
+      const mv = !pr ? "" : pr === c.rank ? " —" : pr > c.rank ? ` ▲${pr - c.rank}` : ` ▼${c.rank - pr}`;
+      return `\`${lpad(c.rank, 2)}\` ${userTeams.has(c.team_key) ? `**${c.name}** 🎮` : c.name}${mv} · ${c.commits.total} commits (★5 ${c.commits.five_star} · ★4 ${c.commits.four_star}) · ${f1(c.points)} pts`;
+    });
+    const battles = board.data.filter((r) => (r.top_schools || []).filter((x) => x.influence > 0).length >= 2).sort(byStar).slice(0, 10).map((r) => {
+      const [a, b] = r.top_schools;
+      return `${who(r)}\n　${sch(a)} ${a.influence} vs ${sch(b)} ${b.influence}${r.top_schools[2]?.influence ? ` · ${r.top_schools[2].name} ${r.top_schools[2].influence}` : ""}`;
+    });
+    const biggest = thisWeek.filter((c) => (c.kind === "commit" && !c.previous_school) || c.kind === "sign").sort(byStar).slice(0, 10)
+      .map((c) => `${c.kind === "sign" ? "✍️" : "✅"} ${who(c)} → ${sch(c.school)}`);
+    const flips = thisWeek.filter((c) => c.kind === "commit" && c.previous_school).sort(byStar)
+      .map((c) => `🔄 ${who(c)}: ${sch(c.previous_school)} → ${sch(c.school)}`);
+
+    const sec = (title, lines, empty, color) => ({ title, color, description: (lines.length ? pages(lines)[0] : empty) });
+    return { embeds: [
+      sec(`📋 Recruiting · ${cur.season_text} · Top 10 classes`, classes, "No classes yet.", GREEN),
+      sec("⚔️ Top 10 recruiting battles", battles, "No contested recruits right now.", GOLD),
+      sec("✅ Biggest commitments this week", biggest, "No new commitments this week.", BLUE),
+      sec("🔄 Flips", flips, "No flips this week.", RED),
+    ] };
   }
 
   async function transferPortal() {
