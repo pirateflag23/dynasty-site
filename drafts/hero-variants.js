@@ -7,16 +7,15 @@ const HERO_CSS = `
 .hero-badges span{font:800 10px/1 var(--head);letter-spacing:.6px;padding:5px 8px;border-radius:3px;background:rgba(255,255,255,.12);color:#fff;text-transform:uppercase;backdrop-filter:blur(2px)}
 .hero-badges .hot{background:var(--red)}
 .hero-badges .gold{background:#f2b134;color:#121213}
-.hero-extra{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:stretch;margin:0 18px 18px;padding:12px 14px;border-radius:8px;background:rgba(0,0,0,.38);backdrop-filter:blur(3px);border:1px solid rgba(255,255,255,.08)}
-.hero-ls{font:700 12px/1.55 var(--body);font-variant-numeric:tabular-nums;border-collapse:collapse;color:#d7d8da}
+.hero-extra{display:grid;grid-template-columns:1fr;gap:10px;align-items:stretch;margin:0 18px 18px;padding:12px 14px;border-radius:8px;background:rgba(0,0,0,.38);backdrop-filter:blur(3px);border:1px solid rgba(255,255,255,.08)}
+.hero-ls{width:100%;font:700 12px/1.55 var(--body);font-variant-numeric:tabular-nums;border-collapse:collapse;color:#d7d8da}
 .hero-ls th{font-weight:700;color:#8d8f93;padding:0 7px;text-align:center}
 .hero-ls td{padding:0 7px;text-align:center}.hero-ls td:first-child,.hero-ls th:first-child{text-align:left;padding-left:0}
 .hero-ls td:last-child{font-weight:800;color:#fff}
-.hero-pog{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;border-left:1px solid rgba(255,255,255,.12);padding-left:14px}
+.hero-pog{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;border-top:1px solid rgba(255,255,255,.12);padding-top:10px}
 .hero-pog div{min-width:0}.hero-pog small{display:block;font:800 10px/1 var(--head);letter-spacing:.5px;color:#8d8f93;text-transform:uppercase;margin-bottom:4px}
 .hero-pog b{display:block;font:700 13px/1.2 var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hero-pog b a{color:#fff}.hero-pog span{font-size:12px;color:#c9cacd}
-@media (max-width:640px){.hero-extra{grid-template-columns:1fr}.hero-pog{border-left:0;padding-left:0;border-top:1px solid rgba(255,255,255,.12);padding-top:10px}}
 .hero-score span{display:inline-block}
 @keyframes heroIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .hero-score span{animation:heroIn .5s ease-out both}.hero-score span+span{animation-delay:.12s}
@@ -29,7 +28,7 @@ const HERO_CSS = `
 .hero.v-split .bg{position:absolute;inset:0;z-index:0;background:
   linear-gradient(105deg,var(--ca) 0 49.6%,transparent 50%),linear-gradient(105deg,transparent 50.4%,var(--ch) 50.6%)}
 .hero.v-split .bg::after{content:"";position:absolute;inset:0;background:
-  linear-gradient(105deg,transparent 48.5%,var(--cx) 49%,var(--cx) 51%,transparent 51.5%),
+  linear-gradient(105deg,transparent 49.6%,rgba(255,255,255,.22) 49.8%,rgba(255,255,255,.22) 50.2%,transparent 50.4%),
   linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.72) 70%),
   repeating-linear-gradient(105deg,rgba(255,255,255,.035) 0 2px,transparent 2px 14px)}
 .hero.v-split .bg .lose{position:absolute;inset:0}
