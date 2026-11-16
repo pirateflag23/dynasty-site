@@ -86,7 +86,10 @@ export async function buildOutlook(c) {
     if (reason.k === "time") return `${tName(tk)}'s ${posW(r.position)} room is thin${db === "playing time" ? ", and playing time is his dealbreaker" : ""}. He can start early there.`;
     if (reason.k === "coach") return `${coachTok(tk)} has made this one personal.`;
     if (reason.k === "far") return "";
-    return reason.line.replace(/^The timing helped: /, "Timing could help: ").replace(/ and \w+ wanted /, " and he wants ");
+    if (reason.k.startsWith("grade:")) { const g = reason.k.slice(6), m = reason.line.match(/grades out an? ([A-F][+-]?)/); return `${tName(tk)} grades out ${m ? (/^[AF]/.test(m[1]) ? "an " : "a ") + m[1] : "well"} in ${g.toLowerCase()}${db === g.toLowerCase() ? ", which happens to be his dealbreaker" : ", and that matters to him"}.`; }
+    if (reason.k === "win") return reason.line.replace(/^The timing helped: /, "Timing could help: ").replace(/ is coming off /, " is coming off ");
+    if (reason.k === "nil") return reason.line.replace(" was a reported ", " is a reported ");
+    return reason.line;
   };
   for (const r of sel) {
     const schools = (r.top_schools || []).filter((s) => s.influence > 0).slice(0, 4).map((s) => ({ ...s, tk: keyOfSchool(s) })).filter((s) => s.tk);
@@ -107,9 +110,11 @@ export async function buildOutlook(c) {
     const nm = lastName(r.name), pct = Math.round(pk.p * 100);
     const lines = [];
     if (!second) lines.push(`${T(pk.tk, pk.name)} is the only school with real traction here.`);
-    else if (pk.tk !== leader.tk) lines.push(`${T(leader.tk, leader.name)} leads on paper, ${leader.influence} to ${pk.influence}, but the momentum belongs to ${T(pk.tk, pk.name)}${pk.mom > 0 ? `, which gained ${pk.mom} points this week${leader.mom >= 0 ? ` to ${leader.name}'s ${leader.mom}` : ""}` : ""}.`);
+    else if (pk.tk !== leader.tk) lines.push(pk.mom > leader.mom ? `${T(leader.tk, leader.name)} leads on paper, ${leader.influence} to ${pk.influence}, but the momentum belongs to ${T(pk.tk, pk.name)}, which gained ${pk.mom} points this week to ${leader.name}'s ${Math.max(0, leader.mom)}.`
+      : `${T(leader.tk, leader.name)} leads on paper, ${leader.influence} to ${pk.influence}, but ${T(pk.tk, pk.name)} checks more of his boxes.`);
+    else if ((leader.influence - second.influence) / leader.influence < 0.12) lines.push(pick(seed + "b", [`This is a dogfight between ${T(leader.tk, leader.name)} and ${T(second.tk, second.name)}, separated by ${leader.influence - second.influence} points.`, `${T(leader.tk, leader.name)} (${leader.influence}) and ${T(second.tk, second.name)} (${second.influence}) are trading punches.`]));
+    else if ((leader.influence - second.influence) / leader.influence <= 0.35) lines.push(pick(seed + "e", [`${T(leader.tk, leader.name)} has the edge, ${leader.influence - second.influence} points up on ${T(second.tk, second.name)}.`, `${T(leader.tk, leader.name)} leads ${T(second.tk, second.name)} ${leader.influence} to ${second.influence}, a real but not insurmountable gap.`]));
     else if ((leader.influence - second.influence) / leader.influence > 0.35) lines.push(pick(seed + "a", [`${T(leader.tk, leader.name)} has controlled this one, sitting ${leader.influence - second.influence} points clear of ${T(second.tk, second.name)}.`, `${T(leader.tk, leader.name)} has built a real cushion: ${leader.influence} points to ${second.name}'s ${second.influence}.`]));
-    else lines.push(pick(seed + "b", [`This is a dogfight between ${T(leader.tk, leader.name)} and ${T(second.tk, second.name)}, separated by ${leader.influence - second.influence} points.`, `${T(leader.tk, leader.name)} (${leader.influence}) and ${T(second.tk, second.name)} (${second.influence}) are trading punches.`]));
     if (pk.tk === leader.tk && second && second.mom > leader.mom && second.mom > 0) lines.push(`${second.name} closed ground this week (+${second.mom}), so this isn't over.`);
     const why = await predPhrase(r, pk.tk, pk.reasons.find((x) => x.k !== "far"), seed);
     if (why) lines.push(why);
@@ -176,7 +181,7 @@ export async function buildOutlook(c) {
         const top = [...ks].sort((a, b) => (CW.get(b) - CL.get(b)) - (CW.get(a) - CL.get(a)) || (W.get(b) - L.get(b)) - (W.get(a) - L.get(a)) || sOf(b) - sOf(a) + (rnd() - 0.5) * 0.01).slice(0, 2);
         const hw = rnd() < pWin(top[0], top[1], true), win = hw ? top[0] : top[1]; champs.add(win); W.set(win, W.get(win) + 1); L.set(hw ? top[1] : top[0], L.get(hw ? top[1] : top[0]) + 1);
       }
-      const score = new Map(); for (const t of standings.data) { const k = t.team_key; score.set(k, 10 * W.get(k) - 14 * L.get(k) + 0.5 * sOf(k) + 0.35 * sos.get(k) + (champs.has(k) ? 8 : 0) + (t.rank > 0 && t.rank <= 25 ? (26 - t.rank) * 0.6 : 0) + gauss() * 3); }
+      const score = new Map(); for (const t of standings.data) { const k = t.team_key; score.set(k, 10 * W.get(k) - 14 * L.get(k) + 0.5 * sOf(k) + 0.35 * sos.get(k) + (champs.has(k) ? 8 : 0) + (t.rank > 0 && t.rank <= 25 ? (26 - t.rank) * 1.1 : 0) + gauss() * 3); }
       const order = [...fbs.keys()].sort((a, b) => score.get(b) - score.get(a));
       const autos = order.filter((k) => champs.has(k)).slice(0, 5), field = new Set(autos);
       for (const k of order) { if (field.size >= 12) break; field.add(k); }
@@ -262,7 +267,7 @@ export async function buildOutlook(c) {
       const jump = x.overall - b[1];
       if (jump >= 3) sig.push({ w: jump * 2, t: pick(seed + "j", [`jumped from ${b[1]} to ${x.overall} overall this offseason`, `came out of the offseason at ${x.overall} overall, up from ${b[1]}`]) });
       const rj = keys.map((k, i) => ({ k, d: now[i] != null && b[7]?.[i] != null ? now[i] - b[7][i] : 0, a: b[7]?.[i], z: now[i] })).filter((r2) => r2.d >= 4).sort((a, b2) => b2.d - a.d).slice(0, 2);
-      if (rj.length) sig.push({ w: rj.reduce((t, r2) => t + r2.d, 0) / 1.5, t: `his ${list(rj.map((r2) => `${RATING_WORDS[r2.k] || r2.k} (${r2.a} to ${r2.z})`))} took a big step` });
+      if (rj.length) sig.push({ w: rj.reduce((t, r2) => t + r2.d, 0) / 1.5, t: `saw his ${list(rj.map((r2) => `${RATING_WORDS[r2.k] || r2.k} (${r2.a} to ${r2.z})`))} take a big step in training` });
       const starters = STARTERS[x.position] || 1, nowRank = depthRank(x), moved = b[0] !== tk;
       const newStarter = nowRank > 0 && nowRank <= starters && (moved || b[4] > starters);
       if (newStarter) {
@@ -271,17 +276,17 @@ export async function buildOutlook(c) {
       }
       const pr = baseline.teams?.[tk];
       if (newStarter || nowRank <= starters) {
-        if (["QB", "WR", "TE"].includes(x.position) && pr?.[0] && pr[0] <= 25) sig.push({ w: 5, t: `${tName(tk)} threw it more than almost anyone last year (${ord(pr[0])} in passing yards per game)` });
-        if (["HB"].includes(x.position) && pr?.[1] && pr[1] <= 25) sig.push({ w: 5, t: `${tName(tk)} leans on the run game (${ord(pr[1])} in rushing yards per game last year)` });
+        if (["QB", "WR", "TE"].includes(x.position) && pr?.[0] && pr[0] <= 25) sig.push({ w: 5, full: `${tName(tk)} threw it more than almost anyone last year (${ord(pr[0])} in passing yards per game)` });
+        if (["HB"].includes(x.position) && pr?.[1] && pr[1] <= 25) sig.push({ w: 5, full: `${tName(tk)} leans on the run game (${ord(pr[1])} in rushing yards per game last year)` });
       }
       const sr = styleRank(x);
-      if (sr && sr.rank <= Math.max(10, sr.of * 0.15)) sig.push({ w: 4, t: `his ${String(x.archetype).toLowerCase()} skill set fits a scheme that ranks ${ord(sr.rank)} in ${String(sr.stat).toLowerCase()}` });
-      if (["WR", "TE"].includes(x.position) && st.receiveReceptions >= 8 && st.receivingYards / st.receiveReceptions >= 15) sig.push({ w: 5, t: `he averaged ${(st.receivingYards / st.receiveReceptions).toFixed(1)} yards a catch in a limited role` });
-      if (x.position === "HB" && st.rushAttempts >= 25 && st.rushYards / st.rushAttempts >= 5.5) sig.push({ w: 5, t: `he ran for ${(st.rushYards / st.rushAttempts).toFixed(1)} yards a carry as a backup` });
-      if (x.position === "QB" && st.passAttempts >= 30 && st.passerRating >= 150) sig.push({ w: 5, t: `he posted a ${Math.round(st.passerRating)} passer rating in spot duty` });
-      if (st.defenseSacks >= 3 && downsPg < 35) sig.push({ w: 5, t: `he piled up ${st.defenseSacks} sacks without starting` });
-      if (st.defenseInterceptions >= 2 && downsPg < 35) sig.push({ w: 4, t: `he picked off ${st.defenseInterceptions} passes in part-time work` });
-      if (/star|elite/i.test(x.dev_trait || "") && ["FR", "SO"].includes(x.class_year)) sig.push({ w: 3, t: `he carries a ${x.dev_trait} development trait` });
+      if (sr && sr.rank <= Math.max(10, sr.of * 0.15)) sig.push({ w: 4, t: `brings a ${String(x.archetype).toLowerCase()} skill set to a scheme that ranks ${ord(sr.rank)} in ${String(sr.stat).toLowerCase()}` });
+      if (["WR", "TE"].includes(x.position) && st.receiveReceptions >= 8 && st.receivingYards / st.receiveReceptions >= 15) sig.push({ w: 5, t: `averaged ${(st.receivingYards / st.receiveReceptions).toFixed(1)} yards a catch in a limited role` });
+      if (x.position === "HB" && st.rushAttempts >= 25 && st.rushYards / st.rushAttempts >= 5.5) sig.push({ w: 5, t: `ran for ${(st.rushYards / st.rushAttempts).toFixed(1)} yards a carry as a backup` });
+      if (x.position === "QB" && st.passAttempts >= 30 && st.passerRating >= 150) sig.push({ w: 5, t: `posted a ${Math.round(st.passerRating)} passer rating in spot duty` });
+      if (st.defenseSacks >= 3 && downsPg < 35) sig.push({ w: 5, t: `piled up ${st.defenseSacks} sacks without starting` });
+      if (st.defenseInterceptions >= 2 && downsPg < 35) sig.push({ w: 4, t: `picked off ${st.defenseInterceptions} passes in part-time work` });
+      if (/star|elite/i.test(x.dev_trait || "") && ["FR", "SO"].includes(x.class_year)) sig.push({ w: 3, t: `carries a ${x.dev_trait} development trait` });
       const score = sig.reduce((t, s2) => t + s2.w, 0) + (userTeams.has(tk) ? 6 : 0) + (x.overall - 74) * 0.5;
       if (sig.length >= 2 && score >= 14) cands.push({ x, sig: sig.sort((a, b2) => b2.w - a.w), score, b, st });
     }
@@ -289,12 +294,15 @@ export async function buildOutlook(c) {
     const perTeam = new Map(), breakouts = [];
     for (const c2 of cands) { const k = c2.x.team_key; if ((perTeam.get(k) || 0) >= 2) continue; perTeam.set(k, (perTeam.get(k) || 0) + 1); breakouts.push(c2); if (breakouts.length >= 12) break; }
     const bo = breakouts.map(({ x, sig, b, st }, i) => {
-      const seed = x.player_key + "bw", PT = P(x.player_key, x.name), s = sig.slice(0, 3).map((z) => z.t);
-      const lead = `${PT} ${s[0]}.`;
-      const more = s.length > 1 ? ` ${pick(seed + "c", ["On top of that, ", "Better yet, ", "Add this: "])}${s.slice(1).join(", and ")}.` : "";
+      const seed = x.player_key + "bw", PT = P(x.player_key, x.name);
+      const leadSig = sig.find((z) => z.t) || sig[0], rest = sig.filter((z) => z !== leadSig).slice(0, 2);
+      const lead = leadSig.t ? `${PT} ${leadSig.t}.` : `${leadSig.full}.`;
+      const conn = [pick(seed + "c", ["On top of that, ", "Better yet, ", "Add this: ", "Also: "]), pick(seed + "e", ["And ", "Plus, ", ""])];
+      const more = rest.map((z, j) => { const sent = z.t ? `he ${z.t}` : z.full; const c3 = conn[j]; return c3 ? c3 + sent : cap(sent); }).map((t2) => cap(t2) + ".").join(" ");
+      const tail = more ? " " + more : "";
       const close = pick(seed + "z", [`Circle his name now.`, `By October, everyone will know it.`, `This is the year.`, `${tName(x.team_key)} fans are about to get a new favorite player.`, `Don't be surprised to see him on an all-conference team.`]);
       return { rank: i + 1, player: x.player_key, name: x.name, position: x.position, team: x.team_key, ovr: x.overall, was: b[1], class_year: x.class_year, archetype: x.archetype, user: userTeams.has(x.team_key),
-        h: capH(`${PT}, ${yr[x.class_year] || ""} ${posW(x.position)}, ${tTok(x.team_key)}`), d: (lead + more).replace(/\s+/g, " ") + " " + close, last: statLine(x.position, st) };
+        h: capH(`${PT}, ${yr[x.class_year] || ""} ${posW(x.position)}, ${tTok(x.team_key)}`), d: (lead + tail).replace(/\s+/g, " ") + " " + close, last: statLine(x.position, st) };
     });
     offseason = (nil.length || bo.length) ? { season: cur.season, from_season: baseline.season, season_text: text, test: TEST || undefined,
       nil: { h: pick(String(cur.season) + "n", ["Show him the money: the 10 biggest NIL raises of the offseason", "Payday: who cashed in this offseason", "Pay raise season: the 10 biggest NIL jumps"]),
