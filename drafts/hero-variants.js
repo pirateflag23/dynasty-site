@@ -55,18 +55,29 @@ const HERO_CSS = `
 @media (max-width:640px){.hero.v-field .ez{width:7%}.hero.v-field .ez span{font-size:16px;letter-spacing:3px}.hero.v-field .hero-body,.hero.v-field .hero-line,.hero.v-field .hero-badges,.hero.v-field .hero-extra{margin-left:7%;margin-right:7%}}
 
 /* C · Spotlight (photo-ready) */
-.hero.v-spot{background:#0b0b0c}
-.hero.v-spot .bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;filter:saturate(1.1)}
-.hero.v-spot .bg::after{content:"";position:absolute;inset:0;background:
-  radial-gradient(ellipse 55% 85% at var(--wx) 30%,color-mix(in srgb,var(--cw) 70%,transparent),transparent 70%),
-  radial-gradient(ellipse 40% 60% at var(--lx) 40%,color-mix(in srgb,var(--cl) 30%,transparent),transparent 70%),
-  linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.85) 75%)}
-.hero.v-spot.has-photo .bg::after{background:
-  radial-gradient(ellipse 55% 85% at var(--wx) 30%,color-mix(in srgb,var(--cw) 45%,transparent),transparent 70%),
-  linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.88) 72%)}
+.hero.v-spot{background:#060607}
+.hero.v-spot .bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;filter:saturate(1.1);animation:lightsOn 1.4s ease-out both}
+.hero.v-spot .bg::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 40% 60% at var(--lx) 45%,color-mix(in srgb,var(--cl) 28%,transparent),transparent 70%),linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.86) 76%)}
+.hero.v-spot.has-photo .bg::after{background:linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.88) 72%)}
+.hero.v-spot .glow{position:absolute;z-index:1;pointer-events:none;left:calc(var(--wx) - 45%);top:-35%;width:90%;height:130%;
+  background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--cw) 95%,#fff 5%),color-mix(in srgb,var(--cw) 45%,transparent) 38%,transparent 68%);
+  mix-blend-mode:screen;animation:glowPulse 3.2s ease-in-out infinite}
+.hero.v-spot .beam{position:absolute;z-index:1;top:-6%;width:46%;height:150%;pointer-events:none;transform-origin:50% 0;mix-blend-mode:screen;filter:blur(5px);
+  background:conic-gradient(from 180deg at 50% 0,transparent 0 166deg,rgba(255,255,255,.07) 171deg,color-mix(in srgb,var(--cw) 55%,#fff 45%) 180deg,rgba(255,255,255,.07) 189deg,transparent 194deg 360deg);opacity:.55}
+.hero.v-spot .beam.l{left:-8%;animation:beamL 6.5s ease-in-out infinite alternate}
+.hero.v-spot .beam.r{right:-8%;animation:beamR 7.5s ease-in-out -2s infinite alternate}
+.hero.v-spot .flare{position:absolute;z-index:1;top:-10px;width:120px;height:40px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,#fff,color-mix(in srgb,var(--cw) 60%,transparent) 55%,transparent);filter:blur(2px);opacity:.75;animation:flicker 4s infinite}
+.hero.v-spot .flare.l{left:6%}.hero.v-spot .flare.r{right:6%;animation-delay:-1.7s}
+@keyframes beamL{from{transform:rotate(-34deg)}to{transform:rotate(18deg)}}
+@keyframes beamR{from{transform:rotate(32deg)}to{transform:rotate(-16deg)}}
+@keyframes glowPulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+@keyframes flicker{0%,100%{opacity:.75}47%{opacity:.85}50%{opacity:.45}53%{opacity:.9}}
+@keyframes lightsOn{0%{filter:brightness(0)}35%{filter:brightness(1.6)}100%{filter:brightness(1)}}
+@keyframes scoreGlow{0%,100%{text-shadow:0 0 18px color-mix(in srgb,var(--cw) 70%,transparent),0 0 2px #fff}50%{text-shadow:0 0 38px var(--cw),0 0 70px color-mix(in srgb,var(--cw) 60%,transparent),0 0 2px #fff}}
 .hero.v-spot .grain{position:absolute;inset:0;z-index:1;opacity:.18;mix-blend-mode:overlay;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-.hero.v-spot .hero-score span:not(.l){text-shadow:0 0 24px color-mix(in srgb,var(--cw) 80%,transparent)}
-.hero.v-spot .hero-line{border-left:4px solid var(--cw);margin:0 18px 16px;padding:2px 0 2px 12px}
+.hero.v-spot .hero-score span:not(.l){animation:heroIn .5s ease-out both,scoreGlow 3.2s ease-in-out .5s infinite}
+.hero.v-spot .hero-line{border-left:4px solid var(--cw);margin:0 18px 16px;padding:2px 0 2px 12px;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+@media (prefers-reduced-motion:reduce){.hero.v-spot .glow,.hero.v-spot .beam,.hero.v-spot .flare,.hero.v-spot .bg,.hero.v-spot .hero-score span{animation:none!important}}
 `;
 
 function heroBadges(g, h, b) {
@@ -112,11 +123,11 @@ function heroCard(g) {
   const ca = teamColor(g.away.team), ch = teamColor(g.home.team);
   const side = (s) => `<div class="hero-team ${g.played && s !== w ? "lost" : ""}">${badge(s.team, true)}
       <div class="n">${rk(s.rank_at_game)}${tLink(s.team, s.team_key)}</div><div class="u">${esc(coach(s) || "CPU")}${teamRec(s.team_key) ? " · " + esc(teamRec(s.team_key)) : ""}</div></div>`;
-  const wl = g.away === w ? ["22%", "78%"] : ["78%", "22%"];
+  const wl = g.away === w ? ["25%", "75%"] : ["75%", "25%"];
   const bg = {
     split: `<div class="bg"></div><div class="wm a">${esc(initials(g.away.team))}</div><div class="wm h">${esc(initials(g.home.team))}</div>`,
     field: `<div class="bg"></div><div class="ez a"><span>${esc(g.away.team)}</span></div><div class="ez h"><span>${esc(g.home.team)}</span></div>`,
-    spot: `<div class="bg"></div><div class="grain"></div>`,
+    spot: `<div class="bg"></div><div class="beam l"></div><div class="beam r"></div><div class="glow"></div><div class="flare l"></div><div class="flare r"></div><div class="grain"></div>`,
   }[v];
   const style = `--ca:${ca};--ch:${ch};--cx:${teamAccent(w.team)};--cw:${teamColor(w.team)};--cl:${teamColor((g.away === w ? g.home : g.away).team)};--wx:${wl[0]};--lx:${wl[1]}`;
   setTimeout(() => heroEnrich(g), 0);
