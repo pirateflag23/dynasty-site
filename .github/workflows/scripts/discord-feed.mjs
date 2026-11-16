@@ -75,8 +75,10 @@ function pages(lines, max = 3900) {
 
 /* ---------------- main ---------------- */
 async function main() {
-  if (!KEY || (!TOKEN && !DRY)) throw new Error("DYNASTY_API_KEY and DISCORD_BOT_TOKEN must be set");
+  if (!KEY) throw new Error("DYNASTY_API_KEY must be set");
   const cfg = JSON.parse(await readFile("discord.config.json", "utf8"));
+  if (!TOKEN && !DRY) { log("DISCORD_BOT_TOKEN secret not set yet — skipping Discord posts."); return; }
+  if (!/^\d{15,22}$/.test(cfg.guild_id || "")) { log("guild_id not set in discord.config.json — skipping Discord posts."); return; }
   let state, seeding = false;
   try { state = JSON.parse(await readFile(STATE_FILE, "utf8")); } catch { state = { posted: {}, chats: {} }; seeding = true; }
   state.posted ??= {}; state.chats ??= {};
