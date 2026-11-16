@@ -124,7 +124,7 @@ async function main() {
     // proximity
     if (home && sState) {
       const close = sState === home ? "same" : (NEIGHBORS[home] || []).includes(sState) ? "near" : "far";
-      if (close !== "far") out.push({ k: "home", w: dealbreaker === "Proximity To Home" ? 10 : 4,
+      if (close !== "far") out.push({ k: "home", w: dealbreaker === "Proximity To Home" ? (close === "same" ? 10 : 8) : close === "same" ? 4 : 3,
         line: close === "same" ? `${nm} stays home in ${STATE_NAME[home] || home}, and ${pick(seed + "h", ["family was always going to be part of the decision", "he never seriously considered leaving the state", "his parents will be able to make every home game"])}.`
           : `${tName(tk)} is a short drive from ${r.hometown || "home"}, which mattered.`,
         quote: pick(seed + "hq", [`My mom gets to see me play every Saturday. That was huge for me.`, `I wanted to stay close to home. ${tName(tk)} just felt like family.`, `I'm representing ${r.hometown || "my city"}. Staying close was always the plan.`]) });
@@ -237,10 +237,10 @@ async function main() {
     .filter((x) => x.m < 0.12).sort((a, b) => a.r.national_rank - b.r.national_rank).slice(0, 6);
   for (const { r } of battles) {
     const [a, b, c] = r.top_schools, ak = keyOfSchool(a), bk = keyOfSchool(b), seed = r.prospect_key + "battle";
-    const fav = r.dealbreaker ? await (async () => { const [ra, rb] = await Promise.all([reasonsFor(r, ak, seed + "a"), reasonsFor(r, bk, seed + "b")]); const sa = ra.filter((x) => x.w >= 9).length, sb = rb.filter((x) => x.w >= 9).length; return sa === sb ? null : sa > sb ? { k: ak, why: ra[0] } : { k: bk, why: rb[0] }; })() : null;
+    const fav = r.dealbreaker ? await (async () => { const [ra, rb] = await Promise.all([reasonsFor(r, ak, seed + "a"), reasonsFor(r, bk, seed + "b")]); const sa = ra.filter((x) => x.w >= 8).reduce((t, x) => t + x.w, 0), sb = rb.filter((x) => x.w >= 8).reduce((t, x) => t + x.w, 0); return sa === sb ? null : sa > sb ? { k: ak, why: ra[0] } : { k: bk, why: rb[0] }; })() : null;
     recruiting.push({ id: seed, cat: "recruiting", kind: "battle", kick: "Battle", score: 70 - r.national_rank / 5 + ((userTeams.has(ak) || userTeams.has(bk)) ? 25 : 0),
       h: pick(seed, [`${ak ? T(ak, a.name) : a.name} vs. ${bk ? T(bk, b.name) : b.name}: the fight for ${STARS[r.stars]} ${r.position} ${R(r.prospect_key, r.name)} goes down to the wire`, `Neck and neck: ${a.name} and ${b.name} are separated by ${a.influence - b.influence} points for ${R(r.prospect_key, r.name)}`]),
-      d: `${a.name} leads ${a.influence} to ${b.influence}${c?.influence ? `, with ${c.name} lurking at ${c.influence}` : ""}. His dealbreaker is ${String(r.dealbreaker || "undisclosed").toLowerCase()}${fav ? `, which could tip it toward ${T(fav.k, tName(fav.k))}. ${fav.why.line}` : "."}`,
+      d: `${a.name} leads ${a.influence} to ${b.influence}${c?.influence ? `, with ${c.name} lurking at ${c.influence}` : ""}. His dealbreaker is ${String(r.dealbreaker || "undisclosed").toLowerCase()}${fav ? `, which could tip it toward ${T(fav.k, tName(fav.k))}. ${fav.why.line}` : "."} ${pick(seed + "close", ["Official visits could decide this one.", "Expect both staffs to empty the playbook this week.", "One more strong week could end it.", `${b.name} isn't going quietly.`, "Somebody's heart is getting broken on signing day."])}`,
       recruit: r.prospect_key, team: ak, user: userTeams.has(ak) || userTeams.has(bk) });
   }
 
