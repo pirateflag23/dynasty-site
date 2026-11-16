@@ -67,6 +67,9 @@ async function main() {
   const history = historyR.data || [];
 
   /* ---------- archive each season ---------- */
+  // Past seasons don't include standings, so conferences come from the current lineup.
+  const curStandings = await api("/standings").catch(() => ({ data: [] }));
+  const curTeams = curStandings.data.map((t) => ({ team_key: t.team_key, name: t.name, conference: t.conference }));
   for (const year of seasons) {
     const file = `${DIR}/seasons/${year}.json`;
     const prev = await readJson(file);
@@ -83,7 +86,7 @@ async function main() {
     const nattyPlayed = games.some((g) => g.type === "natty" && g.played);
     const out = {
       season: year, final: nattyPlayed,
-      teams: st ? st.data.map((t) => ({ team_key: t.team_key, name: t.name, conference: t.conference, record: t.record, rank: t.rank, user: !!t.user_controlled })) : prev?.teams || [],
+      teams: st ? st.data.map((t) => ({ team_key: t.team_key, name: t.name, conference: t.conference, record: t.record, rank: t.rank, user: !!t.user_controlled })) : prev?.teams?.length ? prev.teams : curTeams,
       games,
       champions: history.filter((h) => h.season === year && h.kind !== "award"),
       annual_awards: history.filter((h) => h.season === year && h.kind === "award"),
