@@ -244,6 +244,83 @@ async function main() {
       recruit: r.prospect_key, team: ak, user: userTeams.has(ak) || userTeams.has(bk) });
   }
 
+  /* ===================== PORTAL WATCH (in-season speculation) ===================== */
+  // Rosters don't carry a dealbreaker for current players, so "fit" is judged from data:
+  // scheme vs. archetype, depth chart, NIL pay vs. market, rating jumps, team record, stats.
+  const portal = [];
+  const allRos = (await api("/rosters?scope=all").catch(() => ({ data: [] }))).data || [];
+  const statsFile = await readJson("data/player-stats-all.json", { data: [], stat_keys: [] });
+  const statOf = new Map(statsFile.data.map((x) => [x.player_key, x.stats || {}]));
+  // weekly overall snapshots (every FBS player) to spot rating jumps between advances
+  const snaps = (prevIdx.snaps || []).filter((id) => id !== cur.id);
+  const prevSnapId = snaps.sort((a, b) => b - a)[0];
+  const prevSnap = prevSnapId ? await readJson(`${DIR}/ovr-${prevSnapId}.json`, {}) : {};
+  if (allRos.length) await writeFile(`${DIR}/ovr-${cur.id}.json`, JSON.stringify(Object.fromEntries(allRos.map((x) => [x.player_key, x.overall]))));
+  const snapIds = allRos.length ? [...snaps, cur.id].sort((a, b) => a - b).slice(-40) : snaps;
+  // league teams also have week-by-week overall history right now
+  const seasonStart = new Map();
+  for (const tk of userTeams) {
+    const sk = await api(`/rosters/skills?team=${tk}`).catch(() => ({ data: [] }));
+    for (const x of sk.data || []) { const h = (x.history || []).filter((e) => e.overall != null); if (h.length > 1) seasonStart.set(x.player_key, { ovr: h[0].overall, when: h[0].season_text }); }
+  }
+  // NIL market: what players at the same position and rating are paid across FBS
+  const byPos = new Map(); for (const x of allRos) { if (x.nil_compensation == null) continue; (byPos.get(x.position) || byPos.set(x.position, []).get(x.position)).push(x); }
+  const market = (x) => { const pool = (byPos.get(x.position) || []).filter((y) => Math.abs(y.overall - x.overall) <= 2).map((y) => y.nil_compensation).sort((a, b) => a - b); return pool.length >= 5 ? pool[Math.floor(pool.length / 2)] : null; };
+  const STARTERS = { QB: 1, HB: 1, FB: 1, WR: 3, TE: 1, LT: 1, RT: 1, LG: 1, RG: 1, C: 1, LEDG: 1, REDG: 1, DT: 2, SAM: 1, WILL: 1, MIKE: 1, CB: 2, FS: 1, SS: 1, K: 1, P: 1 };
+  const depth = new Map(); for (const x of allRos) { const k = `${x.team_key}|${x.position}`; (depth.get(k) || depth.set(k, []).get(k)).push(x); }
+  for (const v of depth.values()) v.sort((a, b) => b.overall - a.overall);
+  const teamGames = (tk) => playedGames.filter((g) => g.home.team_key === tk || g.away.team_key === tk).length;
+  const styleRank = (x) => { const lab = POS[x.position]?.[3]; if (!lab || !x.archetype) return null; const g = style.data.find((y) => (y.archetypes || []).includes(`${lab} - ${x.archetype}`)); const row = g?.rows?.find((y) => y.team_key === x.team_key); return row ? { rank: row.rank, of: g.rows.length, stat: g.stat } : null; };
+  const yr = { FR: "freshman", SO: "sophomore", JR: "junior", SR: "senior" };
+  for (const x of allRos) {
+    if (x.class_year === "SR" || !x.team_key) continue;
+    const tk = x.team_key, PT = P(x.player_key, x.name), TT = tTok(tk), seed = x.player_key + "pw", st = statOf.get(x.player_key) || {};
+    const pos = POS_WORD[x.position] || x.position, mkt = market(x), nil = x.nil_compensation ?? 0, gp = teamGames(tk);
+    const rank = (depth.get(`${tk}|${x.position}`) || []).findIndex((y) => y.player_key === x.player_key) + 1, starter = rank > 0 && rank <= (STARTERS[x.position] || 1);
+    const boost = (userTeams.has(tk) ? 25 : 0) + (ranked(tk) ? 5 : 0) + (x.overall - 80);
+    const nilR = nilRank.get(tk) || 99;
+    const afford = nilR > 60 ? `${tName(tk)} ranks ${ord(nilR)} in NIL spending, and bidding wars aren't its game.` : nilR <= 15 ? `${tName(tk)} has deep NIL pockets (${ord(nilR)} nationally), which helps.` : "";
+    const add = (o) => portal.push({ id: `${x.player_key}:${o.kind}`, cat: "portal", player: x.player_key, team: tk, user: userTeams.has(tk), ...o });
+    // 1) rating jump: price tag rising
+    const prev = prevSnap[x.player_key], start = seasonStart.get(x.player_key);
+    const jump = prev != null ? { d: x.overall - prev, when: "last week" } : start ? { d: x.overall - start.ovr, when: start.when } : null;
+    if (jump && jump.d >= 3 && x.overall >= 75) add({ kind: "breakout", kick: "Price tag rising", score: 50 + jump.d * 6 + boost,
+      h: mkt && nil < mkt * 0.75 ? pick(seed + "b", [`${PT} is up to ${x.overall} overall. Can ${TT} still afford him next year?`, `${PT}'s stock is soaring, and so is his price: will ${TT} pay up?`]) : `${PT} jumps to ${x.overall} overall, and ${TT} has a raise to budget for`,
+      d: `The ${yr[x.class_year] || ""} ${pos} is up ${jump.d} point${jump.d === 1 ? "" : "s"} since ${jump.when}${x.dev_trait && x.dev_trait !== "Normal" ? ` (${x.dev_trait} dev)` : ""}. He's earning ${nil}K in NIL${mkt ? `; ${pos}s rated around ${x.overall} draw a median of ${mkt}K across FBS` : ""}. ${afford || pick(seed + "b2", ["Expect collectives around the country to take notice.", "Keeping him could get expensive."])}` });
+    // 2) underpaid star
+    else if (mkt && x.overall >= 84 && nil <= mkt * 0.5 && mkt - nil >= 40) add({ kind: "underpaid", kick: "Underpaid", score: 40 + (mkt - nil) / 4 + boost,
+      h: pick(seed + "u", [`${PT} is one of the best bargains in college football. How long can ${TT} keep it that way?`, `Rival collectives are circling ${TT}'s ${PT}`]),
+      d: `A ${x.overall}-overall ${pos} making ${nil}K, while players at his position and rating command around ${mkt}K. ${afford || "That gap tends to close in the portal."}` });
+    // 3) scheme mismatch
+    const sr = styleRank(x);
+    if (sr && x.overall >= 80 && sr.rank > sr.of * 0.75 && starter) add({ kind: "fit", kick: "Bad fit?", score: 35 + (sr.rank / sr.of) * 20 + boost,
+      h: pick(seed + "f", [`A ${x.archetype.toLowerCase()} in the wrong system? ${PT} could be a portal name to watch`, `${PT} and ${TT}'s scheme aren't a match. Will he look elsewhere this offseason?`]),
+      d: `${tName(tk)} ranks ${ord(sr.rank)} of ${sr.of} in ${String(sr.stat).toLowerCase()}, not where a ${x.overall}-overall ${x.archetype.toLowerCase()} ${pos} wants to be. Players with that kind of mismatch often test the market.` });
+    // 4) buried on the depth chart
+    const downs = st.genDownsPlayed || 0;
+    if (x.overall >= 80 && !starter && gp >= 3 && downs / gp < 15 && x.class_year !== "FR") add({ kind: "buried", kick: "Buried", score: 30 + (x.overall - 80) * 3 + boost,
+      h: pick(seed + "d", [`${PT} is too good to sit. Is a transfer coming?`, `Stuck at No. ${rank} on the ${tName(tk)} depth chart, ${PT} might not wait around`]),
+      d: `A ${x.overall}-overall ${yr[x.class_year]} ${pos} with ${downs} snaps in ${gp} games. Someone in the portal market would start him tomorrow.` });
+    // 5) struggling star
+    let bad = null;
+    if (starter && x.overall >= 85 && (st.gamesPlayed || 0) >= 3) {
+      if (x.position === "QB" && st.passAttempts >= 60 && (st.passerRating < 115 || st.passINT >= 6)) bad = `${st.passCompletion}-of-${st.passAttempts}, ${st.passYards} yards, ${st.passTD} TD, ${st.passINT} INT (${st.passerRating?.toFixed?.(1) ?? st.passerRating} rating)`;
+      if (x.position === "HB" && st.rushAttempts >= 40 && st.rushYards / st.rushAttempts < 4) bad = `${st.rushAttempts} carries for ${st.rushYards} yards (${(st.rushYards / st.rushAttempts).toFixed(1)} a carry)`;
+      if (x.position === "WR" && (st.receivingYards || 0) / st.gamesPlayed < 35) bad = `${st.receiveReceptions || 0} catches for ${st.receivingYards || 0} yards in ${st.gamesPlayed} games`;
+      if (x.position === "K" && st.kickFieldGoalAttempts >= 5 && st.kickFieldGoalsMade / st.kickFieldGoalAttempts < 0.65) bad = `${st.kickFieldGoalsMade}-of-${st.kickFieldGoalAttempts} on field goals`;
+    }
+    if (bad) add({ kind: "struggling", kick: "Under fire", score: 45 + (x.overall - 85) * 3 + boost,
+      h: pick(seed + "s", [`Is ${TT} ready to go a different direction than ${PT}?`, `${PT} was supposed to be a star. The numbers say otherwise`, `Ratings say ${x.overall}. The stat sheet says something else for ${PT}`]),
+      d: `${bad}. For a ${x.overall}-overall ${pos}${ranked(tk) ? ` on a ranked team` : ""}, that won't cut it. ${pick(seed + "s2", ["The staff will have a big decision this offseason.", "Don't be surprised if the coaches shop the portal at his position.", "One more rough month and the whispers get louder."])}` });
+    // 6) star on a sinking ship
+    if (x.overall >= 88 && ["SO", "JR"].includes(x.class_year) && gp >= 3 && winPct(tk) <= 0.35) add({ kind: "sinking", kick: "Sinking ship", score: 40 + (x.overall - 88) * 4 + boost,
+      h: pick(seed + "k", [`${PT} deserves better than ${recOf(tk)}. Contenders will be calling`, `Wasted on a ${recOf(tk)} team? ${PT} would be the portal's top prize`]),
+      d: `A ${x.overall}-overall ${yr[x.class_year]} ${pos} stuck on a ${tName(tk)} team that's ${recOf(tk)}. ${pick(seed + "k2", ["Every contender in the country knows his name.", "If he hits the portal, it'll be the story of the offseason."])}` });
+  }
+  const pCaps = { breakout: 5, underpaid: 4, fit: 3, buried: 3, struggling: 4, sinking: 3 }, pUsed = {}, pSeen = new Set();
+  const portalStories = portal.sort((a, b) => b.score - a.score).filter((s) => { if (pSeen.has(s.player)) return false; pUsed[s.kind] = (pUsed[s.kind] || 0) + 1; if (pUsed[s.kind] > (pCaps[s.kind] || 3)) return false; pSeen.add(s.player); return true; })
+    .map((s) => ({ ...s, h: capH(s.h) })).slice(0, 18);
+
   /* ===================== GAMES ===================== */
   const latestWeek = playedGames.length ? Math.max(...playedGames.map((g) => g.week)) : null;
   const wk = playedGames.filter((g) => g.week === latestWeek && g.has_box_score);
@@ -338,10 +415,10 @@ async function main() {
     .map((s) => ({ ...s, h: capH(s.h) })).slice(0, 30);
   const recStories = recruiting.sort((a, b) => b.score - a.score).map((s) => ({ ...s, h: capH(s.h) })).slice(0, 40);
 
-  const out = { sig, league_id: LID, period: cur, week: latestWeek, generated_at: new Date().toISOString(), recruiting: recStories, games: gameStories };
+  const out = { sig, league_id: LID, period: cur, week: latestWeek, generated_at: new Date().toISOString(), snaps: snapIds, recruiting: recStories, games: gameStories, portal: portalStories };
   await writeFile(`${DIR}/latest.json`, JSON.stringify(out));
   await writeFile(`${DIR}/p${cur.id}.json`, JSON.stringify(out));
-  log(`Stories: ${recStories.length} recruiting, ${gameStories.length} game (week ${latestWeek}).`);
+  log(`Stories: ${recStories.length} recruiting, ${gameStories.length} game (week ${latestWeek}), ${portalStories.length} portal watch.`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
