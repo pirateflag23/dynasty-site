@@ -486,7 +486,7 @@ async function main() {
       await dc("POST", `/channels/${ch.id}/messages`, {
         content: g.kind === "user_vs_user"
           ? `${coachTag(g.away.team_key)} vs ${coachTag(g.home.team_key)} — your ${weekLabel(g)} matchup. Work out a time here; games stream in #live-stream.`
-          : `${coachTag(g.away.team_key)} vs ${coachTag(g.home.team_key)} — ${weekLabel(g)}. CPU opponent: no scheduling needed, just play it before you advance.`,
+          : `${userTeams.has(g.away.team_key) ? coachTag(g.away.team_key) : `**${g.away.team}** (CPU)`} vs ${userTeams.has(g.home.team_key) ? coachTag(g.home.team_key) : `**${g.home.team}** (CPU)`} — ${weekLabel(g)}. CPU opponent: no scheduling needed, just play it before you advance.`,
         embeds: [previewEmbed(g)], allowed_mentions: { users: coaches },
       });
       log(`created chat ${name}`);
