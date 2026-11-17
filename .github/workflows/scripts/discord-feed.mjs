@@ -19,6 +19,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 const graphics = () => import("./graphics/top25.mjs");
 const finalGraphics = () => import("./graphics/final.mjs");
 const matchupGraphics = () => import("./graphics/matchup.mjs");
+const recruitingGraphics = () => import("./graphics/recruiting.mjs");
 
 const API = (process.env.DYNASTY_API_BASE || "https://dynasty.prestonchoate.dev/v1").replace(/\/$/, "");
 const KEY = process.env.DYNASTY_API_KEY;
@@ -260,7 +261,7 @@ async function main() {
   /* ============ Recruiting (weekly, per user team) ============ */
   const classes = await api("/recruits/classes").catch(() => null);
   if (classes && (classes.period?.id ?? cur.id) === cur.id) {
-    await once(`recruit:${cur.id}`, "recruiting", cfg.channels.recruiting, () => recruitingEmbeds(classes));
+    await once(`recruit:${cur.id}`, "recruiting", cfg.channels.recruiting, () => recruitingPost(classes));
   }
 
   /* ============ Transfer portal ============ */
@@ -440,6 +441,36 @@ async function main() {
     return { embeds: [{ title: `${conf === "National" ? "🇺🇸 National" : conf} Players of the Week · ${g ? weekLabel(g) : `Week ${wk}`}`, color: conf === "National" ? GOLD : BLUE, fields: f }] };
   }
 
+  // Recruiting report as one graphic; falls back to the text embeds.
+  async function recruitingPost(cls) {
+    const text = await recruitingEmbeds(cls);
+    const { _raw: R } = text; delete text._raw;
+    if (cfg.graphics?.recruiting === false) return text;
+    try {
+      const { renderRecruiting } = await recruitingGraphics();
+      const { siteTeamColors } = await import("./graphics/common.mjs");
+      const map = await logoMap();
+      const nameOf = (x) => { const k = byTeamId.get(x?.team_id); return k ? tName(k) : x?.name || "?"; };
+      const isUser = (x) => !!x && R.userIds.has(x.team_id);
+      const classes = cls.data.slice(0, 10).map((c) => ({ rank: c.rank, name: c.name, prev: prevPeriod ? R.prevRank.get(c.team_key) || 0 : undefined,
+        user: userTeams.has(c.team_key), total: c.commits.total, five: c.commits.five_star, four: c.commits.four_star, points: c.points, logo: logoFor(c.name, map) }));
+      const pick = R.thisWeek.filter((c) => c.kind === "commit" || c.kind === "sign").sort((a, b) => (isUser(b.school) - isUser(a.school)) || (!!b.previous_school - !!a.previous_school) || R.byStar(a, b));
+      const commits = pick.slice(0, 8).map((c) => ({ stars: c.stars, pos: c.position, name: c.name, rank: c.national_rank, state: c.state,
+        school: nameOf(c.school), logo: logoFor(nameOf(c.school), map), user: isUser(c.school), from: c.previous_school ? nameOf(c.previous_school) : "" }));
+      const battles = R.board.data.filter((r) => (r.top_schools || []).filter((x) => x.influence > 0).length >= 2).sort(R.byStar).slice(0, 5).map((r) => ({
+        stars: r.stars, pos: r.position, name: r.name, rank: r.national_rank, state: r.state,
+        schools: r.top_schools.slice(0, 3).filter((x) => x.influence > 0).map((x) => ({ name: nameOf(x), logo: logoFor(nameOf(x), map), inf: x.influence, user: isUser(x) })) }));
+      const png = await renderRecruiting({
+        label: (/\d{4}\s+(.*)/.exec(cur.season_text)?.[1] || cur.season_text).replace(/\bWk\b/, "Week"),
+        sub: cls.data[0]?.class_year ? `${cls.data[0].class_year} recruiting class` : "",
+        classes, commits, battles,
+        siteLogo: cfg.site_url ? `${cfg.site_url.replace(/\/$/, "")}/logo.png` : "", colors: await siteTeamColors("site/public/index.html"),
+      });
+      return { embeds: [{ title: `📋 Recruiting · ${cur.season_text}`, url: site("recruiting"), color: GREEN, image: { url: "attachment://recruiting.png" } }],
+        files: [{ name: "recruiting.png", data: png }] };
+    } catch (err) { log(`Recruiting graphic failed, posting text instead: ${err.message}`); return text; }
+  }
+
   async function recruitingEmbeds(cls) {
     // One league-wide report per advance: top classes, top battles, biggest commits, flips.
     const prevCls = prevPeriod ? await api(`/recruits/classes?period=${prevPeriod.id}`).catch(() => null) : null;
@@ -466,7 +497,7 @@ async function main() {
       .map((c) => `🔄 ${who(c)}: ${sch(c.previous_school)} → ${sch(c.school)}`);
 
     const sec = (title, lines, empty, color) => ({ title, color, description: (lines.length ? pages(lines)[0] : empty) });
-    return { embeds: [
+    return { _raw: { prevRank, thisWeek, board, userIds, byStar }, embeds: [
       sec(`📋 Recruiting · ${cur.season_text} · Top 10 classes`, classes, "No classes yet.", GREEN),
       sec("⚔️ Top 10 recruiting battles", battles, "No contested recruits right now.", GOLD),
       sec("✅ Biggest commitments this week", biggest, "No new commitments this week.", BLUE),
