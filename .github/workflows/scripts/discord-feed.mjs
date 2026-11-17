@@ -792,7 +792,16 @@ async function main() {
     const uvu = games.filter((g) => g.week === wk && isUserGame(g)); // user-vs-user AND user-vs-CPU
     const VIEW = 1 << 10, SEND = 1 << 11, EMBED = 1 << 14, ATTACH = 1 << 15, HIST = 1 << 16, REACT = 1 << 6;
     for (const g of uvu) {
-      if (state.chats[g.key]) continue;
+      if (state.chats[g.key]) {
+        // A coach who joined the server after their chat was made gets added to it.
+        const have = state.chats[g.key].coaches || [];
+        for (const id of [coachId(g.away.team_key), coachId(g.home.team_key)].filter((x) => x && !have.includes(x))) {
+          await dc("PUT", `/channels/${state.chats[g.key].id}/permissions/${id}`, { type: 1, allow: String(VIEW | SEND | EMBED | ATTACH | HIST | REACT), deny: "0" })
+            .then(() => { (state.chats[g.key].coaches ??= []).push(id); log(`added coach ${id} to chat ${state.chats[g.key].id}`); })
+            .catch((e) => log("add coach to chat failed", e.message));
+        }
+        continue;
+      }
       const slug = (s) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       const name = `${slug(weekLabel(g)).replace("week-", "wk")}-${slug(g.away.team)}-at-${slug(g.home.team)}`.slice(0, 95);
       const coaches = [coachId(g.away.team_key), coachId(g.home.team_key)].filter(Boolean);
@@ -804,7 +813,7 @@ async function main() {
       ];
       if (seeding && !REPLAY.has("matchups")) { /* still create this week's chats on first run */ }
       const ch = await dc("POST", `/guilds/${guild}/channels`, { name, type: 0, parent_id: cat, topic: `${weekLabel(g)}: ${g.away.team} at ${g.home.team}. Set your game time here.`, permission_overwrites: overwrites });
-      state.chats[g.key] = { id: ch.id, week: wk };
+      state.chats[g.key] = { id: ch.id, week: wk, coaches };
       const pv = await previewPost(g);
       await dc("POST", `/channels/${ch.id}/messages`, {
         content: g.kind === "user_vs_user"
