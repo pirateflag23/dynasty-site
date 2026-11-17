@@ -94,7 +94,7 @@ ${BASE}
   return shoot(html, { chromeChannel });
 }
 
-export async function renderOnDeck({ label = "", sub = "", games = [], siteLogo = "", colors = {}, chromeChannel = "chrome" }) {
+export async function renderOnDeck({ label = "", sub = "", games = [], heading = ["On", "Deck"], foot = "Coming up after this week · red outline = coach vs coach", siteLogo = "", colors = {}, chromeChannel = "chrome" }) {
   const side = (t) => `<div class="sd">${badge(t.name, t.logo, colors, 40)}<div class="tx"><b>${t.rank > 0 && t.rank <= 25 ? `<i>${t.rank}</i> ` : ""}${esc(short(t.name))}</b>
     <small>${esc(t.record || "")}${t.coach ? ` · <em>🎮 ${esc(t.coach)}</em>` : " · CPU"}</small></div></div>`;
   const tile = (g) => `<div class="g${g.uvu ? " uvu" : ""}" style="--a:${teamCols(colors, g.away.name).c1};--h:${teamCols(colors, g.home.name).c1}">
@@ -113,9 +113,9 @@ ${BASE}
 .tag{position:absolute;top:0;left:50%;transform:translateX(-50%);font:700 10px RC;letter-spacing:.14em;text-transform:uppercase;background:#cc0000;color:#fff;padding:2px 8px;border-radius:0 0 4px 4px}
 .empty{margin:18px 28px;color:#8a8b8e;font:500 16px R;padding:14px;background:#1f2022;border-radius:8px}
 </style></head><body><div class="card">
-<header>${logoImg(siteLogo)}<div class="ttl"><small>The Dynasty</small><h1>On <span>Deck</span></h1></div><div class="meta">${esc(label)}<small style="display:block;font:500 15px R;color:#9a9b9e;text-transform:none">${esc(sub)}</small></div></header>
+<header>${logoImg(siteLogo)}<div class="ttl"><small>The Dynasty</small><h1>${esc(heading[0])} <span>${esc(heading[1])}</span></h1></div><div class="meta">${esc(label)}<small style="display:block;font:500 15px R;color:#9a9b9e;text-transform:none">${esc(sub)}</small></div></header>
 ${games.length ? `<div class="grid">${games.map(tile).join("")}</div>` : '<div class="empty">No league games that week.</div>'}
-<footer><span>Coming up after this week · red outline = coach vs coach</span><b>thedynastycfb.com</b></footer>
+<footer><span>${esc(foot)}</span><b>thedynastycfb.com</b></footer>
 </div></body></html>`;
   return shoot(html, { chromeChannel });
 }
