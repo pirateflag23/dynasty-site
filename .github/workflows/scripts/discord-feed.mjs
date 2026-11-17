@@ -268,7 +268,14 @@ async function main() {
   {
     const open = games.filter((g) => !g.played);
     const weeks = [...new Set(open.map((g) => g.week))].sort((a, b) => a - b);
-    const nextW = weeks[1]; // weeks[0] is the week being played now (matchup chats); [1] is the one after
+    // #schedule: the week being played now (same games as the matchup chats)
+    const nowW = weeks[0], sch = pickChannel(cfg.channels.schedule);
+    if (sch && nowW != null) {
+      const label = weekLabel(open.find((g) => g.week === nowW));
+      await once(`schedule:${cur.season}:${label}`, "schedule", sch, () => ondeckPost(games.filter((g) => g.week === nowW && isUserGame(g)), label, "schedule"));
+    }
+    // #on-deck: the week after that
+    const nextW = weeks[1];
     const ch = pickChannel(cfg.channels.on_deck);
     if (ch && nextW != null) {
       const ng = open.filter((g) => g.week === nextW && isUserGame(g));
@@ -525,13 +532,14 @@ async function main() {
     } catch (err) { log(`Advance graphic failed, posting text instead: ${err.message}`); return text; }
   }
 
-  async function ondeckPost(ng, label) {
+  async function ondeckPost(ng, label, kind = "ondeck") {
+    const isSched = kind === "schedule";
     const side = (t) => { const k = t.team_key, tm = teams.get(k) || {}; return { name: t.team, rank: tm.rank, record: tm.record, coach: coachName(k), logo: "" }; };
     const order = (g) => (g.kind === "user_vs_user" ? 0 : 1);
     const list = [...ng].sort((a, b) => order(a) - order(b) || Math.min(teams.get(a.home.team_key)?.rank || 99, teams.get(a.away.team_key)?.rank || 99) - Math.min(teams.get(b.home.team_key)?.rank || 99, teams.get(b.away.team_key)?.rank || 99));
     const line = (g) => { const A = side(g.away), H = side(g.home); return `${A.name}${A.record ? ` (${A.record})` : ""}${A.coach ? ` · ${A.coach}` : ""} **at** ${H.name}${H.record ? ` (${H.record})` : ""}${H.coach ? ` · ${H.coach}` : ""}`; };
-    const text = { embeds: [{ title: `🗓️ On deck · ${label}`, url: site("schedule"), color: RED, description: list.length ? clip(list.map(line).join("\n"), 3900) : "No league games that week." }] };
-    if (cfg.graphics?.ondeck === false) return text;
+    const text = { embeds: [{ title: isSched ? `📅 This week · ${label}` : `🗓️ On deck · ${label}`, url: site("schedule"), color: RED, description: list.length ? clip(list.map(line).join("\n"), 3900) : "No league games that week." }] };
+    if (cfg.graphics?.[kind] === false) return text;
     try {
       const { renderOnDeck } = await extraGraphics();
       const map = await logoMap();
@@ -542,9 +550,10 @@ async function main() {
       const rivals = rivalryNames;
       const G = list.map((g) => { const a = side(g.away), h = side(g.home); a.logo = logoFor(a.name, map); h.logo = logoFor(h.name, map);
         return { away: a, home: h, uvu: g.kind === "user_vs_user", tag: rivals.get(`${g.away.team}|${g.home.team}`) || (g.kind === "user_vs_user" ? "Coach vs coach" : "") }; });
-      const png = await renderOnDeck({ label, sub: `${list.length} league game${list.length === 1 ? "" : "s"} · ${cur.season} season`, games: G, siteLogo: gfxSiteLogo(), colors: await gfxColors() });
-      return { embeds: [{ title: text.embeds[0].title, url: text.embeds[0].url, color: RED, image: { url: "attachment://ondeck.png" } }], files: [{ name: "ondeck.png", data: png }] };
-    } catch (err) { log(`On deck graphic failed, posting text instead: ${err.message}`); return text; }
+      const png = await renderOnDeck({ label, sub: `${list.length} league game${list.length === 1 ? "" : "s"} · ${cur.season} season`, games: G, siteLogo: gfxSiteLogo(), colors: await gfxColors(),
+        ...(isSched ? { heading: ["This", "Week"], foot: "Set your game time in your matchup chat · red outline = coach vs coach" } : {}) });
+      return { embeds: [{ title: text.embeds[0].title, url: text.embeds[0].url, color: RED, image: { url: `attachment://${kind}.png` } }], files: [{ name: `${kind}.png`, data: png }] };
+    } catch (err) { log(`${kind} graphic failed, posting text instead: ${err.message}`); return text; }
   }
 
   async function heismanPost(list) {
