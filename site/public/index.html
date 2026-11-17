@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Online Dynasty League</title>
+<title>The Dynasty</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@500;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -552,8 +552,8 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
    ========================================================= */
 const CONFIG = {
   API_BASE: "https://dynasty-proxy.jw1388954.workers.dev",   // leave "" to preview with sample data
-  SITE_NAME: "Online Dynasty League",
-  SITE_SHORT: "ODL",
+  SITE_NAME: "The Dynasty",
+  SITE_SHORT: "The Dynasty",
   // Optional: your own photos for league stories. Add image URLs to any list and they'll be used
   // instead of the built-in illustrations, e.g. hotseat: ["https://yoursite.com/coach1.jpg"]
   STORY_PHOTOS: { hotseat: [], win: [], h2h: [], performer: [], defense: [], perfect: [], heisman: [], recruit: [], preview: [] }
@@ -1040,7 +1040,7 @@ function enrichStories() {
     if (WIRE?.games?.length) return;
     el.innerHTML = storiesHtml(buildStories(boxes));
   });
-  wireLoad().then((w) => { const el = $("#stories"); if (el && w?.games?.length) el.innerHTML = wireGameCards(w.games.slice(0, 12)) + '<div class="wire-tag">ODL Wire · storylines built from real box scores</div>'; });
+  wireLoad().then((w) => { const el = $("#stories"); if (el && w?.games?.length) el.innerHTML = wireGameCards(w.games.slice(0, 12)) + '<div class="wire-tag">Dynasty Wire · storylines built from real box scores</div>'; });
 }
 
 function top25Card() {
@@ -2205,7 +2205,7 @@ async function playerHistory(key) {
 }
 
 /* =========================================================
-   ODL WIRE: storylines written by the GitHub Action (build-stories.mjs)
+   DYNASTY WIRE: storylines written by the GitHub Action (build-stories.mjs)
    data/stories/<league_id>/latest.json → Around the League + recruiting news
    ========================================================= */
 const WIRE_BASE = "https://pirateflag23.github.io/dynasty-site/data/stories";
@@ -2237,7 +2237,7 @@ function wireGameCards(list) {
 const wireRecruit = (e) => WIRE?.recruiting?.find((s) => s.id === `${e.prospect_key}${e.kind}`);
 function wireBattlesCard() {
   const b = (WIRE?.recruiting || []).filter((s) => s.kind === "battle").slice(0, 6);
-  return b.length ? `<section class="card"><h2 class="card-h">Recruiting battles <small>ODL Wire</small></h2>${b.map((s) => `<div class="wire-b"><div class="kick">${esc(s.kick)}</div><h3>${wireHtml(s.h)}</h3><p>${wireHtml(s.d)}</p></div>`).join("")}</section>` : "";
+  return b.length ? `<section class="card"><h2 class="card-h">Recruiting battles <small>Dynasty Wire</small></h2>${b.map((s) => `<div class="wire-b"><div class="kick">${esc(s.kick)}</div><h3>${wireHtml(s.h)}</h3><p>${wireHtml(s.d)}</p></div>`).join("")}</section>` : "";
 }
 const PW_KINDS = [["", "All"], ["breakout", "Price tag rising"], ["underpaid", "Underpaid"], ["fit", "Bad fit"], ["buried", "Buried"], ["struggling", "Under fire"], ["sinking", "Sinking ship"]];
 const pwItem = (s) => { const tn = wireTeamName(s.team); return `<div class="pw${s.user ? " mine" : ""}" data-k="${esc(s.kind)}"><div class="lg">${tn ? badge(tn) : ""}</div><div><div class="kick">${esc(s.kick)}</div><h3>${wireHtml(s.h)}</h3><p>${wireHtml(s.d)}</p>${s.user ? '<div class="meta">League team</div>' : ""}</div></div>`; };
@@ -2249,7 +2249,7 @@ function renderPortalWatch(nav) {
   const all = WIRE?.portal || [];
   const have = new Set(all.map((s) => s.kind));
   const pills = PW_KINDS.filter(([k]) => !k || have.has(k));
-  $("#view").innerHTML = `${nav}<section class="card"><h2 class="card-h">Portal Watch <small>Week ${esc(WIRE?.week ?? "")} · ODL Wire</small></h2>
+  $("#view").innerHTML = `${nav}<section class="card"><h2 class="card-h">Portal Watch <small>Week ${esc(WIRE?.week ?? "")} · Dynasty Wire</small></h2>
     <p style="margin:0 14px 10px;font-size:13px;color:var(--dim)">Who could hit the transfer portal this offseason: rising ratings, NIL gaps, scheme fits, depth charts and stat sheets. Speculation built from the real numbers.</p>
     <div class="pw-pills" style="padding:0 14px">${pills.map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${!k}">${l}</button>`).join("")}</div>
     <div id="pwlist">${all.length ? all.map(pwItem).join("") : '<div class="empty">' + (WIRE ? "No portal storylines this week." : "Loading…") + "</div>"}</div></section>`;
@@ -2258,7 +2258,7 @@ function renderPortalWatch(nav) {
     $("#pwlist").querySelectorAll(".pw").forEach((el) => (el.style.display = !k || el.dataset.k === k ? "" : "none")); };
 }
 /* =========================================================
-   OUTLOOK: Crystal Ball, Playoff odds, offseason features (ODL Wire latest.json)
+   OUTLOOK: Crystal Ball, Playoff odds, offseason features (Dynasty Wire latest.json)
    ========================================================= */
 const CB_ICON = `<svg class="cb-ico" viewBox="0 0 32 32" aria-hidden="true"><defs><radialGradient id="cbg" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#f3e8ff"/><stop offset=".45" stop-color="#a78bfa"/><stop offset="1" stop-color="#4c1d95"/></radialGradient></defs><circle cx="16" cy="13.5" r="11" fill="url(#cbg)"/><ellipse cx="12" cy="9.5" rx="3.6" ry="2.2" fill="#fff" opacity=".55" transform="rotate(-30 12 9.5)"/><path d="M9 25.5h14l2 4H7z" fill="#7c3aed"/><rect x="8" y="23.5" width="16" height="2.4" rx="1.2" fill="#5b21b6"/></svg>`;
 const wireTeamTok = (k, fallback) => { const n = wireTeamName(k) || fallback || ""; return n ? `${badge(n)}` : ""; };
@@ -2321,7 +2321,7 @@ function renderCfp() {
 /* ---------- offseason features ---------- */
 function featureCards() {
   const o = WIRE?.offseason; if (!o) return "";
-  return `<section class="card"><h2 class="card-h">Offseason report <small>ODL Wire</small></h2>
+  return `<section class="card"><h2 class="card-h">Offseason report <small>Dynasty Wire</small></h2>
     ${o.nil?.list?.length ? `<div class="feat"><div class="kick">Payday</div><h3><a href="#feature/nil">${esc(o.nil.h)}</a></h3><p>${wireHtml(o.nil.d)}</p></div>` : ""}
     ${o.breakouts?.list?.length ? `<div class="feat"><div class="kick">Breakout watch</div><h3><a href="#feature/breakouts">${esc(o.breakouts.h)}</a></h3><p>${wireHtml(o.breakouts.d)}</p></div>` : ""}</section>`;
 }

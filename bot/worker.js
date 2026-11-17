@@ -14,7 +14,7 @@ const RED = 0xc8102e, GOLD = 0xf2b134, BLUE = 0x2b6cb0, GREEN = 0x2f9e44;
 
 export default {
   async fetch(req, env, ctx) {
-    if (req.method !== "POST") return new Response("ODL bot is running.");
+    if (req.method !== "POST") return new Response("The Dynasty bot is running.");
     const body = await req.text();
     if (!(await verify(req, body, env.DISCORD_PUBLIC_KEY))) return new Response("bad signature", { status: 401 });
     const i = JSON.parse(body);
