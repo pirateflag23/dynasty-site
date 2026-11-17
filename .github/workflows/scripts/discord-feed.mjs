@@ -144,9 +144,10 @@ async function main() {
   } catch { log("No data/player-stats-all.json yet; previews will skip player leaders."); }
 
   /* ---- Discord guild lookup ---- */
-  let chan = {}, roles = {}, allRoleNames = [], botId = null, guild = cfg.guild_id;
+  let chan = {}, roles = {}, allRoleNames = [], botId = null, guild = cfg.guild_id, allChans = [];
   if (!DRY || TOKEN) {
     const [chs, rls, me] = await Promise.all([dc("GET", `/guilds/${guild}/channels`), dc("GET", `/guilds/${guild}/roles`), dc("GET", "/users/@me")]);
+    allChans = chs;
     for (const c of chs) chan[`${c.type}:${c.name.toLowerCase()}`] = c.id;
     for (const r of rls) { roles[r.name.toLowerCase()] = r.id; roles[`~${r.name.toLowerCase().replace(/[^a-z0-9]/g, "")}`] = r.id; }
     allRoleNames = rls.map((r) => r.name);
@@ -826,10 +827,20 @@ async function main() {
       }, 6, pv.files);
       log(`created chat ${name}`);
     }
-    // Clean up chats from older weeks (their box scores live in #final).
+    // Clean up chats from older weeks (their box scores live in #final). Runs in the same sync that creates the new week's chats.
     const keep = cfg.matchups?.keep_previous_weeks ?? 1;
     for (const [gk, c] of Object.entries(state.chats)) {
-      if (c.week < wk - keep) { await dc("DELETE", `/channels/${c.id}`).catch((e) => log("delete failed", e.message)); delete state.chats[gk]; }
+      if (c.week < wk - keep) { await dc("DELETE", `/channels/${c.id}`).catch((e) => /10003/.test(e.message) || log("delete failed", e.message)); delete state.chats[gk]; }
+    }
+    // Also sweep the Matchups category for game chats the bot no longer tracks (e.g. made by an overlapping run),
+    // so nothing from an old week lingers. Only "<team>-at-<team>" chats are touched; #schedule etc. are left alone.
+    if (!keep) {
+      const live = new Set(Object.values(state.chats).map((c) => c.id));
+      for (const c of allChans) {
+        if (c.parent_id === cat && c.type === 0 && /-at-/.test(c.name) && !live.has(c.id)) {
+          await dc("DELETE", `/channels/${c.id}`).then(() => log(`removed old chat #${c.name}`)).catch((e) => /10003/.test(e.message) || log("delete failed", e.message));
+        }
+      }
     }
   }
 
