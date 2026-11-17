@@ -1,5 +1,5 @@
 // Cron dispatcher (odl-dispatch). Deployed by .github/workflows/deploy-dispatch.yml.
-// Needs one secret, GH_TOKEN (fine-grained GitHub token: this repo, Actions read/write), set by that workflow
+// Secrets: GH_TOKEN and DISCORD_BOT_TOKEN. GH_TOKEN (fine-grained GitHub token: this repo, Actions read/write), set by that workflow
 // from the ODL_DISPATCH_PAT repo secret.
 {
   "name": "odl-dispatch",
@@ -7,5 +7,6 @@
   "account_id": "94040c1270d9dc5406fa79b47377f21f",
   "compatibility_date": "2026-11-16",
   "workers_dev": true,
-  "triggers": { "crons": ["*/10 * * * *"] }
+  "triggers": { "crons": ["*/2 * * * *"] }
+  // KV "GREETER" (member list for leave logging) is added at deploy time by deploy-dispatch.yml
 }
