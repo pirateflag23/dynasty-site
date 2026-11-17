@@ -1,5 +1,5 @@
 /* =========================================================
-   OUTLOOK: Crystal Ball, Playoff odds, offseason features (ODL Wire latest.json)
+   OUTLOOK: Crystal Ball, Playoff odds, offseason features (TD Wire latest.json)
    ========================================================= */
 const CB_ICON = `<svg class="cb-ico" viewBox="0 0 32 32" aria-hidden="true"><defs><radialGradient id="cbg" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#f3e8ff"/><stop offset=".45" stop-color="#a78bfa"/><stop offset="1" stop-color="#4c1d95"/></radialGradient></defs><circle cx="16" cy="13.5" r="11" fill="url(#cbg)"/><ellipse cx="12" cy="9.5" rx="3.6" ry="2.2" fill="#fff" opacity=".55" transform="rotate(-30 12 9.5)"/><path d="M9 25.5h14l2 4H7z" fill="#7c3aed"/><rect x="8" y="23.5" width="16" height="2.4" rx="1.2" fill="#5b21b6"/></svg>`;
 const OUT_CSS = `
@@ -89,7 +89,7 @@ function renderCfp() {
 /* ---------- offseason features ---------- */
 function featureCards() {
   const o = WIRE?.offseason; if (!o) return "";
-  return `<section class="card"><h2 class="card-h">Offseason report <small>ODL Wire</small></h2>
+  return `<section class="card"><h2 class="card-h">Offseason report <small>TD Wire</small></h2>
     ${o.nil?.list?.length ? `<div class="feat"><div class="kick">Payday</div><h3><a href="#feature/nil">${esc(o.nil.h)}</a></h3><p>${wireHtml(o.nil.d)}</p></div>` : ""}
     ${o.breakouts?.list?.length ? `<div class="feat"><div class="kick">Breakout watch</div><h3><a href="#feature/breakouts">${esc(o.breakouts.h)}</a></h3><p>${wireHtml(o.breakouts.d)}</p></div>` : ""}</section>`;
 }

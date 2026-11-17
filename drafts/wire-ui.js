@@ -1,5 +1,5 @@
 /* =========================================================
-   ODL WIRE: storylines written by the GitHub Action (build-stories.mjs)
+   TD WIRE: storylines written by the GitHub Action (build-stories.mjs)
    data/stories/<league_id>/latest.json → Around the League + recruiting news
    ========================================================= */
 const WIRE_BASE = "https://pirateflag23.github.io/dynasty-site/data/stories";
@@ -40,7 +40,7 @@ function wireGameCards(list) {
 const wireRecruit = (e) => WIRE?.recruiting?.find((s) => s.id === `${e.prospect_key}${e.kind}`);
 function wireBattlesCard() {
   const b = (WIRE?.recruiting || []).filter((s) => s.kind === "battle").slice(0, 6);
-  return b.length ? `<section class="card"><h2 class="card-h">Recruiting battles <small>ODL Wire</small></h2>${b.map((s) => `<div class="wire-b"><div class="kick">${esc(s.kick)}</div><h3>${wireHtml(s.h)}</h3><p>${wireHtml(s.d)}</p></div>`).join("")}</section>` : "";
+  return b.length ? `<section class="card"><h2 class="card-h">Recruiting battles <small>TD Wire</small></h2>${b.map((s) => `<div class="wire-b"><div class="kick">${esc(s.kick)}</div><h3>${wireHtml(s.h)}</h3><p>${wireHtml(s.d)}</p></div>`).join("")}</section>` : "";
 }
 // Recruiting news: use the Wire's headline/story when one exists for the event.
 const _newsHeadline = newsHeadline, _newsDeck = newsDeck;
