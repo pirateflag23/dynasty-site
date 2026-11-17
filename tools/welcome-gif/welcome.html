@@ -1,0 +1,53 @@
+<!doctype html>
+<!-- Welcome animation for new Discord members. Rendered to site/public/welcome.gif by tools/welcome-gif/render.mjs.
+     Every animation is paused and stepped frame by frame, so timings below are the GIF's real timings. -->
+<html><head><meta charset="utf-8"><style>
+@font-face{font-family:RC;font-weight:800;src:url(rc800.woff2)}
+@font-face{font-family:RC;font-weight:700;src:url(rc700.woff2)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:800px;height:450px;overflow:hidden;background:#0b0c0d}
+.stage{position:relative;width:800px;height:450px;overflow:hidden;font-family:RC,sans-serif;color:#f1f1f2;
+  background:radial-gradient(ellipse at 50% 38%,#3a0b0b 0,#140808 45%,#0b0c0d 75%)}
+/* moving diagonal stripes */
+.stripes{position:absolute;inset:-60px;background:repeating-linear-gradient(115deg,transparent 0 26px,rgba(204,0,0,.13) 26px 52px);animation:slide 4s linear infinite}
+@keyframes slide{to{transform:translateX(114.8px)}}
+/* light sweep behind the logo */
+.beam{position:absolute;left:50%;top:-80px;width:220px;height:620px;margin-left:-110px;background:linear-gradient(90deg,transparent,rgba(255,215,120,.18),transparent);
+  transform:rotate(18deg) translateX(-520px);animation:beam 4s ease-in-out infinite}
+@keyframes beam{0%,30%{transform:rotate(18deg) translateX(-560px)}70%,100%{transform:rotate(18deg) translateX(560px)}}
+.logo{position:absolute;left:50%;top:34px;width:210px;margin-left:-105px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.7));animation:logo 4s cubic-bezier(.2,.9,.25,1.15) infinite}
+@keyframes logo{0%{transform:scale(.2) rotate(-8deg);opacity:0}14%{transform:scale(1.08) rotate(1deg);opacity:1}20%,92%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:1}}
+.kick{position:absolute;left:0;right:0;top:206px;text-align:center;font-weight:700;font-size:24px;letter-spacing:.42em;color:#e01b1b;
+  animation:kick 4s ease-out infinite}
+@keyframes kick{0%,18%{opacity:0;letter-spacing:.9em}30%,100%{opacity:1;letter-spacing:.42em}}
+.big{position:absolute;left:0;right:0;top:232px;text-align:center;font-weight:800;font-size:92px;line-height:1;text-transform:uppercase;letter-spacing:-.01em;
+  text-shadow:0 6px 18px rgba(0,0,0,.65);animation:big 4s cubic-bezier(.2,.9,.3,1.2) infinite}
+.big span{color:#e01b1b}
+@keyframes big{0%,26%{opacity:0;transform:translateY(40px) scale(.92)}38%,100%{opacity:1;transform:none}}
+/* gold shine across the title */
+.shine{position:absolute;left:0;right:0;top:232px;height:96px;background:linear-gradient(100deg,transparent 40%,rgba(255,226,150,.55) 50%,transparent 60%);
+  mix-blend-mode:overlay;background-size:300% 100%;animation:shine 4s linear infinite}
+@keyframes shine{0%,45%{background-position:120% 0}70%,100%{background-position:-60% 0}}
+.bar{position:absolute;left:50%;top:342px;height:5px;width:520px;margin-left:-260px;background:#cc0000;transform-origin:center;animation:bar 4s ease-out infinite}
+@keyframes bar{0%,36%{transform:scaleX(0)}50%,100%{transform:scaleX(1)}}
+.tags{position:absolute;left:0;right:0;top:364px;display:flex;justify-content:center;gap:14px}
+.tag{font-weight:700;font-size:21px;letter-spacing:.08em;text-transform:uppercase;background:#1d1e20;border:2px solid #34363a;border-radius:5px;padding:7px 14px;opacity:0}
+.tag b{color:#f2b134}
+.t1{animation:t 4s ease-out infinite;animation-delay:0s}
+@keyframes t{0%,48%{opacity:0;transform:translateY(16px)}58%,100%{opacity:1;transform:none}}
+.t2{animation:t2 4s ease-out infinite}
+@keyframes t2{0%,54%{opacity:0;transform:translateY(16px)}64%,100%{opacity:1;transform:none}}
+.t3{animation:t3 4s ease-out infinite}
+@keyframes t3{0%,60%{opacity:0;transform:translateY(16px)}70%,100%{opacity:1;transform:none}}
+/* fade the whole thing out at the end so the loop restarts cleanly */
+.fade{position:absolute;inset:0;background:#0b0c0d;opacity:0;animation:fade 4s linear infinite}
+@keyframes fade{0%,93%{opacity:0}100%{opacity:1}}
+</style></head><body><div class="stage">
+<div class="stripes"></div><div class="beam"></div>
+<img class="logo" src="logo.png">
+<div class="kick">WELCOME TO</div>
+<div class="big">THE <span>DYNASTY</span></div><div class="shine"></div>
+<div class="bar"></div>
+<div class="tags"><div class="tag t1"><b>32</b> coaches</div><div class="tag t2"><b>4</b> conferences</div><div class="tag t3">stream <b>every</b> game</div></div>
+<div class="fade"></div>
+</div></body></html>

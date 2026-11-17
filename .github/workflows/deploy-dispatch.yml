@@ -19,7 +19,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Deploy odl-dispatch (cron every 10 min)
+      - name: KV namespace for the greeter (best effort; greeter works without it, minus leave logs)
+        id: kv
+        continue-on-error: true
+        working-directory: dispatch
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          find_id() { npx --yes wrangler@4 kv namespace list 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const n=JSON.parse(s).find(x=>x.title==="td-greeter"||x.title.endsWith("-td-greeter"));process.stdout.write(n?n.id:"")}catch{}})'; }
+          ID=$(find_id)
+          if [ -z "$ID" ]; then npx --yes wrangler@4 kv namespace create td-greeter >/dev/null; ID=$(find_id); fi
+          if [ -z "$ID" ]; then echo "::warning::Could not create the td-greeter KV namespace (token may lack Workers KV Storage: Edit). Leaves won't be logged."; exit 0; fi
+          sed -i "s|\"triggers\"|\"kv_namespaces\": [{ \"binding\": \"GREETER\", \"id\": \"$ID\" }],\n  \"triggers\"|" wrangler.jsonc
+          echo "KV td-greeter = $ID"
+      - name: Deploy odl-dispatch (sync check every 10 min, greeter every 2 min)
         working-directory: dispatch
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -32,3 +45,11 @@ jobs:
         run: |
           if [ -z "$PAT" ]; then echo "::warning::Add the ODL_DISPATCH_PAT repo secret, then re-run this workflow"; exit 0; fi
           printf '%s' "$PAT" | npx --yes wrangler@4 secret put GH_TOKEN
+      - name: Set DISCORD_BOT_TOKEN secret (greeter)
+        working-directory: dispatch
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then echo "::warning::DISCORD_BOT_TOKEN repo secret missing"; exit 0; fi
+          printf '%s' "$TOKEN" | npx --yes wrangler@4 secret put DISCORD_BOT_TOKEN
