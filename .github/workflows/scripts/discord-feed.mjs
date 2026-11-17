@@ -264,6 +264,19 @@ async function main() {
     });
   }
 
+  /* ============ #on-deck / #schedule: next week's league games, once per new week ============ */
+  {
+    const open = games.filter((g) => !g.played);
+    const weeks = [...new Set(open.map((g) => g.week))].sort((a, b) => a - b);
+    const nextW = weeks[1]; // weeks[0] is the week being played now (matchup chats); [1] is the one after
+    const ch = pickChannel(cfg.channels.on_deck);
+    if (ch && nextW != null) {
+      const ng = open.filter((g) => g.week === nextW && isUserGame(g));
+      const label = weekLabel(open.find((g) => g.week === nextW));
+      await once(`ondeck:${cur.season}:${label}`, "ondeck", ch, () => ondeckPost(ng, label));
+    }
+  }
+
   /* ============ #heisman watch ============ */
   if (cfg.channels.heisman) {
     const heis = await api("/awards/heisman").catch(() => null);
@@ -510,6 +523,28 @@ async function main() {
       const png = await renderAdvance({ week: wkText, year: yr, season: `${cur.season} Season`, lines: lines.map((l, i) => [["🗓️", "🎥"][i] || "📌", l]), siteLogo: gfxSiteLogo() });
       return { embeds: [{ ...text.embeds[0], description: undefined, image: { url: "attachment://advance.png" } }], files: [{ name: "advance.png", data: png }] };
     } catch (err) { log(`Advance graphic failed, posting text instead: ${err.message}`); return text; }
+  }
+
+  async function ondeckPost(ng, label) {
+    const side = (t) => { const k = t.team_key, tm = teams.get(k) || {}; return { name: t.team, rank: tm.rank, record: tm.record, coach: coachName(k), logo: "" }; };
+    const order = (g) => (g.kind === "user_vs_user" ? 0 : 1);
+    const list = [...ng].sort((a, b) => order(a) - order(b) || Math.min(teams.get(a.home.team_key)?.rank || 99, teams.get(a.away.team_key)?.rank || 99) - Math.min(teams.get(b.home.team_key)?.rank || 99, teams.get(b.away.team_key)?.rank || 99));
+    const line = (g) => { const A = side(g.away), H = side(g.home); return `${A.name}${A.record ? ` (${A.record})` : ""}${A.coach ? ` · ${A.coach}` : ""} **at** ${H.name}${H.record ? ` (${H.record})` : ""}${H.coach ? ` · ${H.coach}` : ""}`; };
+    const text = { embeds: [{ title: `🗓️ On deck · ${label}`, url: site("schedule"), color: RED, description: list.length ? clip(list.map(line).join("\n"), 3900) : "No league games that week." }] };
+    if (cfg.graphics?.ondeck === false) return text;
+    try {
+      const { renderOnDeck } = await extraGraphics();
+      const map = await logoMap();
+      if (!rivalryNames) {
+        rivalryNames = new Map();
+        try { for (const [x, y, n] of JSON.parse(await readFile("rivalries.json", "utf8")).rivalries || []) { rivalryNames.set(`${x}|${y}`, n); rivalryNames.set(`${y}|${x}`, n); } } catch { /* optional */ }
+      }
+      const rivals = rivalryNames;
+      const G = list.map((g) => { const a = side(g.away), h = side(g.home); a.logo = logoFor(a.name, map); h.logo = logoFor(h.name, map);
+        return { away: a, home: h, uvu: g.kind === "user_vs_user", tag: rivals.get(`${g.away.team}|${g.home.team}`) || (g.kind === "user_vs_user" ? "Coach vs coach" : "") }; });
+      const png = await renderOnDeck({ label, sub: `${list.length} league game${list.length === 1 ? "" : "s"} · ${cur.season} season`, games: G, siteLogo: gfxSiteLogo(), colors: await gfxColors() });
+      return { embeds: [{ title: text.embeds[0].title, url: text.embeds[0].url, color: RED, image: { url: "attachment://ondeck.png" } }], files: [{ name: "ondeck.png", data: png }] };
+    } catch (err) { log(`On deck graphic failed, posting text instead: ${err.message}`); return text; }
   }
 
   async function heismanPost(list) {
