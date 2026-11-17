@@ -1262,7 +1262,7 @@ function renderClasses(nav) {
       if (!r.committed || !r.school) continue;
       if (clsState.type === "transfers" ? !r.transfer : false) continue;
       const k = keyFromTeamId(r.school.team_id) || teamByName(r.school.name)?.team_key; if (!k) continue;
-      const lbl = r.transfer ? "Transfer" : classLabel(r.class);
+      const cl = classLabel(r.class), lbl = r.transfer ? "Transfer" : cl.startsWith("JUCO") ? "JUCO" : cl; // Top classes table: no JUCO year split
       (mix[k] ||= {})[lbl] = (mix[k][lbl] || 0) + 1;
     }
     const order = ["HS", "JUCO (FR)", "JUCO (SO)", "JUCO (JR)", "JUCO", "Transfer"];
