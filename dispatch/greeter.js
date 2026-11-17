@@ -135,6 +135,5 @@ export async function inspectGreeter(env) {
     log_channel_exists: channels.some((c) => c.type === 0 && c.name === CFG.logChannel),
     coach_role: role(CFG.coachRole)?.name || null, staff_role: role(CFG.staffRole)?.name || null,
     bot_above_coach: role(CFG.coachRole) ? top > role(CFG.coachRole).position : null,
-    text_channels: channels.filter((c) => c.type === 0).map((c) => c.name),
   };
 }
