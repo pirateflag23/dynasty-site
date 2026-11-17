@@ -49,7 +49,7 @@ function gameType(g) {
 
 async function main() {
   if (!KEY) throw new Error("DYNASTY_API_KEY must be set");
-  const league = (await api("/league")).data;
+  const leagueRes = await api("/league"), league = { ...leagueRes.data, data_version: leagueRes.data_version }; // data_version is on the response, not .data
   const LID = league.league_id, DIR = `data/history/${LID}`;
   const cur = league.current_period;
   const index = await readJson(`${DIR}/index.json`, {});
