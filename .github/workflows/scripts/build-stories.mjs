@@ -65,13 +65,13 @@ const POS_WORD = { QB: "quarterback", HB: "running back", FB: "fullback", WR: "r
 
 async function main() {
   if (!KEY) throw new Error("DYNASTY_API_KEY must be set");
-  const league = (await api("/league")).data;
+  const leagueRes = await api("/league"), league = leagueRes.data;
   const LID = league.league_id, cur = league.current_period, DIR = `data/stories/${LID}`;
   const prevIdx = await readJson(`${DIR}/latest.json`, {});
   const schedule = await api("/schedule");
   const games = schedule.data;
   const playedCount = games.filter((g) => g.played).length;
-  const sig = `${cur.id}:${league.data_version}:${playedCount}`;
+  const sig = `${cur.id}:${leagueRes.data_version}:${playedCount}`; // data_version sits on the response, not league.data
   if (prevIdx.sig === sig && !process.env.FORCE) { log("Stories up to date."); return; }
   await mkdir(DIR, { recursive: true });
 
