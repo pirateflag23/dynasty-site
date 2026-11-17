@@ -4,7 +4,9 @@
   "site_url": "https://thedynastycfb.com",
   "logo_base": "https://dynasty-proxy.jw1388954.workers.dev",
 
-  "graphics": { "top25": true, "final": true, "matchups": true, "recruiting": true, "scores": true, "potw": true },
+  "graphics": { "top25": true, "final": true, "matchups": true, "recruiting": true, "scores": true, "potw": true, "advance": true, "heisman": true, "headlines": true },
+
+  "advance_notes": ["Please try and schedule your game within 24hr", "Remember to include \"TheDynasty\" in your stream title"],
 
   "channels": {
     "final": "final",
@@ -15,7 +17,10 @@
     "portal": "transfer-portal",
     "potw": "national-potw",
     "commish": "commish-board",
-    "matchups_category": "Matchups"
+    "matchups_category": "Matchups",
+    "announcements": ["announcements", "announcement", "annoucement", "annoucements"],
+    "heisman": "heisman",
+    "headlines": "headlines"
   },
 
   "conferences": {

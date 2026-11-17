@@ -22,6 +22,7 @@ const matchupGraphics = () => import("./graphics/matchup.mjs");
 const recruitingGraphics = () => import("./graphics/recruiting.mjs");
 const scoresGraphics = () => import("./graphics/scores.mjs");
 const potwGraphics = () => import("./graphics/potw.mjs");
+const extraGraphics = () => import("./graphics/extras.mjs");
 
 const API = (process.env.DYNASTY_API_BASE || "https://dynasty.prestonchoate.dev/v1").replace(/\/$/, "");
 const KEY = process.env.DYNASTY_API_KEY;
@@ -244,6 +245,29 @@ async function main() {
     await once(`top25:${cur.id}`, "top25", cfg.channels.top25, () => top25Embed());
   }
 
+  /* ============ #announcements: "we have advanced" card, once per new week ============ */
+  {
+    const open = games.filter((g) => !g.played);
+    const ow = open.length ? Math.min(...open.map((g) => g.week)) : null;
+    const og = ow != null ? open.find((g) => g.week === ow) : null;
+    const wkText = og ? weekLabel(og) : (/\d{4}\s+(.*)/.exec(cur.season_text)?.[1] || cur.season_text).replace(/\bWk\b/, "Week");
+    const ch = pickChannel(cfg.channels.announcements);
+    if (ch) await once(`advance:${cur.season}:${wkText}`, "advance", ch, () => advancePost(wkText));
+  }
+
+  /* ============ #heisman watch ============ */
+  if (cfg.channels.heisman) {
+    const heis = await api("/awards/heisman").catch(() => null);
+    if (heis?.data?.length && (heis.period?.id ?? cur.id) === cur.id) await once(`heisman:${cur.id}`, "heisman", cfg.channels.heisman, () => heismanPost(heis.data));
+  }
+
+  /* ============ #headlines (Dynasty Wire stories written earlier in this workflow) ============ */
+  if (cfg.channels.headlines) {
+    let wire = null;
+    try { wire = JSON.parse(await readFile(`data/stories/${league.league_id ?? league.data.league_id}/latest.json`, "utf8")); } catch { /* none yet */ }
+    if (wire && wire.period?.id === cur.id) await once(`headlines:${cur.id}`, "headlines", cfg.channels.headlines, () => headlinesPost(wire));
+  }
+
   /* ============ Players of the week ============ */
   const awardWeeks = [...new Set(awards.data.map((a) => `${a.season}:${a.week}`))];
   const wkNum = (s) => s.split(":").map(Number);
@@ -458,6 +482,57 @@ async function main() {
       return { embeds: [{ title: text.embeds[0].title, url: site("scores"), color: RED, image: { url: `attachment://${name}` } }], files: [{ name, data: png }] };
     } catch (err) { log(`Scores graphic failed, posting text instead: ${err.message}`); return text; }
   }
+
+  // First channel name in the list that exists in the server (lets "announcements" match a typo'd channel name).
+  function pickChannel(v) {
+    const names = (Array.isArray(v) ? v : [v]).filter(Boolean);
+    return names.find((n) => chan[`0:${n.toLowerCase()}`] || chan[`5:${n.toLowerCase()}`]) || (DRY ? names[0] : null);
+  }
+
+  async function advancePost(wkText) {
+    const seasons = [...(league.data.seasons || [])].map(Number).sort((a, b) => a - b); // API lists newest first
+    const yr = seasons.indexOf(cur.season) >= 0 ? `Year ${seasons.indexOf(cur.season) + 1}` : "";
+    const lines = cfg.advance_notes || ["Please try and schedule your game within 24hr", "Remember to include \"TheDynasty\" in your stream title"];
+    const text = { embeds: [{ title: `📣 We have advanced to ${wkText}`, color: RED, description: [yr && `${yr} · ${cur.season} season`, ...lines.map((l) => `• ${l}`)].filter(Boolean).join("\n") }] };
+    if (cfg.graphics?.advance === false) return text;
+    try {
+      const { renderAdvance } = await extraGraphics();
+      const png = await renderAdvance({ week: wkText, year: yr, season: `${cur.season} Season`, lines: lines.map((l, i) => [["🗓️", "🎥"][i] || "📌", l]), siteLogo: gfxSiteLogo() });
+      return { embeds: [{ ...text.embeds[0], description: undefined, image: { url: "attachment://advance.png" } }], files: [{ name: "advance.png", data: png }] };
+    } catch (err) { log(`Advance graphic failed, posting text instead: ${err.message}`); return text; }
+  }
+
+  async function heismanPost(list) {
+    const lines = list.map((h) => `\`${lpad(h.rank, 2)}\` **${h.name}** ${h.position} · ${rk(h.team_rank)}${h.team_name}${h.user_team ? " 🎮" : ""}${h.new ? " 🆕" : h.movement ? (h.movement > 0 ? ` ▲${h.movement}` : ` ▼${-h.movement}`) : ""}\n　${String(h.stat_line).replace(/\n/g, " · ")}`);
+    const text = { embeds: [{ title: `🏆 Heisman watch · ${prettyWeek(cur.season_text)}`, color: GOLD, description: pages(lines)[0] }] };
+    if (cfg.graphics?.heisman === false) return text;
+    try {
+      const { renderHeisman } = await extraGraphics();
+      const map = await logoMap();
+      const players = list.slice(0, 10).map((h) => { const team = tName(h.team_key) !== "?" ? tName(h.team_key) : h.team_name;
+        return { rank: h.rank, name: h.name, pos: h.position, cls: h.class_year, team, rank_t: h.team_rank, logo: logoFor(team, map), last: h.last_game, stat: h.stat_line, isNew: h.new, move: h.movement, user: h.user_team || userTeams.has(h.team_key) }; });
+      const png = await renderHeisman({ label: prettyWeek(cur.season_text), players, siteLogo: gfxSiteLogo(), colors: await gfxColors() });
+      return { embeds: [{ title: text.embeds[0].title, color: GOLD, image: { url: "attachment://heisman.png" } }], files: [{ name: "heisman.png", data: png }] };
+    } catch (err) { log(`Heisman graphic failed, posting text instead: ${err.message}`); return text; }
+  }
+
+  async function headlinesPost(wire) {
+    const { plain } = await extraGraphics();
+    // Best stories of the week: up to 2 game stories, 2 recruiting, 1 portal, then fill to 5 by score; league-coach stories first.
+    const by = (k) => [...(wire[k] || [])].sort((a, b) => (!!b.user - !!a.user) || (b.score || 0) - (a.score || 0));
+    const picked = [...by("games").slice(0, 2), ...by("recruiting").slice(0, 2), ...by("portal").slice(0, 1)];
+    for (const s of [...by("games"), ...by("recruiting"), ...by("portal")].sort((a, b) => (b.score || 0) - (a.score || 0))) { if (picked.length >= 5) break; if (!picked.includes(s)) picked.push(s); }
+    if (!picked.length) return null;
+    const stories = picked.slice(0, 5).map((s) => ({ kick: s.kick || s.cat || "", h: s.h, d: s.d, user: !!s.user }));
+    const text = { embeds: [{ title: `📰 Around the league · ${prettyWeek(cur.season_text)}`, url: site("home"), color: BLUE, description: clip(stories.map((s) => `**${plain(s.h)}**\n${plain(s.d)}`).join("\n\n"), 3900) }] };
+    if (cfg.graphics?.headlines === false) return text;
+    try {
+      const { renderHeadlines } = await extraGraphics();
+      const png = await renderHeadlines({ label: prettyWeek(cur.season_text), stories, siteLogo: gfxSiteLogo() });
+      return { embeds: [{ title: text.embeds[0].title, url: text.embeds[0].url, color: BLUE, image: { url: "attachment://headlines.png" } }], files: [{ name: "headlines.png", data: png }] };
+    } catch (err) { log(`Headlines graphic failed, posting text instead: ${err.message}`); return text; }
+  }
+  function prettyWeek(t) { return (/\d{4}\s+(.*)/.exec(t)?.[1] || t).replace(/\bWk\b/, "Week"); }
 
   // Players of the week card for one conference (or National); falls back to the text embed.
   async function potwPost(list, conf) {
