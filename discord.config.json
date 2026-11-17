@@ -33,7 +33,8 @@
     "SEC":     { "role": "SEC", "channel": "sec" }
   },
 
-  "coaches": { "East Carolina": "Pirate_flag", "Ohio State": "Tuddy_roosevelt" },
+  "coaches": { "East Carolina": "Pirate_flag", "Ohio State": "Tuddy_roosevelt",
+    "Penn State": "agerm40" },
   "commish_role": "Badmin",
 
   "matchups": {
