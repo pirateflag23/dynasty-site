@@ -712,7 +712,7 @@ const TEAM_COLORS = {
   "Wisconsin": ["#C5050C", "#FFFFFF"],
   "Wyoming": ["#492F24", "#FFC425"]
 };
-const ALIAS = { "Miami (OH)": "Miami University", "Miami (FL)": "Miami", "Mississippi St": "Mississippi State", "Southern Miss": "Southern Mississippi", "FIU": "Florida International", "FAU": "Florida Atlantic", "Hawaii": "Hawai'i", "UMass": "Massachusetts", "App State": "Appalachian State", "Louisiana-Monroe": "UL Monroe", "Pitt": "Pittsburgh", "Ole Miss": "Ole Miss" };
+const ALIAS = { "Miami (OH)": "Miami University", "Miami (FL)": "Miami", "Mississippi St": "Mississippi State", "Southern Miss": "Southern Mississippi", "FIU": "Florida International", "FAU": "Florida Atlantic", "FLA Atlantic": "Florida Atlantic", "Hawaii": "Hawai'i", "UMass": "Massachusetts", "App State": "Appalachian State", "Louisiana-Monroe": "UL Monroe", "Pitt": "Pittsburgh", "Ole Miss": "Ole Miss" };
 const lum = (hex) => { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
 const teamColors = (name = "") => TEAM_COLORS[name] || TEAM_COLORS[ALIAS[name]] || null;
 // main brand color; very light primaries (e.g. Purdue gold, Missouri gold, Carolina blue) still read fine with dark text
