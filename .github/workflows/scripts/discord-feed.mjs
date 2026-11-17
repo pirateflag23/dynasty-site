@@ -113,15 +113,22 @@ async function main() {
   } catch { log("No data/player-stats-all.json yet; previews will skip player leaders."); }
 
   /* ---- Discord guild lookup ---- */
-  let chan = {}, roles = {}, botId = null, guild = cfg.guild_id;
+  let chan = {}, roles = {}, allRoleNames = [], botId = null, guild = cfg.guild_id;
   if (!DRY || TOKEN) {
     const [chs, rls, me] = await Promise.all([dc("GET", `/guilds/${guild}/channels`), dc("GET", `/guilds/${guild}/roles`), dc("GET", "/users/@me")]);
     for (const c of chs) chan[`${c.type}:${c.name.toLowerCase()}`] = c.id;
-    for (const r of rls) roles[r.name.toLowerCase()] = r.id;
+    for (const r of rls) { roles[r.name.toLowerCase()] = r.id; roles[`~${r.name.toLowerCase().replace(/[^a-z0-9]/g, "")}`] = r.id; }
+    allRoleNames = rls.map((r) => r.name);
     botId = me.id;
   }
   const textCh = (name) => (name ? chan[`0:${name.toLowerCase()}`] || chan[`5:${name.toLowerCase()}`] : null) || (DRY ? `#${name}` : null);
-  const roleId = (name) => (name ? roles[name.toLowerCase()] : null) || (DRY ? `@${name}` : null);
+  const warnedRoles = new Set();
+  // names are matched ignoring case, spaces and punctuation ("B-10" = "b10"); extra names are fallbacks
+  const roleId = (name, ...alts) => {
+    for (const n of [name, ...alts].filter(Boolean)) { const id = roles[n.toLowerCase()] || roles[`~${n.toLowerCase().replace(/[^a-z0-9]/g, "")}`]; if (id) return id; }
+    if (name && !DRY && !warnedRoles.has(name)) { warnedRoles.add(name); log(`⚠️  Discord role "${name}" not found, so nobody gets pinged/assigned it. Roles on the server: ${allRoleNames.join(", ") || "(none)"}`); }
+    return name && DRY ? `@${name}` : null;
+  };
   const missing = new Set();
   async function send(chName, payload) {
     const id = textCh(chName);
@@ -160,7 +167,7 @@ async function main() {
   try {
   /* ---- box scores for played games we haven't posted ---- */
   const played = games.filter((g) => g.played && g.has_box_score);
-  const needBox = played.filter((g) => (isUserGame(g) && !seen(`final:${g.key}`)) || !seen(`big:${g.key}`) || REPLAY.size);
+  const needBox = played.filter((g) => (isUserGame(g) && (!seen(`final:${g.key}`) || !seen(`big:${g.key}`))) || REPLAY.size);
   const latestFirst = [...needBox].sort((a, b) => b.week - a.week);
   const boxList = seeding && !REPLAY.size ? [] : await pool(REPLAY.size ? latestFirst.slice(0, 40) : needBox, 4, (g) => api(`/games/${g.key}`).then((r) => r.data).catch(() => null));
   const box = new Map(boxList.filter(Boolean).map((d) => [d.key, d.box_score]));
@@ -173,7 +180,7 @@ async function main() {
 
   /* ============ #big-performances ============ */
   const bpLines = [];
-  for (const g of played) {
+  for (const g of played.filter(isUserGame)) {
     if (seen(`big:${g.key}`) && !REPLAY.has("big")) continue;
     if (seeding && !REPLAY.has("big")) { mark(`big:${g.key}`); continue; }
     const b = box.get(g.key); if (!b) continue;
@@ -204,7 +211,7 @@ async function main() {
     for (const [conf, c] of Object.entries(cfg.conferences || {})) {
       await once(`potw:${wk}:${conf}`, "potw", c.channel, () => {
         const e = potwEmbed(list, conf); if (!e) return null;
-        const r = roleId(c.role);
+        const r = roleId(c.role, conf, conf.replace(/\s+/g, ""), conf === "Big Ten" ? "B1G" : null);
         return { ...e, content: r ? `<@&${r}>` : undefined, allowed_mentions: { roles: r && !DRY ? [r] : [] } };
       });
     }
@@ -288,6 +295,7 @@ async function main() {
   function bigPerformances(g, b, T) {
     const out = [];
     for (const p of b.Players) {
+      if (!userTeams.has(p.Team)) continue; // user teams only
       const s = p.Stats, bits = [];
       if (s.passYards >= T.pass_yards || s.passTD >= T.pass_td) bits.push(`${s.passCompletion}/${s.passAttempts}, ${s.passYards} pass yds, ${s.passTD} TD`);
       if (s.rushYards >= T.rush_yards || s.rushTD >= T.rush_td) bits.push(`${s.rushAttempts} car, ${s.rushYards} rush yds, ${s.rushTD} TD`);
@@ -300,8 +308,7 @@ async function main() {
       if (!bits.length) continue;
       const mine = p.Team === g.home.team_key ? g.home : g.away, opp = mine === g.home ? g.away : g.home;
       const res = mine.score > opp.score ? "W" : mine.score < opp.score ? "L" : "T";
-      const user = userTeams.has(p.Team) ? "🎮 " : "";
-      out.push(`${user}**[${p.Name}](${site(`player/${p.Key}`)})** (${mine.team}) — ${bits.join(" · ")}  ·  ${res} ${mine.score}-${opp.score} vs ${opp.team} · ${weekLabel(g)}`);
+      out.push(`**[${p.Name}](${site(`player/${p.Key}`)})** (${mine.team}) — ${bits.join(" · ")}  ·  ${res} ${mine.score}-${opp.score} vs ${opp.team} · ${weekLabel(g)}`);
     }
     return out;
   }
@@ -482,7 +489,7 @@ async function main() {
       if (!/^\d{15,22}$/.test(uid)) continue;
       const t = standings.data.find((x) => x.name === teamName);
       const c = t && cfg.conferences?.[t.conference];
-      const r = c && roleId(c.role);
+      const r = c && roleId(c.role, t.conference, t.conference.replace(/\s+/g, ""), t.conference === "Big Ten" ? "B1G" : null);
       if (!r || state.roles[uid] === r) continue;
       await dc("PUT", `/guilds/${guild}/members/${uid}/roles/${r}`).then(() => { state.roles[uid] = r; log(`role ${c.role} → ${teamName}`); }).catch((e) => log("role failed", teamName, e.message));
     }
