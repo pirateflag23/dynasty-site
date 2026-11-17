@@ -712,15 +712,18 @@ const TEAM_COLORS = {
   "Wisconsin": ["#C5050C", "#FFFFFF"],
   "Wyoming": ["#492F24", "#FFC425"]
 };
-const ALIAS = { "Miami (OH)": "Miami University", "Miami (FL)": "Miami", "Mississippi St": "Mississippi State", "Southern Miss": "Southern Mississippi", "FIU": "Florida International", "FAU": "Florida Atlantic", "FLA Atlantic": "Florida Atlantic", "Hawaii": "Hawai'i", "UMass": "Massachusetts", "App State": "Appalachian State", "Louisiana-Monroe": "UL Monroe", "Pitt": "Pittsburgh", "Ole Miss": "Ole Miss" };
+const ALIAS = { "Miami (OH)": "Miami University", "Miami (FL)": "Miami", "Mississippi St": "Mississippi State", "Southern Miss": "Southern Mississippi", "FIU": "Florida International", "FAU": "Florida Atlantic", "FLA Atlantic": "Florida Atlantic", "Hawaii": "Hawai'i", "UMass": "Massachusetts", "App State": "Appalachian State", "Louisiana-Monroe": "UL Monroe", "Pitt": "Pittsburgh", "Ole Miss": "Ole Miss",
+  "Kennesaw St.": "Kennesaw State", "E. Michigan": "Eastern Michigan", "C. Michigan": "Central Michigan", "W. Michigan": "Western Michigan", "C. Carolina": "Coastal Carolina", "Ga Southern": "Georgia Southern", "MTSU": "Middle Tennessee", "W. Kentucky": "Western Kentucky", "NIU": "Northern Illinois", "NDSU": "North Dakota State", "Sac State": "Sacramento State", "App St.": "Appalachian State" };
+// recruiting/other endpoints abbreviate: "Xxx St." -> "Xxx State"
+const canon = (n = "") => ALIAS[n] || (/ St\.$/.test(n) ? n.replace(/ St\.$/, " State") : n);
 const lum = (hex) => { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
-const teamColors = (name = "") => TEAM_COLORS[name] || TEAM_COLORS[ALIAS[name]] || null;
+const teamColors = (name = "") => TEAM_COLORS[name] || TEAM_COLORS[canon(name)] || null;
 // main brand color; very light primaries (e.g. Purdue gold, Missouri gold, Carolina blue) still read fine with dark text
 const teamColor = (name) => teamColors(name)?.[0] || `hsl(${hue(name)} 55% 42%)`;
 const teamInk = (name) => { const c = teamColors(name)?.[0]; return c && lum(c) > 0.4 ? "#121213" : "#fff"; };
 const teamAccent = (name) => { const c = teamColors(name); if (!c) return "rgba(255,255,255,.35)"; return c[1]; };
 const LOGO_BASE = () => CONFIG.API_BASE.replace(/\/$/, "");
-const logoUrl = (name) => { const v = D.logos?.[name] ?? D.logos?.[ALIAS[name]]; const n = D.logos?.[name] != null ? name : ALIAS[name];
+const logoUrl = (name) => { const v = D.logos?.[name] ?? D.logos?.[canon(name)]; const n = D.logos?.[name] != null ? name : canon(name);
   return v != null ? `${LOGO_BASE()}/logo/${encodeURIComponent(n)}?v=${v}` : ""; };
 const badge = (name, lg) => logoUrl(name) ? `<img class="tb${lg ? " lg" : ""}" src="${esc(logoUrl(name))}" alt="" loading="lazy">` : `<span class="tb${lg ? " lg" : ""}" style="background:${teamColor(name)};color:${teamInk(name)};box-shadow:inset 0 0 0 ${lg ? 3 : 2}px ${teamAccent(name)}" aria-hidden="true">${esc(initials(name))}</span>`;
 const rk = (r) => (r > 0 && r <= 25 ? `<span class="rk">${r}</span>` : "");  // only Top 25 ranks are shown
