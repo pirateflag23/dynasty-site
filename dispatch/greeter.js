@@ -1,4 +1,4 @@
-// TD greeter: welcomes new Discord members, gives them the Coach role, and logs joins/leaves
+// TD greeter: welcomes new Discord members, gives them the Coach role, and logs leaves
 // to a staff-only channel. Runs from the odl-dispatch cron (every 2 minutes).
 //
 // Needs: DISCORD_BOT_TOKEN secret, the bot's "Server Members Intent" switched on in the Discord
@@ -57,7 +57,7 @@ async function setup(env) {
     const me = await dc(env, "GET", "/users/@me");
     // @everyone can't see it; Badmin and the bot can. VIEW_CHANNEL = 1024, SEND_MESSAGES = 2048, READ_HISTORY = 65536.
     log = await dc(env, "POST", `/guilds/${CFG.guild}/channels`, {
-      name: CFG.logChannel, type: 0, topic: "Joins and leaves (staff only)",
+      name: CFG.logChannel, type: 0, topic: "Members who left (staff only)",
       permission_overwrites: [
         { id: CFG.guild, type: 0, deny: "1024" },
         { id: staff.id, type: 0, allow: String(1024 + 65536) },
@@ -84,8 +84,7 @@ async function greet(env, m, s) {
       image: { url: CFG.gif },
     }],
   });
-  if (s.log) await dc(env, "POST", `/channels/${s.log.id}/messages`, { allowed_mentions: { parse: [] }, embeds: [{ color: 0x3ccf6e,
-    description: `📥 <@${m.user.id}> **${name}** joined · account created <t:${created(m.user.id)}:R>${s.coach ? ` · given **${s.coach.name}**` : ""}` }] });
+  // Joins aren't logged: the public welcome post already shows them.
 }
 
 async function farewell(env, id, name, s) {
