@@ -1,4 +1,4 @@
-// ODL Top 25 graphic → PNG. Renders an HTML card in headless Chrome and screenshots it.
+// The Dynasty Top 25 graphic → PNG. Renders an HTML card in headless Chrome and screenshots it.
 // renderTop25({ label, sub, teams:[{rank,name,conference,record,prev,user,coach,logo}], dropped, siteLogo, colors }) → PNG Buffer
 //   prev: undefined = no earlier poll (movement column hidden) · 0/26+ = NEW · n = last poll rank
 //   logo: image URL (falls back to a team-color badge if missing or it fails to load)
@@ -77,7 +77,7 @@ header img{height:84px;position:relative;z-index:1;filter:drop-shadow(0 2px 4px 
 footer{display:flex;justify-content:space-between;gap:20px;padding:12px 36px 18px;font:500 14px R;color:#9a9b9e;border-top:1px solid #26282a;margin-top:6px}
 footer b{color:#ededee;font-weight:700}
 </style></head><body><div class="card">
-<header>${siteLogo ? `<img src="${siteLogo}">` : ""}<div class="ttl"><small>Online Dynasty League</small><h1>ODL <span>Top 25</span></h1></div>
+<header>${siteLogo ? `<img src="${siteLogo}">` : ""}<div class="ttl"><small>The Dynasty</small><h1>Top <span>25</span></h1></div>
   <div class="meta">${esc(label)}<small>${esc(sub)}</small></div></header>
 <div class="grid">${cols.map((c) => `<div><div class="colh"><span>RK</span><span></span><span>Team</span><span>Rec</span><span>${hasMove ? "+/−" : ""}</span></div>${c.map((t) => row(t, colors)).join("")}</div>`).join("")}</div>
 <footer><span>${dropped.length ? `<b>Dropped out:</b> ${esc(dropped.join(", "))}` : "&nbsp;"}</span><span><b>thedynastycfb.com</b></span></footer>
