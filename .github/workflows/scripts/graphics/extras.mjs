@@ -2,6 +2,7 @@
 //   renderAdvance({ week, year, season, lines, siteLogo })                 #announcements on each new week
 //   renderHeisman({ label, players:[{ rank, name, pos, cls, team, rank_t, logo, last, stat, isNew, move, user }], siteLogo, colors })
 //   renderHeadlines({ label, stories:[{ kick, h, d, user }], siteLogo })
+//   renderOnDeck({ label, sub, games:[{ away:{name,rank,record,coach,logo}, home:{...}, tag }], siteLogo, colors })
 import { fonts, esc, short, badge, BADGE_CSS, shoot, teamCols } from "./common.mjs";
 
 const BASE = `*{box-sizing:border-box;margin:0;padding:0}
@@ -89,6 +90,32 @@ ${BASE}
 <div class="wrap">${lead ? `<div class="lead"><span class="k${lead.user ? " user" : ""}">${esc(lead.kick)}</span><h2>${esc(plain(lead.h))}</h2><p>${esc(plain(lead.d))}</p></div>` : ""}
 <div class="grid">${rest.map((s) => `<div class="st"><span class="k${s.user ? " user" : ""}">${esc(s.kick)}</span><h3>${esc(plain(s.h))}</h3><p>${esc(plain(s.d))}</p></div>`).join("")}</div></div>
 <footer><span>Gold tag = league coach's team · more on the site</span><b>thedynastycfb.com</b></footer>
+</div></body></html>`;
+  return shoot(html, { chromeChannel });
+}
+
+export async function renderOnDeck({ label = "", sub = "", games = [], siteLogo = "", colors = {}, chromeChannel = "chrome" }) {
+  const side = (t) => `<div class="sd">${badge(t.name, t.logo, colors, 40)}<div class="tx"><b>${t.rank > 0 && t.rank <= 25 ? `<i>${t.rank}</i> ` : ""}${esc(short(t.name))}</b>
+    <small>${esc(t.record || "")}${t.coach ? ` · <em>🎮 ${esc(t.coach)}</em>` : " · CPU"}</small></div></div>`;
+  const tile = (g) => `<div class="g${g.uvu ? " uvu" : ""}" style="--a:${teamCols(colors, g.away.name).c1};--h:${teamCols(colors, g.home.name).c1}">
+    ${g.tag ? `<span class="tag">${esc(g.tag)}</span>` : ""}${side(g.away)}<span class="at">AT</span>${side(g.home)}</div>`;
+  const html = `<!doctype html><html><head><style>${await fonts()}
+${BADGE_CSS}
+${BASE}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:18px 28px 4px}
+.g{position:relative;display:grid;grid-template-columns:1fr 34px 1fr;align-items:center;gap:8px;background:#1f2022;border-radius:8px;padding:14px 14px 12px;overflow:hidden}
+.g::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--a)}.g::after{content:"";position:absolute;right:0;top:0;bottom:0;width:5px;background:var(--h)}
+.g.uvu{box-shadow:inset 0 0 0 2px #cc0000}
+.sd{display:flex;align-items:center;gap:10px;min-width:0}.g .sd:last-child{flex-direction:row-reverse;text-align:right}
+.tx{min-width:0}.tx b{display:block;font:700 20px/1.1 RC;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tx b i{font-style:normal;color:#9a9b9e;font-size:14px}
+.tx small{display:block;font:500 13px R;color:#9a9b9e;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tx em{font-style:normal;color:#ff8a8a}
+.at{text-align:center;font:800 15px RC;color:#6c6d6f}
+.tag{position:absolute;top:0;left:50%;transform:translateX(-50%);font:700 10px RC;letter-spacing:.14em;text-transform:uppercase;background:#cc0000;color:#fff;padding:2px 8px;border-radius:0 0 4px 4px}
+.empty{margin:18px 28px;color:#8a8b8e;font:500 16px R;padding:14px;background:#1f2022;border-radius:8px}
+</style></head><body><div class="card">
+<header>${logoImg(siteLogo)}<div class="ttl"><small>The Dynasty</small><h1>On <span>Deck</span></h1></div><div class="meta">${esc(label)}<small style="display:block;font:500 15px R;color:#9a9b9e;text-transform:none">${esc(sub)}</small></div></header>
+${games.length ? `<div class="grid">${games.map(tile).join("")}</div>` : '<div class="empty">No league games that week.</div>'}
+<footer><span>Coming up after this week · red outline = coach vs coach</span><b>thedynastycfb.com</b></footer>
 </div></body></html>`;
   return shoot(html, { chromeChannel });
 }
