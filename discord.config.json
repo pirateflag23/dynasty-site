@@ -7,6 +7,8 @@
 
   "graphics": { "top25": true, "final": true, "matchups": true, "recruiting": true, "scores": true, "potw": true, "advance": true, "heisman": true, "headlines": true, "ondeck": true, "schedule": true },
 
+  "on_deck_delay_hours": 60,
+
   "advance_notes": ["Please try and schedule your game within 24hr", "Remember to include \"TheDynasty\" in your stream title"],
 
   "channels": {
