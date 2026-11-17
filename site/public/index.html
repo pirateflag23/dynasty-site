@@ -563,7 +563,7 @@ const CONFIG = {
 const tourHidden = () => { try { return localStorage.getItem("dyn-tour-off") === "1"; } catch (e) { return false; } };
 function tourOff() { try { localStorage.setItem("dyn-tour-off", "1"); } catch (e) {} document.querySelector(".tour")?.remove(); }
 function tourCard() {
-  return tourHidden() ? "" : `<section class="card tour"><h2 class="card-h">New here? Take the 60-second tour <button class="tour-x" type="button" onclick="tourOff()" aria-label="Hide the tour video">Hide ✕</button></h2>
+  return tourHidden() ? "" : `<section class="card tour"><h2 class="card-h">New here? Take the tour <button class="tour-x" type="button" onclick="tourOff()" aria-label="Hide the tour video">Hide ✕</button></h2>
     <video controls playsinline preload="none" poster="tour-poster.jpg" src="tour.mp4"></video></section>`;
 }
 
