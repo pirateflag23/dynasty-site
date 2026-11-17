@@ -29,7 +29,7 @@ Create a **category** named **Matchups**. The bot makes one chat per user-vs-use
 everyone can read, only the two coaches (and the Commish role) can type. Chats older than last week are deleted
 (their box scores stay in #final). Change `keep_previous_weeks` in the config to keep more.
 
-Create **roles**: `ACC`, `B12`, `B1G`, `SEC` (and `Commish` for you). Turn on **Allow anyone to @mention this role**
+Create **roles**: `ACC`, `B12`, `B1G`, `SEC` (and `Badmin` for you). Turn on **Allow anyone to @mention this role**
 for the four conference roles. The bot assigns each coach the role for their team's real conference.
 
 ## 2. Create the bot
