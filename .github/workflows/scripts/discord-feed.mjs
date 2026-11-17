@@ -207,7 +207,7 @@ async function main() {
   const played = games.filter((g) => g.played && g.has_box_score);
   const needBox = played.filter((g) => (isUserGame(g) && (!seen(`final:${g.key}`) || !seen(`big:${g.key}`))) || REPLAY.size);
   const latestFirst = [...needBox].sort((a, b) => b.week - a.week);
-  const boxList = seeding && !REPLAY.size ? [] : await pool(REPLAY.size ? latestFirst.slice(0, 40) : needBox, 4, (g) => api(`/games/${g.key}`).then((r) => r.data).catch(() => null));
+  const boxList = seeding && !REPLAY.size ? [] : await pool(REPLAY.size ? [...latestFirst.filter(isUserGame).slice(0, 12), ...latestFirst.filter((g) => !isUserGame(g)).slice(0, 28)] : needBox, 4, (g) => api(`/games/${g.key}`).then((r) => r.data).catch(() => null));
   const box = new Map(boxList.filter(Boolean).map((d) => [d.key, d.box_score]));
   for (const [gk, b] of box) { const g = games.find((x) => x.key === gk); if (g && b?.Home?.Abbrev) { state.abbr[g.home.team_key] = b.Home.Abbrev; state.abbr[g.away.team_key] = b.Away.Abbrev; } }
 
