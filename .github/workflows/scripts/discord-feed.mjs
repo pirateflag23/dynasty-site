@@ -250,9 +250,12 @@ async function main() {
     const open = games.filter((g) => !g.played);
     const ow = open.length ? Math.min(...open.map((g) => g.week)) : null;
     const og = ow != null ? open.find((g) => g.week === ow) : null;
-    const wkText = og ? weekLabel(og) : (/\d{4}\s+(.*)/.exec(cur.season_text)?.[1] || cur.season_text).replace(/\bWk\b/, "Week");
+    const wkText = nowWeek();
     const ch = pickChannel(cfg.channels.announcements);
-    if (ch) await once(`advance:${cur.season}:${wkText}`, "advance", ch, () => advancePost(wkText));
+    if (ch) await once(`advance:${cur.season}:${wkText}`, "advance", ch, async () => {
+      const p = await advancePost(wkText);
+      return cfg.advance_ping_everyone === false ? p : { ...p, content: "@everyone", allowed_mentions: { parse: ["everyone"] } };
+    });
   }
 
   /* ============ #heisman watch ============ */
@@ -278,7 +281,8 @@ async function main() {
     for (const [conf, c] of Object.entries(cfg.conferences || {})) {
       await once(`potw:${wk}:${conf}`, "potw", c.channel, async () => {
         const e = await potwPost(list, conf); if (!e) return null;
-        const r = roleId(c.role, conf, conf.replace(/\s+/g, ""), conf === "Big Ten" ? "B1G" : null);
+        // No conference role ping (the advance post already pings @everyone). Set ping_conference_roles: true to bring it back.
+        const r = cfg.ping_conference_roles ? roleId(c.role, conf, conf.replace(/\s+/g, ""), conf === "Big Ten" ? "B1G" : null) : null;
         return { ...e, content: r ? `<@&${r}>` : undefined, allowed_mentions: { roles: r && !DRY ? [r] : [] } };
       });
     }
@@ -435,12 +439,12 @@ async function main() {
       const ranked = (k) => { const r = teams.get(k)?.rank; return r > 0 && r <= 25; };
       const out = prev ? [...prev.entries()].filter(([k, r]) => r > 0 && r <= 25 && !ranked(k)).map(([k]) => tName(k)) : [];
       const png = await renderTop25({
-        label: (/\d{4}\s+(.*)/.exec(cur.season_text)?.[1] || cur.season_text).replace(/\bWk\b/, "Week"),
+        label: nowWeek(),
         sub: /^\d{4}/.test(cur.season_text) ? `${cur.season_text.slice(0, 4)} season` : "", teams: teamsIn, dropped: out,
         siteLogo: cfg.site_url ? `${cfg.site_url.replace(/\/$/, "")}/logo.png` : "",
         colors: await siteTeamColors("site/public/index.html"),
       });
-      return { embeds: [{ title: `🏆 Top 25 · ${cur.season_text}`, url: site("standings"), color: RED, image: { url: "attachment://top25.png" } }],
+      return { embeds: [{ title: `🏆 Top 25 · ${cur.season} ${nowWeek()}`, url: site("standings"), color: RED, image: { url: "attachment://top25.png" } }],
         files: [{ name: "top25.png", data: png }] };
     } catch (e) { log(`Top 25 graphic failed, posting text instead: ${e.message}`); return text; }
   }
@@ -451,7 +455,7 @@ async function main() {
     const mv = (t) => { const p = prev.get(t.team_key); if (!p || p > 25) return "🆕"; return p === t.rank ? "—" : p > t.rank ? `▲${p - t.rank}` : `▼${t.rank - p}`; };
     const lines = top.map((t) => `\`${lpad(t.rank, 2)}\` ${userTeams.has(t.team_key) ? "**" : ""}${t.name}${userTeams.has(t.team_key) ? "** 🎮" : ""} (${t.record}) ${mv(t)}`);
     const out = [...prev.entries()].filter(([k, r]) => r > 0 && r <= 25 && !top.some((t) => t.team_key === k)).map(([k]) => tName(k));
-    return { embeds: [{ title: `🏆 Top 25 · ${cur.season_text}`, url: site("standings"), color: RED, description: lines.join("\n"),
+    return { embeds: [{ title: `🏆 Top 25 · ${cur.season} ${nowWeek()}`, url: site("standings"), color: RED, description: lines.join("\n"),
       footer: out.length ? { text: `Dropped out: ${out.join(", ")}` } : undefined }] };
   }
 
@@ -504,14 +508,14 @@ async function main() {
 
   async function heismanPost(list) {
     const lines = list.map((h) => `\`${lpad(h.rank, 2)}\` **${h.name}** ${h.position} · ${rk(h.team_rank)}${h.team_name}${h.user_team ? " 🎮" : ""}${h.new ? " 🆕" : h.movement ? (h.movement > 0 ? ` ▲${h.movement}` : ` ▼${-h.movement}`) : ""}\n　${String(h.stat_line).replace(/\n/g, " · ")}`);
-    const text = { embeds: [{ title: `🏆 Heisman watch · ${prettyWeek(cur.season_text)}`, color: GOLD, description: pages(lines)[0] }] };
+    const text = { embeds: [{ title: `🏆 Heisman watch · ${nowWeek()}`, color: GOLD, description: pages(lines)[0] }] };
     if (cfg.graphics?.heisman === false) return text;
     try {
       const { renderHeisman } = await extraGraphics();
       const map = await logoMap();
       const players = list.slice(0, 10).map((h) => { const team = tName(h.team_key) !== "?" ? tName(h.team_key) : h.team_name;
         return { rank: h.rank, name: h.name, pos: h.position, cls: h.class_year, team, rank_t: h.team_rank, logo: logoFor(team, map), last: h.last_game, stat: h.stat_line, isNew: h.new, move: h.movement, user: h.user_team || userTeams.has(h.team_key) }; });
-      const png = await renderHeisman({ label: prettyWeek(cur.season_text), players, siteLogo: gfxSiteLogo(), colors: await gfxColors() });
+      const png = await renderHeisman({ label: nowWeek(), players, siteLogo: gfxSiteLogo(), colors: await gfxColors() });
       return { embeds: [{ title: text.embeds[0].title, color: GOLD, image: { url: "attachment://heisman.png" } }], files: [{ name: "heisman.png", data: png }] };
     } catch (err) { log(`Heisman graphic failed, posting text instead: ${err.message}`); return text; }
   }
@@ -524,15 +528,23 @@ async function main() {
     for (const s of [...by("games"), ...by("recruiting"), ...by("portal")].sort((a, b) => (b.score || 0) - (a.score || 0))) { if (picked.length >= 5) break; if (!picked.includes(s)) picked.push(s); }
     if (!picked.length) return null;
     const stories = picked.slice(0, 5).map((s) => ({ kick: s.kick || s.cat || "", h: s.h, d: s.d, user: !!s.user }));
-    const text = { embeds: [{ title: `📰 Around the league · ${prettyWeek(cur.season_text)}`, url: site("home"), color: BLUE, description: clip(stories.map((s) => `**${plain(s.h)}**\n${plain(s.d)}`).join("\n\n"), 3900) }] };
+    const text = { embeds: [{ title: `📰 Around the league · ${nowWeek()}`, url: site("home"), color: BLUE, description: clip(stories.map((s) => `**${plain(s.h)}**\n${plain(s.d)}`).join("\n\n"), 3900) }] };
     if (cfg.graphics?.headlines === false) return text;
     try {
       const { renderHeadlines } = await extraGraphics();
-      const png = await renderHeadlines({ label: prettyWeek(cur.season_text), stories, siteLogo: gfxSiteLogo() });
+      const png = await renderHeadlines({ label: nowWeek(), stories, siteLogo: gfxSiteLogo() });
       return { embeds: [{ title: text.embeds[0].title, url: text.embeds[0].url, color: BLUE, image: { url: "attachment://headlines.png" } }], files: [{ name: "headlines.png", data: png }] };
     } catch (err) { log(`Headlines graphic failed, posting text instead: ${err.message}`); return text; }
   }
   function prettyWeek(t) { return (/\d{4}\s+(.*)/.exec(t)?.[1] || t).replace(/\bWk\b/, "Week"); }
+  // The week everyone sees in-game right now: the displayed label of the next unplayed week (what the
+  // matchup chats and the advance post use). The API's period text runs one ahead ("Wk 8" during Week 7).
+  function nowWeek() {
+    const open = games.filter((g) => !g.played);
+    if (!open.length) return nowWeek();
+    const w = Math.min(...open.map((g) => g.week));
+    return weekLabel(open.find((g) => g.week === w));
+  }
 
   // Players of the week card for one conference (or National); falls back to the text embed.
   async function potwPost(list, conf) {
@@ -583,12 +595,12 @@ async function main() {
         stars: r.stars, pos: r.position, name: r.name, rank: r.national_rank, state: r.state,
         schools: r.top_schools.slice(0, 3).filter((x) => x.influence > 0).map((x) => ({ name: nameOf(x), logo: logoFor(nameOf(x), map), inf: x.influence, user: isUser(x) })) }));
       const png = await renderRecruiting({
-        label: (/\d{4}\s+(.*)/.exec(cur.season_text)?.[1] || cur.season_text).replace(/\bWk\b/, "Week"),
+        label: nowWeek(),
         sub: cls.data[0]?.class_year ? `${cls.data[0].class_year} recruiting class` : "",
         classes, commits, battles,
         siteLogo: cfg.site_url ? `${cfg.site_url.replace(/\/$/, "")}/logo.png` : "", colors: await siteTeamColors("site/public/index.html"),
       });
-      return { embeds: [{ title: `📋 Recruiting · ${cur.season_text}`, url: site("recruiting"), color: GREEN, image: { url: "attachment://recruiting.png" } }],
+      return { embeds: [{ title: `📋 Recruiting · ${cur.season} ${nowWeek()}`, url: site("recruiting"), color: GREEN, image: { url: "attachment://recruiting.png" } }],
         files: [{ name: "recruiting.png", data: png }] };
     } catch (err) { log(`Recruiting graphic failed, posting text instead: ${err.message}`); return text; }
   }
@@ -620,7 +632,7 @@ async function main() {
 
     const sec = (title, lines, empty, color) => ({ title, color, description: (lines.length ? pages(lines)[0] : empty) });
     return { _raw: { prevRank, thisWeek, board, userIds, byStar }, embeds: [
-      sec(`📋 Recruiting · ${cur.season_text} · Top 10 classes`, classes, "No classes yet.", GREEN),
+      sec(`📋 Recruiting · ${cur.season} ${nowWeek()} · Top 10 classes`, classes, "No classes yet.", GREEN),
       sec("⚔️ Top 10 recruiting battles", battles, "No contested recruits right now.", GOLD),
       sec("✅ Biggest commitments this week", biggest, "No new commitments this week.", BLUE),
       sec("🔄 Flips", flips, "No flips this week.", RED),
@@ -649,7 +661,7 @@ async function main() {
       lines.push(`${icon} ${user ? "**🎮 " : ""}${m.school?.name || ""}${user ? "**" : ""}: ${stars(m.stars)} ${m.position} ${m.name}${m.previous_school ? ` (was ${m.previous_school.name})` : ""}`);
     }
     if (REPLAY.has("portal") && lines.length > 25) lines.length = 25;
-    if (lines.length) await send(cfg.channels.portal, { embeds: pages(lines).map((d, i) => ({ title: i ? undefined : `🔁 Transfer portal · ${cur.season_text}`, description: d, color: BLUE })) });
+    if (lines.length) await send(cfg.channels.portal, { embeds: pages(lines).map((d, i) => ({ title: i ? undefined : `🔁 Transfer portal · ${cur.season} ${nowWeek()}`, description: d, color: BLUE })) });
   }
 
   function lastResult(tk) {
@@ -782,7 +794,7 @@ async function main() {
     });
     const unplayed = wk == null ? [] : games.filter((g) => g.week === wk && isUserGame(g) && !g.played);
     const embed = {
-      title: `🧑‍⚖️ Commish board · ${cur.season_text}`, color: rta === members.data.length ? GREEN : RED,
+      title: `🧑‍⚖️ Commish board · ${cur.season} ${nowWeek()}`, color: rta === members.data.length ? GREEN : RED,
       description: `**Ready to advance: ${rta}/${members.data.length}** · Unplayed league games: **${unplayed.length}**\n\n` + clip(lines.join("\n"), 3800),
       footer: { text: `Updated ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })} ET · last sync ${league.data.last_sync_at}` },
     };
