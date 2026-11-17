@@ -897,10 +897,8 @@ function renderHome() {
   const userGames = played.filter((g) => g.kind !== "cpu_vs_cpu");
   const top = userGames[0] || played[0];
   const rest = (userGames.length ? userGames : played).filter((g) => g !== top);
-  // also surface CPU upsets of ranked teams
-  const cpuUpsets = played.filter((g) => g.kind === "cpu_vs_cpu" && headline(g).upset);
-
-  const heads = [...rest, ...cpuUpsets].map((g) => {
+  // headlines: user games only, max 5 (hero game excluded so it isn't repeated)
+  const heads = rest.filter((g) => g.kind !== "cpu_vs_cpu").slice(0, 5).map((g) => {
     const h = headline(g);
     const wc = coach(h.w), lc = coach(h.l);
     const sub = [wc && `${wc} moves to ${teamRec(h.w.team_key) || "—"}`, lc && `${lc} falls to ${teamRec(h.l.team_key) || "—"}`].filter(Boolean).join("; ");
@@ -1050,14 +1048,22 @@ function top25Card() {
       <td>${esc(s.record)}</td></tr>`).join("")}</tbody></table>` : '<div class="empty">Poll not synced yet.</div>'}</section>`;
 }
 
+const ONDECK_CONFS = ["ACC", "Big 12", "Big Ten", "SEC"];
+const confKey = (c) => String(c || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+let onDeckConf = "ACC";
+function setOnDeckConf(c) { onDeckConf = c; const el = document.getElementById("ondeck"); if (el) el.outerHTML = upcomingCard(); }
 function upcomingCard() {
   const next = games().filter((g) => !g.played && g.kind !== "cpu_vs_cpu");
   if (!next.length) return "";
   const w = Math.min(...next.map((g) => g.week));
-  const list = sortGames(next.filter((g) => g.week === w));
-  return `<section class="card"><h2 class="card-h">On deck <small>${esc(weekLabel(w))}</small></h2><ul class="hl">${list.map((g) => `
+  const wk = next.filter((g) => g.week === w);
+  const inConf = (g, c) => [g.away, g.home].some((x) => confKey(teamByKey(x.team_key)?.conference).startsWith(confKey(c)));
+  const list = sortGames(wk.filter((g) => inConf(g, onDeckConf)));
+  return `<section class="card" id="ondeck"><h2 class="card-h">On deck <small>${esc(weekLabel(w))}</small></h2>
+    <div class="pills" role="group" aria-label="Conference" style="padding:10px 14px 4px;display:flex;gap:6px;flex-wrap:wrap">${ONDECK_CONFS.map((c) => `<button type="button" class="pill" aria-pressed="${c === onDeckConf}" onclick="setOnDeckConf('${c}')">${c}</button>`).join("")}</div>
+    ${list.length ? `<ul class="hl">${list.map((g) => `
     <li><span class="t">${rk(g.away.rank_at_game)}${tLink(g.away.team, g.away.team_key)} at ${rk(g.home.rank_at_game)}${tLink(g.home.team, g.home.team_key)}</span>
-    <div class="s">${esc([coach(g.away) || "CPU", coach(g.home) || "CPU"].join(" vs "))}${g.kind === "user_vs_user" ? " · head-to-head" : ""}</div></li>`).join("")}</ul></section>`;
+    <div class="s">${esc([coach(g.away) || "CPU", coach(g.home) || "CPU"].join(" vs "))}${g.kind === "user_vs_user" ? " · head-to-head" : ""}</div></li>`).join("")}</ul>` : `<div class="empty">No ${esc(onDeckConf)} games on deck this week.</div>`}</section>`;
 }
 
 function heismanCard() {
