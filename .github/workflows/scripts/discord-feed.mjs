@@ -15,6 +15,9 @@
 //        data/player-stats-all.json (from build-player-stats.mjs), data/bot/*.json (written for the slash bot)
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+// Graphics (PNG) need the packages in ./graphics — loaded lazily so text posts still work without them.
+const graphics = () => import("./graphics/top25.mjs");
+const finalGraphics = () => import("./graphics/final.mjs");
 
 const API = (process.env.DYNASTY_API_BASE || "https://dynasty.prestonchoate.dev/v1").replace(/\/$/, "");
 const KEY = process.env.DYNASTY_API_KEY;
@@ -37,12 +40,23 @@ async function api(path, tries = 5) {
     throw new Error(`API ${path} → ${r.status} ${await r.text()}`);
   }
 }
-async function dc(method, path, body, tries = 6) {
-  if (DRY && method !== "GET") { log(`[dry] ${method} ${path}`, body ? JSON.stringify(body).slice(0, 4000) : ""); return { id: "dry-" + Math.random().toString(36).slice(2) }; }
+// files: [{ name, data: Buffer }] → sent as a multipart upload; embeds can show them with image.url "attachment://<name>"
+async function dc(method, path, body, tries = 6, files = null) {
+  if (DRY && method !== "GET") {
+    log(`[dry] ${method} ${path}`, body ? JSON.stringify(body).slice(0, 4000) : "");
+    if (files?.length) { await mkdir("graphics-preview", { recursive: true }); for (const f of files) { await writeFile(`graphics-preview/${f.name}`, f.data); log(`[dry] wrote graphics-preview/${f.name}`); } }
+    return { id: "dry-" + Math.random().toString(36).slice(2) };
+  }
   for (let i = 1; ; i++) {
+    let reqBody, type = {};
+    if (files?.length) {
+      reqBody = new FormData();
+      reqBody.append("payload_json", JSON.stringify({ ...body, attachments: files.map((f, n) => ({ id: n, filename: f.name })) }));
+      files.forEach((f, n) => reqBody.append(`files[${n}]`, new Blob([f.data], { type: "image/png" }), f.name));
+    } else { reqBody = body ? JSON.stringify(body) : undefined; type = { "Content-Type": "application/json" }; }
     const r = await fetch(DC + path, {
-      method, body: body ? JSON.stringify(body) : undefined,
-      headers: { Authorization: `Bot ${TOKEN}`, "Content-Type": "application/json", "User-Agent": "DiscordBot (https://github.com, 1.0) ODL" },
+      method, body: reqBody,
+      headers: { Authorization: `Bot ${TOKEN}`, ...type, "User-Agent": "DiscordBot (https://github.com, 1.0) ODL" },
     });
     if (r.status === 429 && i < tries) { const j = await r.json().catch(() => ({})); await sleep((j.retry_after || 1) * 1000 + 250); continue; }
     if (r.status >= 500 && i < tries) { await sleep(2000 * i); continue; }
@@ -105,6 +119,17 @@ async function main() {
   const isUserGame = (g) => g.kind !== "cpu_vs_cpu";
   const weekLabel = (g) => g.bowl_name || g.displayed_week || `Week ${g.week}`;
 
+  // Logo versions from the site's logo store (same one the site's League admin page uploads to).
+  let logos = null;
+  async function logoMap() {
+    if (logos) return logos;
+    logos = {};
+    if (cfg.logo_base) try { const r = await fetch(`${cfg.logo_base.replace(/\/$/, "")}/logos`); if (r.ok) logos = await r.json(); } catch { /* optional */ }
+    return logos;
+  }
+  const logoFor = (name, map) => map[name] != null && cfg.logo_base ? `${cfg.logo_base.replace(/\/$/, "")}/logo/${encodeURIComponent(name)}?v=${map[name]}` : "";
+
+
   let allPlayers = [];
   try {
     const j = JSON.parse(await readFile("data/player-stats-all.json", "utf8"));
@@ -159,7 +184,7 @@ async function main() {
       await dc("POST", `/channels/${id}/messages`, {
         content: i === 0 ? payload.content : undefined, embeds: parts[i],
         allowed_mentions: payload.allowed_mentions || { parse: [] },
-      });
+      }, 6, i === 0 ? payload.files : null);
     }
     return true;
   }
@@ -188,7 +213,7 @@ async function main() {
 
   /* ============ #final ============ */
   for (const g of [...played].filter(isUserGame).sort((a, b) => b.week - a.week)) {
-    await once(`final:${g.key}`, "final", cfg.channels.final, () => box.get(g.key) && finalEmbed(g, box.get(g.key)));
+    await once(`final:${g.key}`, "final", cfg.channels.final, () => box.get(g.key) && finalPost(g, box.get(g.key)));
   }
 
   /* ============ #big-performances ============ */
@@ -273,6 +298,28 @@ async function main() {
     return out.join("\n") || "—";
   }
 
+  // Box score as a graphic; falls back to the text embed if rendering fails.
+  async function finalPost(g, b) {
+    const text = finalEmbed(g, b);
+    if (cfg.graphics?.final === false) return text;
+    try {
+      const { renderFinal, leadersFor } = await finalGraphics();
+      const { siteTeamColors } = await import("./graphics/common.mjs");
+      const map = await logoMap();
+      const coach = (sd) => { const t = g[sd], c = cfg.coaches?.[t.team]; return c && !/^\d{15,22}$/.test(c) ? c : t.user_name && t.user_name !== "CPU" ? t.user_name : ""; };
+      const team = (sd, B) => ({ name: g[sd].team, abbrev: B.Abbrev, rank: g[sd].rank_at_game, score: g[sd].score, quarters: B.Quarters || [],
+        coach: coach(sd), logo: logoFor(g[sd].team, map), stats: B.Stats || {}, leaders: leadersFor(b.Players, g[sd].team_key) });
+      const name = `final-${g.key}.png`;
+      const png = await renderFinal({
+        week: weekLabel(g), date: [g.date, g.season || league.data.calendar_year].filter(Boolean).join(" · "),
+        away: team("away", b.Away), home: team("home", b.Home),
+        siteLogo: cfg.site_url ? `${cfg.site_url.replace(/\/$/, "")}/logo.png` : "", colors: await siteTeamColors("site/public/index.html"),
+      });
+      const e = text.embeds[0];
+      return { embeds: [{ title: e.title, url: e.url, color: e.color, image: { url: `attachment://${name}` }, footer: e.footer }], files: [{ name, data: png }] };
+    } catch (err) { log(`Final graphic failed for ${g.key}, posting text instead: ${err.message}`); return text; }
+  }
+
   function finalEmbed(g, b) {
     const H = b.Home, A = b.Away, hk = g.home.team_key, ak = g.away.team_key;
     const win = g.home.score > g.away.score ? "home" : g.home.score < g.away.score ? "away" : null;
@@ -342,7 +389,34 @@ async function main() {
     return embeds.length ? { embeds } : null;
   }
 
-  function top25Embed() {
+  // Top 25 as an ESPN-style PNG; falls back to the text list if the graphic can't be rendered.
+  async function top25Embed() {
+    const text = top25Text();
+    if (cfg.graphics?.top25 === false) return text;
+    try {
+      const { renderTop25, siteTeamColors } = await graphics();
+      const prev = standingsPrev ? new Map(standingsPrev.data.map((t) => [t.team_key, t.rank])) : null;
+      const map = await logoMap();
+      const coachName = (k, name) => { const c = cfg.coaches?.[name]; return c && !/^\d{15,22}$/.test(c) ? c : memberByTeam.get(k)?.user_name || ""; };
+      const teamsIn = standings.data.filter((t) => t.rank > 0 && t.rank <= 25).map((t) => ({
+        rank: t.rank, name: t.name, conference: t.conference, record: t.record, user: userTeams.has(t.team_key),
+        coach: userTeams.has(t.team_key) ? coachName(t.team_key, t.name) : "", logo: logoFor(t.name, map),
+        prev: prev ? prev.get(t.team_key) || 0 : undefined,
+      }));
+      const ranked = (k) => { const r = teams.get(k)?.rank; return r > 0 && r <= 25; };
+      const out = prev ? [...prev.entries()].filter(([k, r]) => r > 0 && r <= 25 && !ranked(k)).map(([k]) => tName(k)) : [];
+      const png = await renderTop25({
+        label: (/\d{4}\s+(.*)/.exec(cur.season_text)?.[1] || cur.season_text).replace(/\bWk\b/, "Week"),
+        sub: /^\d{4}/.test(cur.season_text) ? `${cur.season_text.slice(0, 4)} season` : "", teams: teamsIn, dropped: out,
+        siteLogo: cfg.site_url ? `${cfg.site_url.replace(/\/$/, "")}/logo.png` : "",
+        colors: await siteTeamColors("site/public/index.html"),
+      });
+      return { embeds: [{ title: `🏆 Top 25 · ${cur.season_text}`, url: site("standings"), color: RED, image: { url: "attachment://top25.png" } }],
+        files: [{ name: "top25.png", data: png }] };
+    } catch (e) { log(`Top 25 graphic failed, posting text instead: ${e.message}`); return text; }
+  }
+
+  function top25Text() {
     const prev = new Map((standingsPrev?.data || []).map((t) => [t.team_key, t.rank]));
     const top = standings.data.filter((t) => t.rank > 0 && t.rank <= 25).sort((a, b) => a.rank - b.rank);
     const mv = (t) => { const p = prev.get(t.team_key); if (!p || p > 25) return "🆕"; return p === t.rank ? "—" : p > t.rank ? `▲${p - t.rank}` : `▼${t.rank - p}`; };

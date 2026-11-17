@@ -59,6 +59,9 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node .github/workflows/scripts/register-commands.mjs
+      - name: Install graphics renderer (Top 25 image)
+        if: ${{ hashFiles('discord.config.json') != '' }}
+        run: npm ci --no-audit --no-fund --prefix .github/workflows/scripts/graphics
       - name: Post to Discord
         if: ${{ hashFiles('discord.config.json') != '' }}
         env:
@@ -67,6 +70,13 @@ jobs:
           REPLAY: ${{ inputs.replay }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
         run: node .github/workflows/scripts/discord-feed.mjs
+      - name: Save graphic previews (dry runs)
+        if: ${{ inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: graphics-preview
+          path: graphics-preview/
+          if-no-files-found: ignore
       - name: Commit if changed
         if: always()
         run: |
