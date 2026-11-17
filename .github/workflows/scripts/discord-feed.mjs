@@ -151,6 +151,12 @@ async function main() {
     for (const r of rls) { roles[r.name.toLowerCase()] = r.id; roles[`~${r.name.toLowerCase().replace(/[^a-z0-9]/g, "")}`] = r.id; }
     allRoleNames = rls.map((r) => r.name);
     botId = me.id;
+    // Bot display name: account username (Discord allows ~2 changes/hour) + server nickname so it shows right away.
+    if (cfg.bot_name) {
+      if (me.username !== cfg.bot_name) await dc("PATCH", "/users/@me", { username: cfg.bot_name }).then(() => log(`bot username → ${cfg.bot_name}`)).catch((e) => log("bot username change failed (will retry next sync):", e.message));
+      const mine = await dc("GET", `/guilds/${guild}/members/${me.id}`).catch(() => null);
+      if (mine && mine.nick !== cfg.bot_name) await dc("PATCH", `/guilds/${guild}/members/@me`, { nick: cfg.bot_name }).then(() => log(`bot nickname → ${cfg.bot_name}`)).catch((e) => log("bot nickname change failed:", e.message));
+    }
     // coaches map accepts a numeric Discord ID or a plain username; usernames are looked up once and cached in state.
     state.coach_ids ??= {};
     for (const [team, v] of Object.entries(cfg.coaches || {})) {
