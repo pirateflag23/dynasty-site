@@ -4,7 +4,7 @@
   "site_url": "https://thedynastycfb.com",
   "logo_base": "https://dynasty-proxy.jw1388954.workers.dev",
 
-  "graphics": { "top25": true, "final": true },
+  "graphics": { "top25": true, "final": true, "matchups": true },
 
   "channels": {
     "final": "final",
