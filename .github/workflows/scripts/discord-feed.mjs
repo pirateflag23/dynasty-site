@@ -274,10 +274,12 @@ async function main() {
       const label = weekLabel(open.find((g) => g.week === nowW));
       await once(`schedule:${cur.season}:${label}`, "schedule", sch, () => ondeckPost(games.filter((g) => g.week === nowW && isUserGame(g)), label, "schedule"));
     }
-    // #on-deck: the week after that
+    // #on-deck: the week after that, held until on_deck_delay_hours after the advance (the dispatcher runs a sync then)
     const nextW = weeks[1];
     const ch = pickChannel(cfg.channels.on_deck);
-    if (ch && nextW != null) {
+    const advancedAt = Date.parse(cur.first_seen_at || "") || 0;
+    const onDeckReady = REPLAY.has("ondeck") || Date.now() - advancedAt >= (cfg.on_deck_delay_hours ?? 60) * 3600e3;
+    if (ch && nextW != null && onDeckReady) {
       const ng = open.filter((g) => g.week === nextW && isUserGame(g));
       const label = weekLabel(open.find((g) => g.week === nextW));
       await once(`ondeck:${cur.season}:${label}`, "ondeck", ch, () => ondeckPost(ng, label));

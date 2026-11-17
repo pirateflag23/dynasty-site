@@ -11,6 +11,7 @@ const PROXY = "https://dynasty-proxy.jw1388954.workers.dev/v1";
 const PAGES = "https://pirateflag23.github.io/dynasty-site/data/stories";
 const REPO = "pirateflag23/dynasty-site";
 const WORKFLOW = "player-stats.yml";
+const ON_DECK_HOURS = 60; // keep in step with on_deck_delay_hours in discord.config.json
 
 async function getJson(url, init) {
   const r = await fetch(url, init);
@@ -23,11 +24,12 @@ async function check(env) {
   const id = lg.league_id ?? lg.data?.league_id;
   const dv = lg.data_version;
   const period = lg.data?.current_period?.id;
+  const since = Date.parse(lg.data?.current_period?.first_seen_at || "") || null; // ≈ when the league advanced
   let stamp = null;
   try { stamp = (await getJson(`${PAGES}/${id}/latest.json?t=${Date.now()}`)).sig; } catch (e) { /* no stories yet: dispatch */ }
   const [sp, sdv] = String(stamp || "").split(":");
   const stale = !stamp || String(sdv) !== String(dv) || String(sp) !== String(period);
-  return { stale, id, dv, period, stamp };
+  return { stale, id, dv, period, stamp, since };
 }
 
 async function dispatch(env) {
@@ -42,9 +44,15 @@ async function dispatch(env) {
 async function run(env, force = false) {
   if (!env.GH_TOKEN) return { ok: false, why: "GH_TOKEN secret not set" };
   const c = await check(env);
-  if (!c.stale && !force) return { ok: true, dispatched: false, ...c };
+  // #on-deck goes out ON_DECK_HOURS after an advance: run the sync once when that time arrives (it posts on-deck then).
+  let onDeckDue = false;
+  if (c.since && Date.now() - c.since >= ON_DECK_HOURS * 3600e3 && env.GREETER) {
+    onDeckDue = (await env.GREETER.get("ondeck_dispatched")) !== String(c.period);
+    if (onDeckDue) await env.GREETER.put("ondeck_dispatched", String(c.period));
+  }
+  if (!c.stale && !onDeckDue && !force) return { ok: true, dispatched: false, ...c };
   await dispatch(env);
-  return { ok: true, dispatched: true, ...c };
+  return { ok: true, dispatched: true, onDeckDue, ...c };
 }
 
 export default {
