@@ -429,10 +429,6 @@ async function main() {
     const rows = [
       ["Record", ta.record, th.record], ["Rank", ta.rank > 0 && ta.rank <= 25 ? `#${ta.rank}` : "NR", th.rank > 0 && th.rank <= 25 ? `#${th.rank}` : "NR"],
       ["OVR/OFF/DEF", `${ta.overall}/${ta.offense}/${ta.defense}`, `${th.overall}/${th.offense}/${th.defense}`],
-      ["Points/g", f1(sa.OffPointsPerGame), f1(sh.OffPointsPerGame)], ["Yards/g", f1(sa.OffYardsPerGame), f1(sh.OffYardsPerGame)],
-      ["Pass/g", f1(sa.OffPassYardsPerGame), f1(sh.OffPassYardsPerGame)], ["Rush/g", f1(sa.OffRushYardsPerGame), f1(sh.OffRushYardsPerGame)],
-      ["Allowed/g", f1(sa.DefPointsPerGame), f1(sh.DefPointsPerGame)], ["Yds allowed/g", f1(sa.DefYardsPerGame), f1(sh.DefYardsPerGame)],
-      ["TO margin", sa.TurnoverDiff ?? "—", sh.TurnoverDiff ?? "—"], ["Sacks", sa.DefSacks ?? "—", sh.DefSacks ?? "—"],
     ];
     const table = [`${pad("", 14)}${lpad(abbr(A), 10)}${lpad(abbr(H), 10)}`, ...rows.map(([l, a, h]) => `${pad(l, 14)}${lpad(a ?? "—", 10)}${lpad(h ?? "—", 10)}`)].join("\n");
     const leaders = (tk) => {
