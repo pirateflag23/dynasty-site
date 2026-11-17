@@ -22,7 +22,7 @@ export async function fonts() {
 export const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 export const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0); };
 export const SHORT = { "Florida International": "FIU", "Florida Atlantic": "FAU", "Southern Mississippi": "Southern Miss", "Miami University": "Miami (OH)" };
-export const CONF = { "Big Ten": "B1G", "Big 12": "B12", "Independent": "IND" };
+export const CONF = { "Big Ten": "B1G", "Big 12": "B12", "Independent": "IND", "American": "AAC", "Mountain West": "MWC", "Sun Belt": "SBC", "Conference USA": "CUSA" };
 export const short = (n) => SHORT[n] || n;
 export const initials = (n) => (SHORT[n] && SHORT[n].length <= 3) ? SHORT[n]
   : n.replace(/\(.*?\)/g, "").split(/\s+/).filter((w) => /^[A-Z]/.test(w)).map((w) => w[0]).join("").slice(0, 3) || n.slice(0, 2).toUpperCase();

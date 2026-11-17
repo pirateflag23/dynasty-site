@@ -18,6 +18,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 // Graphics (PNG) need the packages in ./graphics — loaded lazily so text posts still work without them.
 const graphics = () => import("./graphics/top25.mjs");
 const finalGraphics = () => import("./graphics/final.mjs");
+const matchupGraphics = () => import("./graphics/matchup.mjs");
 
 const API = (process.env.DYNASTY_API_BASE || "https://dynasty.prestonchoate.dev/v1").replace(/\/$/, "");
 const KEY = process.env.DYNASTY_API_KEY;
@@ -121,6 +122,7 @@ async function main() {
 
   // Logo versions from the site's logo store (same one the site's League admin page uploads to).
   let logos = null;
+  let rivalryNames = null; // rivalries.json pairs → name, loaded on first preview
   async function logoMap() {
     if (logos) return logos;
     logos = {};
@@ -497,6 +499,43 @@ async function main() {
     if (lines.length) await send(cfg.channels.portal, { embeds: pages(lines).map((d, i) => ({ title: i ? undefined : `🔁 Transfer portal · ${cur.season_text}`, description: d, color: BLUE })) });
   }
 
+  function lastResult(tk) {
+    const p = games.filter((x) => x.played && (x.home.team_key === tk || x.away.team_key === tk)).sort((a, b) => b.week - a.week)[0];
+    if (!p) return ""; const me = p.home.team_key === tk ? p.home : p.away, o = me === p.home ? p.away : p.home;
+    return `${me.score > o.score ? "W" : me.score < o.score ? "L" : "T"} ${me.score}-${o.score} ${me === p.home ? "vs" : "@"} ${o.team}`;
+  }
+
+  // Preview card graphic for a matchup chat; falls back to the text embed.
+  async function previewPost(g) {
+    const text = { embeds: [previewEmbed(g)] };
+    if (cfg.graphics?.matchups === false) return text;
+    try {
+      const { renderMatchup, seasonLeaders } = await matchupGraphics();
+      const { siteTeamColors } = await import("./graphics/common.mjs");
+      if (!rivalryNames) {
+        rivalryNames = new Map();
+        try { for (const [a, b, n] of JSON.parse(await readFile("rivalries.json", "utf8")).rivalries || []) { rivalryNames.set(`${a}|${b}`, n); rivalryNames.set(`${b}|${a}`, n); } } catch { /* optional */ }
+      }
+      const map = await logoMap();
+      const team = (sd) => {
+        const k = g[sd].team_key, t = teams.get(k) || {}, gp = (t.wins || 0) + (t.losses || 0);
+        const c = cfg.coaches?.[g[sd].team];
+        return { name: g[sd].team, rank: t.rank, record: t.record, confRecord: t.conference_record, conference: t.conference,
+          ovr: t.overall, off: t.offense, def: t.defense, ppg: gp ? t.points_for / gp : null, oppg: gp ? t.points_against / gp : null,
+          last: lastResult(k), logo: logoFor(g[sd].team, map), leaders: seasonLeaders(allPlayers, k),
+          coach: userTeams.has(k) ? (c && !/^\d{15,22}$/.test(c) ? c : memberByTeam.get(k)?.user_name || "") : "" };
+      };
+      const A = team("away"), H = team("home");
+      const tag = rivalryNames.get(`${g.away.team}|${g.home.team}`) || (g.kind === "user_vs_user" ? "League matchup" : "");
+      const name = `preview-${g.key}.png`;
+      const note = g.kind === "user_vs_user" ? "Set your game time in this chat · stream it in #live-stream" : "CPU opponent · play it before the advance · stream it in #live-stream";
+      const png = await renderMatchup({ week: weekLabel(g), date: [g.date, g.season || league.data.calendar_year].filter(Boolean).join(" · "), tag, note, away: A, home: H,
+        siteLogo: cfg.site_url ? `${cfg.site_url.replace(/\/$/, "")}/logo.png` : "", colors: await siteTeamColors("site/public/index.html") });
+      const e = text.embeds[0];
+      return { embeds: [{ title: e.title, url: e.url, color: e.color, image: { url: `attachment://${name}` } }], files: [{ name, data: png }] };
+    } catch (err) { log(`Preview graphic failed for ${g.key}, posting text instead: ${err.message}`); return text; }
+  }
+
   function previewEmbed(g) {
     const A = g.away.team_key, H = g.home.team_key;
     const ta = teams.get(A) || {}, th = teams.get(H) || {}, sa = tstats.get(A)?.stats || {}, sh = tstats.get(H)?.stats || {};
@@ -516,9 +555,7 @@ async function main() {
       const sk = top("defenseSacks"); if (sk) out.push(`💥 ${sk.name} ${sk.stats.defenseSacks} sack${sk.stats.defenseSacks === 1 ? "" : "s"}`);
       return out.join("\n") || "No stats yet";
     };
-    const last = (tk) => { const p = games.filter((x) => x.played && (x.home.team_key === tk || x.away.team_key === tk)).sort((a, b) => b.week - a.week)[0];
-      if (!p) return "—"; const me = p.home.team_key === tk ? p.home : p.away, o = me === p.home ? p.away : p.home;
-      return `${me.score > o.score ? "W" : me.score < o.score ? "L" : "T"} ${me.score}-${o.score} ${me === p.home ? "vs" : "@"} ${o.team}`; };
+    const last = (tk) => lastResult(tk) || "—";
     return {
       title: `${weekLabel(g)} preview · ${rk(ta.rank)}${g.away.team} at ${rk(th.rank)}${g.home.team}`, url: site(`game/${g.key}`), color: RED,
       description: `${g.date || ""} · Last: ${ta.name} ${last(A)} | ${th.name} ${last(H)}`,
@@ -553,12 +590,13 @@ async function main() {
       if (seeding && !REPLAY.has("matchups")) { /* still create this week's chats on first run */ }
       const ch = await dc("POST", `/guilds/${guild}/channels`, { name, type: 0, parent_id: cat, topic: `${weekLabel(g)}: ${g.away.team} at ${g.home.team}. Set your game time here.`, permission_overwrites: overwrites });
       state.chats[g.key] = { id: ch.id, week: wk };
+      const pv = await previewPost(g);
       await dc("POST", `/channels/${ch.id}/messages`, {
         content: g.kind === "user_vs_user"
           ? `${coachTag(g.away.team_key)} vs ${coachTag(g.home.team_key)} — your ${weekLabel(g)} matchup. Work out a time here; games stream in #live-stream.`
           : `${userTeams.has(g.away.team_key) ? coachTag(g.away.team_key) : `**${g.away.team}** (CPU)`} vs ${userTeams.has(g.home.team_key) ? coachTag(g.home.team_key) : `**${g.home.team}** (CPU)`} — ${weekLabel(g)}. CPU opponent: no scheduling needed, just play it before you advance.`,
-        embeds: [previewEmbed(g)], allowed_mentions: { users: coaches },
-      });
+        embeds: pv.embeds, allowed_mentions: { users: coaches },
+      }, 6, pv.files);
       log(`created chat ${name}`);
     }
     // Clean up chats from older weeks (their box scores live in #final).
