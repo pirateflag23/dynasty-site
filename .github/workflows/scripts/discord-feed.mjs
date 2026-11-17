@@ -20,6 +20,8 @@ const graphics = () => import("./graphics/top25.mjs");
 const finalGraphics = () => import("./graphics/final.mjs");
 const matchupGraphics = () => import("./graphics/matchup.mjs");
 const recruitingGraphics = () => import("./graphics/recruiting.mjs");
+const scoresGraphics = () => import("./graphics/scores.mjs");
+const potwGraphics = () => import("./graphics/potw.mjs");
 
 const API = (process.env.DYNASTY_API_BASE || "https://dynasty.prestonchoate.dev/v1").replace(/\/$/, "");
 const KEY = process.env.DYNASTY_API_KEY;
@@ -234,7 +236,7 @@ async function main() {
   /* ============ #scores weekly roundup ============ */
   const weeksDone = [...new Set(games.map((g) => g.week))].filter((w) => games.filter((g) => g.week === w).every((g) => g.played));
   for (const w of weeksDone.sort((a, b) => b - a).slice(0, 3)) {
-    await once(`scores:${league.data.calendar_year}:${w}`, "scores", cfg.channels.scores, () => scoresEmbed(w));
+    await once(`scores:${league.data.calendar_year}:${w}`, "scores", cfg.channels.scores, () => scoresPost(w));
   }
 
   /* ============ #top-25 ============ */
@@ -248,10 +250,10 @@ async function main() {
   awardWeeks.sort((a, b) => wkNum(b)[0] - wkNum(a)[0] || wkNum(b)[1] - wkNum(a)[1]);
   for (const wk of awardWeeks.slice(0, 3)) {
     const list = awards.data.filter((a) => `${a.season}:${a.week}` === wk);
-    await once(`potw:${wk}:National`, "potw", cfg.channels.potw, () => potwEmbed(list, "National"));
+    await once(`potw:${wk}:National`, "potw", cfg.channels.potw, () => potwPost(list, "National"));
     for (const [conf, c] of Object.entries(cfg.conferences || {})) {
-      await once(`potw:${wk}:${conf}`, "potw", c.channel, () => {
-        const e = potwEmbed(list, conf); if (!e) return null;
+      await once(`potw:${wk}:${conf}`, "potw", c.channel, async () => {
+        const e = await potwPost(list, conf); if (!e) return null;
         const r = roleId(c.role, conf, conf.replace(/\s+/g, ""), conf === "Big Ten" ? "B1G" : null);
         return { ...e, content: r ? `<@&${r}>` : undefined, allowed_mentions: { roles: r && !DRY ? [r] : [] } };
       });
@@ -427,6 +429,51 @@ async function main() {
     const out = [...prev.entries()].filter(([k, r]) => r > 0 && r <= 25 && !top.some((t) => t.team_key === k)).map(([k]) => tName(k));
     return { embeds: [{ title: `🏆 Top 25 · ${cur.season_text}`, url: site("standings"), color: RED, description: lines.join("\n"),
       footer: out.length ? { text: `Dropped out: ${out.join(", ")}` } : undefined }] };
+  }
+
+  // Shared bits for the newer graphics.
+  // (function declarations, not consts: they're called by posts that run earlier in main)
+  function gfxSiteLogo() { return cfg.site_url ? `${cfg.site_url.replace(/\/$/, "")}/logo.png` : ""; }
+  async function gfxColors() { return (await import("./graphics/common.mjs")).siteTeamColors("site/public/index.html"); }
+  function coachName(k) { if (!userTeams.has(k)) return ""; const c = cfg.coaches?.[tName(k)]; return c && !/^\d{15,22}$/.test(c) ? c : memberByTeam.get(k)?.user_name || ""; }
+
+  // Weekly scoreboard graphic; falls back to the text embeds.
+  async function scoresPost(w) {
+    const text = scoresEmbed(w);
+    if (!text || cfg.graphics?.scores === false) return text;
+    try {
+      const { renderScores } = await scoresGraphics();
+      const map = await logoMap();
+      const wg = games.filter((g) => g.week === w);
+      const side = (t) => ({ name: t.team, rank: t.rank_at_game, score: t.score, logo: logoFor(t.team, map), coach: coachName(t.team_key) });
+      const G = (g) => ({ away: side(g.away), home: side(g.home) });
+      const res = (g) => (g.home.score >= g.away.score ? [g.home, g.away] : [g.away, g.home]);
+      const isUpset = (g) => { const [W, L] = res(g); return (L.rank_at_game || 99) <= 25 && (W.rank_at_game || 99) > (L.rank_at_game || 99); };
+      const bestRank = (g) => Math.min(g.home.rank_at_game || 99, g.away.rank_at_game || 99);
+      const lgGames = wg.filter(isUserGame).map(G);
+      const upsets = wg.filter((g) => !isUserGame(g) && isUpset(g)).sort((a, b) => bestRank(a) - bestRank(b)).map(G);
+      const ranked = wg.filter((g) => !isUserGame(g) && !isUpset(g) && bestRank(g) <= 25).sort((a, b) => bestRank(a) - bestRank(b)).slice(0, 24).map(G);
+      const png = await renderScores({ label: weekLabel(wg[0]), sub: `${wg[0]?.season || league.data.calendar_year} season`, league: lgGames, upsets, ranked, siteLogo: gfxSiteLogo(), colors: await gfxColors() });
+      const name = `scores-${w}.png`;
+      return { embeds: [{ title: text.embeds[0].title, url: site("scores"), color: RED, image: { url: `attachment://${name}` } }], files: [{ name, data: png }] };
+    } catch (err) { log(`Scores graphic failed, posting text instead: ${err.message}`); return text; }
+  }
+
+  // Players of the week card for one conference (or National); falls back to the text embed.
+  async function potwPost(list, conf) {
+    const text = potwEmbed(list, conf);
+    if (!text || cfg.graphics?.potw === false) return text;
+    try {
+      const { renderPotw } = await potwGraphics();
+      const map = await logoMap();
+      const a = list.filter((x) => x.conference === conf).sort((x, y) => (x.award.startsWith("Off") ? 0 : 1) - (y.award.startsWith("Off") ? 0 : 1));
+      const players = a.map((x) => ({ side: x.award.startsWith("Off") ? "Offense" : "Defense", name: x.name, pos: x.position, jersey: x.jersey, cls: x.class_year, ovr: x.overall,
+        team: tName(x.team_key) !== "?" ? tName(x.team_key) : x.team_name, rank: x.team_rank, logo: logoFor(tName(x.team_key) !== "?" ? tName(x.team_key) : x.team_name, map),
+        game: x.game, stat: x.stat_line, user: userTeams.has(x.team_key), coach: coachName(x.team_key) }));
+      const png = await renderPotw({ label: text.embeds[0].title.split(" · ").pop(), scope: conf, players, siteLogo: gfxSiteLogo(), colors: await gfxColors() });
+      const name = `potw-${conf.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`;
+      return { embeds: [{ title: text.embeds[0].title, color: text.embeds[0].color, image: { url: `attachment://${name}` } }], files: [{ name, data: png }] };
+    } catch (err) { log(`POTW graphic failed (${conf}), posting text instead: ${err.message}`); return text; }
   }
 
   function potwEmbed(list, conf) {
