@@ -1,0 +1,11 @@
+{
+  "name": "odl-graphics",
+  "private": true,
+  "type": "module",
+  "description": "Renders ODL Discord graphics (PNG) with headless Chrome",
+  "dependencies": {
+    "@fontsource/roboto": "^5.2.0",
+    "@fontsource/roboto-condensed": "^5.2.0",
+    "playwright-core": "1.63.0"
+  }
+}

@@ -15,6 +15,8 @@
 //        data/player-stats-all.json (from build-player-stats.mjs), data/bot/*.json (written for the slash bot)
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+// Graphics (PNG) need the packages in ./graphics — loaded lazily so text posts still work without them.
+const graphics = () => import("./graphics/top25.mjs");
 
 const API = (process.env.DYNASTY_API_BASE || "https://dynasty.prestonchoate.dev/v1").replace(/\/$/, "");
 const KEY = process.env.DYNASTY_API_KEY;
@@ -37,12 +39,23 @@ async function api(path, tries = 5) {
     throw new Error(`API ${path} → ${r.status} ${await r.text()}`);
   }
 }
-async function dc(method, path, body, tries = 6) {
-  if (DRY && method !== "GET") { log(`[dry] ${method} ${path}`, body ? JSON.stringify(body).slice(0, 4000) : ""); return { id: "dry-" + Math.random().toString(36).slice(2) }; }
+// files: [{ name, data: Buffer }] → sent as a multipart upload; embeds can show them with image.url "attachment://<name>"
+async function dc(method, path, body, tries = 6, files = null) {
+  if (DRY && method !== "GET") {
+    log(`[dry] ${method} ${path}`, body ? JSON.stringify(body).slice(0, 4000) : "");
+    if (files?.length) { await mkdir("graphics-preview", { recursive: true }); for (const f of files) { await writeFile(`graphics-preview/${f.name}`, f.data); log(`[dry] wrote graphics-preview/${f.name}`); } }
+    return { id: "dry-" + Math.random().toString(36).slice(2) };
+  }
   for (let i = 1; ; i++) {
+    let reqBody, type = {};
+    if (files?.length) {
+      reqBody = new FormData();
+      reqBody.append("payload_json", JSON.stringify({ ...body, attachments: files.map((f, n) => ({ id: n, filename: f.name })) }));
+      files.forEach((f, n) => reqBody.append(`files[${n}]`, new Blob([f.data], { type: "image/png" }), f.name));
+    } else { reqBody = body ? JSON.stringify(body) : undefined; type = { "Content-Type": "application/json" }; }
     const r = await fetch(DC + path, {
-      method, body: body ? JSON.stringify(body) : undefined,
-      headers: { Authorization: `Bot ${TOKEN}`, "Content-Type": "application/json", "User-Agent": "DiscordBot (https://github.com, 1.0) ODL" },
+      method, body: reqBody,
+      headers: { Authorization: `Bot ${TOKEN}`, ...type, "User-Agent": "DiscordBot (https://github.com, 1.0) ODL" },
     });
     if (r.status === 429 && i < tries) { const j = await r.json().catch(() => ({})); await sleep((j.retry_after || 1) * 1000 + 250); continue; }
     if (r.status >= 500 && i < tries) { await sleep(2000 * i); continue; }
@@ -159,7 +172,7 @@ async function main() {
       await dc("POST", `/channels/${id}/messages`, {
         content: i === 0 ? payload.content : undefined, embeds: parts[i],
         allowed_mentions: payload.allowed_mentions || { parse: [] },
-      });
+      }, 6, i === 0 ? payload.files : null);
     }
     return true;
   }
@@ -342,7 +355,44 @@ async function main() {
     return embeds.length ? { embeds } : null;
   }
 
-  function top25Embed() {
+  // Logo versions from the site's logo store (same one the site's League admin page uploads to).
+  let logos = null;
+  async function logoMap() {
+    if (logos) return logos;
+    logos = {};
+    if (cfg.logo_base) try { const r = await fetch(`${cfg.logo_base.replace(/\/$/, "")}/logos`); if (r.ok) logos = await r.json(); } catch { /* optional */ }
+    return logos;
+  }
+  const logoFor = (name, map) => map[name] != null ? `${cfg.logo_base.replace(/\/$/, "")}/logo/${encodeURIComponent(name)}?v=${map[name]}` : "";
+
+  // Top 25 as an ESPN-style PNG; falls back to the text list if the graphic can't be rendered.
+  async function top25Embed() {
+    const text = top25Text();
+    if (cfg.graphics?.top25 === false) return text;
+    try {
+      const { renderTop25, siteTeamColors } = await graphics();
+      const prev = standingsPrev ? new Map(standingsPrev.data.map((t) => [t.team_key, t.rank])) : null;
+      const map = await logoMap();
+      const coachName = (k, name) => { const c = cfg.coaches?.[name]; return c && !/^\d{15,22}$/.test(c) ? c : memberByTeam.get(k)?.user_name || ""; };
+      const teamsIn = standings.data.filter((t) => t.rank > 0 && t.rank <= 25).map((t) => ({
+        rank: t.rank, name: t.name, conference: t.conference, record: t.record, user: userTeams.has(t.team_key),
+        coach: userTeams.has(t.team_key) ? coachName(t.team_key, t.name) : "", logo: logoFor(t.name, map),
+        prev: prev ? prev.get(t.team_key) || 0 : undefined,
+      }));
+      const ranked = (k) => { const r = teams.get(k)?.rank; return r > 0 && r <= 25; };
+      const out = prev ? [...prev.entries()].filter(([k, r]) => r > 0 && r <= 25 && !ranked(k)).map(([k]) => tName(k)) : [];
+      const png = await renderTop25({
+        label: (/\d{4}\s+(.*)/.exec(cur.season_text)?.[1] || cur.season_text).replace(/\bWk\b/, "Week"),
+        sub: /^\d{4}/.test(cur.season_text) ? `${cur.season_text.slice(0, 4)} season` : "", teams: teamsIn, dropped: out,
+        siteLogo: cfg.site_url ? `${cfg.site_url.replace(/\/$/, "")}/logo.png` : "",
+        colors: await siteTeamColors("site/public/index.html"),
+      });
+      return { embeds: [{ title: `🏆 Top 25 · ${cur.season_text}`, url: site("standings"), color: RED, image: { url: "attachment://top25.png" } }],
+        files: [{ name: "top25.png", data: png }] };
+    } catch (e) { log(`Top 25 graphic failed, posting text instead: ${e.message}`); return text; }
+  }
+
+  function top25Text() {
     const prev = new Map((standingsPrev?.data || []).map((t) => [t.team_key, t.rank]));
     const top = standings.data.filter((t) => t.rank > 0 && t.rank <= 25).sort((a, b) => a.rank - b.rank);
     const mv = (t) => { const p = prev.get(t.team_key); if (!p || p > 25) return "🆕"; return p === t.rank ? "—" : p > t.rank ? `▲${p - t.rank}` : `▼${t.rank - p}`; };

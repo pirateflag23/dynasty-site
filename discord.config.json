@@ -2,6 +2,9 @@
   "guild_id": "1569397791313232013",
   "app_id": "1571901059352502403",
   "site_url": "https://thedynastycfb.com",
+  "logo_base": "https://dynasty-proxy.jw1388954.workers.dev",
+
+  "graphics": { "top25": true },
 
   "channels": {
     "final": "final",
