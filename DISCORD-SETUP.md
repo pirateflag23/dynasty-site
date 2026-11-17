@@ -29,7 +29,7 @@ Create a **category** named **Matchups**. The bot makes one chat per user-vs-use
 everyone can read, only the two coaches (and the Commish role) can type. Chats older than last week are deleted
 (their box scores stay in #final). Change `keep_previous_weeks` in the config to keep more.
 
-Create **roles**: `ACC`, `B12`, `B10`, `SEC` (and `Commish` for you). Turn on **Allow anyone to @mention this role**
+Create **roles**: `ACC`, `B12`, `B1G`, `SEC` (and `Commish` for you). Turn on **Allow anyone to @mention this role**
 for the four conference roles. The bot assigns each coach the role for their team's real conference.
 
 ## 2. Create the bot
@@ -40,7 +40,7 @@ for the four conference roles. The bot assigns each coach the role for their tea
 4. **Invite it**: open this URL with your Application ID filled in, pick your server, Authorize:
    `https://discord.com/oauth2/authorize?client_id=APP_ID&scope=bot+applications.commands&permissions=268684304`
    (Manage Channels, Manage Roles, View Channels, Send Messages, Embed Links, Attach Files, Read History, Mention roles.)
-5. Server Settings → **Roles**: drag the bot's role **above** ACC / B12 / B10 / SEC, or it can't hand them out.
+5. Server Settings → **Roles**: drag the bot's role **above** ACC / B12 / B1G / SEC, or it can't hand them out.
 
 ## 3. Fill in `discord.config.json`
 

@@ -18,7 +18,7 @@
   "conferences": {
     "ACC":     { "role": "ACC", "channel": "acc" },
     "Big 12":  { "role": "B12", "channel": "big-12" },
-    "Big Ten": { "role": "B10", "channel": "big-ten" },
+    "Big Ten": { "role": "B1G", "channel": "big-ten" },
     "SEC":     { "role": "SEC", "channel": "sec" }
   },
 
@@ -26,7 +26,7 @@
   "commish_role": "Commish",
 
   "matchups": {
-    "keep_previous_weeks": 1
+    "keep_previous_weeks": 0
   },
 
   "big_performances": {

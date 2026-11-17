@@ -120,6 +120,19 @@ async function main() {
     for (const r of rls) { roles[r.name.toLowerCase()] = r.id; roles[`~${r.name.toLowerCase().replace(/[^a-z0-9]/g, "")}`] = r.id; }
     allRoleNames = rls.map((r) => r.name);
     botId = me.id;
+    // coaches map accepts a numeric Discord ID or a plain username; usernames are looked up once and cached in state.
+    state.coach_ids ??= {};
+    for (const [team, v] of Object.entries(cfg.coaches || {})) {
+      if (!v || /^\d{15,22}$/.test(v)) continue;
+      const q = String(v).replace(/^@/, "").toLowerCase();
+      if (state.coach_ids[q]) { cfg.coaches[team] = state.coach_ids[q]; continue; }
+      try {
+        const found = await dc("GET", `/guilds/${guild}/members/search?query=${encodeURIComponent(q)}&limit=10`);
+        const m = found.find((x) => [x.user.username, x.nick, x.user.global_name].some((n) => n && n.toLowerCase() === q)) || (found.length === 1 ? found[0] : null);
+        if (m) { state.coach_ids[q] = m.user.id; cfg.coaches[team] = m.user.id; }
+        else log(`⚠️  Could not match Discord user "${v}" for ${team}`);
+      } catch (e) { log(`⚠️  Member lookup failed for "${v}": ${e.message}`); }
+    }
   }
   const textCh = (name) => (name ? chan[`0:${name.toLowerCase()}`] || chan[`5:${name.toLowerCase()}`] : null) || (DRY ? `#${name}` : null);
   const warnedRoles = new Set();
@@ -454,7 +467,7 @@ async function main() {
     const open = games.filter((g) => !g.played);
     if (!open.length) return;
     const wk = Math.min(...open.map((g) => g.week));
-    const uvu = games.filter((g) => g.week === wk && g.kind === "user_vs_user");
+    const uvu = games.filter((g) => g.week === wk && isUserGame(g)); // user-vs-user AND user-vs-CPU
     const VIEW = 1 << 10, SEND = 1 << 11, EMBED = 1 << 14, ATTACH = 1 << 15, HIST = 1 << 16, REACT = 1 << 6;
     for (const g of uvu) {
       if (state.chats[g.key]) continue;
@@ -471,7 +484,9 @@ async function main() {
       const ch = await dc("POST", `/guilds/${guild}/channels`, { name, type: 0, parent_id: cat, topic: `${weekLabel(g)}: ${g.away.team} at ${g.home.team}. Set your game time here.`, permission_overwrites: overwrites });
       state.chats[g.key] = { id: ch.id, week: wk };
       await dc("POST", `/channels/${ch.id}/messages`, {
-        content: `${coachTag(g.away.team_key)} vs ${coachTag(g.home.team_key)} — your ${weekLabel(g)} matchup. Work out a time here; games stream in #live-stream.`,
+        content: g.kind === "user_vs_user"
+          ? `${coachTag(g.away.team_key)} vs ${coachTag(g.home.team_key)} — your ${weekLabel(g)} matchup. Work out a time here; games stream in #live-stream.`
+          : `${coachTag(g.away.team_key)} vs ${coachTag(g.home.team_key)} — ${weekLabel(g)}. CPU opponent: no scheduling needed, just play it before you advance.`,
         embeds: [previewEmbed(g)], allowed_mentions: { users: coaches },
       });
       log(`created chat ${name}`);
