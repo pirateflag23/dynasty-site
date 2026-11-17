@@ -79,9 +79,6 @@ async function greet(env, m, s) {
       description: [
         "Glad to have you in the league.",
         "",
-        "🏈 The commish will get you set up with your team",
-        "📜 Read the league rules before your first game",
-        "🎥 Every league game is streamed: put **TheDynasty** in your stream title",
         `🌐 Standings, stats and recruiting: [thedynastycfb.com](${CFG.site})`,
       ].join("\n"),
       image: { url: CFG.gif },
