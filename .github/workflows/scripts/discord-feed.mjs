@@ -794,11 +794,12 @@ async function main() {
     for (const g of uvu) {
       if (state.chats[g.key]) {
         // A coach who joined the server after their chat was made gets added to it.
+        if (state.chats[g.key].gone) continue; // deleted by hand; leave it
         const have = state.chats[g.key].coaches || [];
         for (const id of [coachId(g.away.team_key), coachId(g.home.team_key)].filter((x) => x && !have.includes(x))) {
           await dc("PUT", `/channels/${state.chats[g.key].id}/permissions/${id}`, { type: 1, allow: String(VIEW | SEND | EMBED | ATTACH | HIST | REACT), deny: "0" })
             .then(() => { (state.chats[g.key].coaches ??= []).push(id); log(`added coach ${id} to chat ${state.chats[g.key].id}`); })
-            .catch((e) => log("add coach to chat failed", e.message));
+            .catch((e) => { if (/10003/.test(e.message)) state.chats[g.key].gone = true; else log("add coach to chat failed", e.message); });
         }
         continue;
       }
