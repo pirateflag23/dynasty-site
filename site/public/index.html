@@ -516,6 +516,12 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
 .wire-b .kick{font:800 11px/1 var(--head);color:var(--red);font-style:italic;margin-bottom:4px}
 .wire-tag{font:700 10px var(--head);color:var(--dim);letter-spacing:.4px;text-transform:uppercase;padding:8px 14px 0}
 </style>
+<style id="tour-css">
+.tour .card-h{align-items:center}
+.tour-x{border:0;background:none;color:var(--dim);font:700 12px var(--body);cursor:pointer;padding:4px 0 4px 12px}
+.tour-x:hover{color:var(--red)}
+.tour video{display:block;width:100%;aspect-ratio:16/9;background:#08080a}
+</style>
 </head>
 <body>
 
@@ -552,6 +558,14 @@ const CONFIG = {
   // instead of the built-in illustrations, e.g. hotseat: ["https://yoursite.com/coach1.jpg"]
   STORY_PHOTOS: { hotseat: [], win: [], h2h: [], performer: [], defense: [], perfect: [], heisman: [], recruit: [], preview: [] }
 };
+
+/* ---------- onboarding tour video (temporary: delete tourCard() from renderHome to remove for everyone) ---------- */
+const tourHidden = () => { try { return localStorage.getItem("dyn-tour-off") === "1"; } catch (e) { return false; } };
+function tourOff() { try { localStorage.setItem("dyn-tour-off", "1"); } catch (e) {} document.querySelector(".tour")?.remove(); }
+function tourCard() {
+  return tourHidden() ? "" : `<section class="card tour"><h2 class="card-h">New here? Take the 60-second tour <button class="tour-x" type="button" onclick="tourOff()" aria-label="Hide the tour video">Hide ✕</button></h2>
+    <video controls playsinline preload="none" poster="tour-poster.jpg" src="tour.mp4"></video></section>`;
+}
 
 /* ---------- helpers ---------- */
 const $ = (s) => document.querySelector(s);
@@ -896,7 +910,7 @@ function renderHome() {
   $("#view").innerHTML = `<div class="grid">
     <div class="col-left">${top25Card()}</div>
     <div class="col-main">
-      ${featureCards()}${heroCard(top) || '<div class="card"><div class="empty">No games played yet this season. Results show here after the first synced week.</div></div>'}
+      ${featureCards()}${tourCard()}${heroCard(top) || '<div class="card"><div class="empty">No games played yet this season. Results show here after the first synced week.</div></div>'}
       <section class="card"><h2 class="card-h">Top headlines <small>${esc(weekLabel(w))}</small></h2>
         ${heads ? `<ul class="hl">${heads}</ul>` : '<div class="empty">Headlines appear once league games are played.</div>'}</section>
       ${upcomingCard()}
