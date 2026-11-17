@@ -70,7 +70,7 @@ async function setup(env) {
 
 async function greet(env, m, s) {
   const name = display(m);
-  if (s.coach && !m.roles.includes(s.coach.id)) await dc(env, "PUT", `/guilds/${CFG.guild}/members/${m.user.id}/roles/${s.coach.id}`).catch((e) => console.error("role", e.message));
+  if (s.coach && !m.roles.includes(s.coach.id)) await dc(env, "PUT", `/guilds/${CFG.guild}/members/${m.user.id}/roles/${s.coach.id}`).catch((e) => { throw new Error(`Coach role: ${e.message}`); });
   if (s.welcome) await dc(env, "POST", `/channels/${s.welcome.id}/messages`, {
     content: `<@${m.user.id}>`,
     allowed_mentions: { users: [m.user.id] },
@@ -97,6 +97,14 @@ async function farewell(env, id, name, s) {
 }
 
 export async function runGreeter(env, scheduledTime = Date.now(), windowMs = 120000) {
+  let res;
+  try { res = await greeterOnce(env, scheduledTime, windowMs); } catch (e) { res = { ok: false, error: String(e).slice(0, 400) }; }
+  if (env.GREETER) await env.GREETER.put("last_run", JSON.stringify({ at: new Date(scheduledTime).toISOString(), ...res })).catch(() => {});
+  if (res.joined?.length || res.left?.length || !res.ok) await env.GREETER?.put("last_event", JSON.stringify({ at: new Date(scheduledTime).toISOString(), ...res })).catch(() => {});
+  return res;
+}
+
+async function greeterOnce(env, scheduledTime, windowMs) {
   if (!env.DISCORD_BOT_TOKEN) return { ok: false, why: "DISCORD_BOT_TOKEN not set" };
   // Skip bots, and members still on the rules screen (they count as joined once they accept).
   const members = (await allMembers(env)).filter((m) => !m.user.bot && !m.pending);
@@ -114,9 +122,10 @@ export async function runGreeter(env, scheduledTime = Date.now(), windowMs = 120
   }
   if (!joined.length && !left.length) return { ok: true, joined: 0, left: 0 };
   const s = await setup(env);
-  for (const m of joined) await greet(env, m, s).catch((e) => console.error("greet", e.message));
-  for (const [id, name] of left) await farewell(env, id, name, s).catch((e) => console.error("farewell", e.message));
-  return { ok: true, joined: joined.map(display), left: left.map(([, n]) => n) };
+  const errors = [];
+  for (const m of joined) await greet(env, m, s).catch((e) => errors.push(`greet: ${e.message}`.slice(0, 300)));
+  for (const [id, name] of left) await farewell(env, id, name, s).catch((e) => errors.push(`farewell: ${e.message}`.slice(0, 300)));
+  return { ok: !errors.length, joined: joined.map(display), left: left.map(([, n]) => n), errors };
 }
 
 // Read-only check for GET /greeter on the worker: what the greeter would use, without posting or creating anything.
@@ -127,10 +136,13 @@ export async function inspectGreeter(env) {
   const meMember = await dc(env, "GET", `/guilds/${CFG.guild}/members/${me.id}`);
   const role = (n) => roles.find((r) => r.name.toLowerCase() === n.toLowerCase());
   const top = Math.max(0, ...meMember.roles.map((id) => roles.find((r) => r.id === id)?.position || 0));
-  let membersIntent = true, count = null;
-  try { count = (await allMembers(env)).length; } catch (e) { membersIntent = false; }
+  let membersIntent = true, count = null, pending = null, bots = null;
+  try { const all = await allMembers(env); count = all.length; pending = all.filter((m) => m.pending).length; bots = all.filter((m) => m.user.bot).length; } catch (e) { membersIntent = false; }
+  const kvGet = async (k) => (env.GREETER ? env.GREETER.get(k, "json").catch(() => null) : null);
+  const snap = await kvGet("members");
   return {
-    ok: true, kv: !!env.GREETER, members_intent_on: membersIntent, members: count,
+    ok: true, kv: !!env.GREETER, members_intent_on: membersIntent, members: count, pending, bots,
+    remembered: snap ? Object.keys(snap).length : null, last_run: await kvGet("last_run"), last_event: await kvGet("last_event"),
     welcome_channel: CFG.welcomeChannels.find((n) => channels.some((c) => c.type === 0 && c.name === n)) || null,
     log_channel_exists: channels.some((c) => c.type === 0 && c.name === CFG.logChannel),
     coach_role: role(CFG.coachRole)?.name || null, staff_role: role(CFG.staffRole)?.name || null,
