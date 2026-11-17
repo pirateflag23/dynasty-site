@@ -85,7 +85,7 @@ ${BASE}
 .st{background:#1f2022;border-radius:8px;padding:14px 16px}
 .st h3{font:700 22px/1.1 RC;margin-top:8px}.st p{font:400 15px/1.35 R;color:#b9babd;margin-top:6px}
 </style></head><body><div class="card">
-<header>${logoImg(siteLogo)}<div class="ttl"><small>The Dynasty</small><h1>Around the <span>League</span></h1></div><div class="meta">${esc(label)}</div></header>
+<header>${logoImg(siteLogo)}<div class="ttl"><small>TD Wire</small><h1>Around the <span>League</span></h1></div><div class="meta">${esc(label)}</div></header>
 <div class="wrap">${lead ? `<div class="lead"><span class="k${lead.user ? " user" : ""}">${esc(lead.kick)}</span><h2>${esc(plain(lead.h))}</h2><p>${esc(plain(lead.d))}</p></div>` : ""}
 <div class="grid">${rest.map((s) => `<div class="st"><span class="k${s.user ? " user" : ""}">${esc(s.kick)}</span><h3>${esc(plain(s.h))}</h3><p>${esc(plain(s.d))}</p></div>`).join("")}</div></div>
 <footer><span>Gold tag = league coach's team · more on the site</span><b>thedynastycfb.com</b></footer>

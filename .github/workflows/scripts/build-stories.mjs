@@ -1,4 +1,4 @@
-// ODL Wire: data-driven storylines for the site and Discord.
+// TD Wire: data-driven storylines for the site and Discord.
 //
 // Every sync this reads the dynasty and writes data/stories/<league_id>/latest.json:
 //   recruiting  commits, flips, decommits, signings and hot recruiting battles, each with a

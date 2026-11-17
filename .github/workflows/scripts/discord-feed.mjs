@@ -270,7 +270,7 @@ async function main() {
     if (heis?.data?.length && (heis.period?.id ?? cur.id) === cur.id) await once(`heisman:${cur.id}`, "heisman", cfg.channels.heisman, () => heismanPost(heis.data));
   }
 
-  /* ============ #headlines (Dynasty Wire stories written earlier in this workflow) ============ */
+  /* ============ #headlines (TD Wire stories written earlier in this workflow) ============ */
   if (cfg.channels.headlines) {
     let wire = null;
     try { wire = JSON.parse(await readFile(`data/stories/${league.league_id ?? league.data.league_id}/latest.json`, "utf8")); } catch { /* none yet */ }

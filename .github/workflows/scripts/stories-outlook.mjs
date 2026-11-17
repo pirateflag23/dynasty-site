@@ -1,4 +1,4 @@
-// ODL Wire, forward-looking pieces (called from build-stories.mjs every sync):
+// TD Wire, forward-looking pieces (called from build-stories.mjs every sync):
 //
 //   crystal   Crystal Ball: predictions for 20-50 uncommitted recruits, with a reporter's write-up
 //             and a running hit/miss record once those recruits commit
