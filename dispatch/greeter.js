@@ -13,7 +13,7 @@ const CFG = {
   staffRole: "Badmin",
   welcomeChannels: ["welcome", "welcomes", "general"], // first one that exists gets the public welcome
   logChannel: "join-log",                               // created (Badmin-only) if it doesn't exist
-  gif: "https://thedynastycfb.com/welcome.gif",
+  gif: "https://thedynastycfb.com/welcome.gif?v=2", // bump v when the GIF changes (Discord caches images by URL)
   site: "https://thedynastycfb.com",
   color: 0xcc0000,
 };

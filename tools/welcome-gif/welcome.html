@@ -15,17 +15,17 @@ html,body{width:800px;height:450px;overflow:hidden;background:#0b0c0d}
 .beam{position:absolute;left:50%;top:-80px;width:220px;height:620px;margin-left:-110px;background:linear-gradient(90deg,transparent,rgba(255,215,120,.18),transparent);
   transform:rotate(18deg) translateX(-520px);animation:beam 4s ease-in-out infinite}
 @keyframes beam{0%,30%{transform:rotate(18deg) translateX(-560px)}70%,100%{transform:rotate(18deg) translateX(560px)}}
-.logo{position:absolute;left:50%;top:34px;width:210px;margin-left:-105px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.7));animation:logo 4s cubic-bezier(.2,.9,.25,1.15) infinite}
+.logo{position:absolute;left:50%;top:72px;width:210px;margin-left:-105px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.7));animation:logo 4s cubic-bezier(.2,.9,.25,1.15) infinite}
 @keyframes logo{0%{transform:scale(.2) rotate(-8deg);opacity:0}14%{transform:scale(1.08) rotate(1deg);opacity:1}20%,92%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:1}}
-.kick{position:absolute;left:0;right:0;top:206px;text-align:center;font-weight:700;font-size:24px;letter-spacing:.42em;color:#e01b1b;
+.kick{position:absolute;left:0;right:0;top:250px;text-align:center;font-weight:700;font-size:24px;letter-spacing:.42em;color:#e01b1b;
   animation:kick 4s ease-out infinite}
 @keyframes kick{0%,18%{opacity:0;letter-spacing:.9em}30%,100%{opacity:1;letter-spacing:.42em}}
-.big{position:absolute;left:0;right:0;top:232px;text-align:center;font-weight:800;font-size:92px;line-height:1;text-transform:uppercase;letter-spacing:-.01em;
+.big{position:absolute;left:0;right:0;top:276px;text-align:center;font-weight:800;font-size:92px;line-height:1;text-transform:uppercase;letter-spacing:-.01em;
   text-shadow:0 6px 18px rgba(0,0,0,.65);animation:big 4s cubic-bezier(.2,.9,.3,1.2) infinite}
 .big span{color:#e01b1b}
 @keyframes big{0%,26%{opacity:0;transform:translateY(40px) scale(.92)}38%,100%{opacity:1;transform:none}}
 /* gold shine across the title */
-.shine{position:absolute;left:0;right:0;top:232px;height:96px;background:linear-gradient(100deg,transparent 40%,rgba(255,226,150,.55) 50%,transparent 60%);
+.shine{position:absolute;left:0;right:0;top:276px;height:96px;background:linear-gradient(100deg,transparent 40%,rgba(255,226,150,.55) 50%,transparent 60%);
   mix-blend-mode:overlay;background-size:300% 100%;animation:shine 4s linear infinite}
 @keyframes shine{0%,45%{background-position:120% 0}70%,100%{background-position:-60% 0}}
 .bar{position:absolute;left:50%;top:342px;height:5px;width:520px;margin-left:-260px;background:#cc0000;transform-origin:center;animation:bar 4s ease-out infinite}
@@ -47,7 +47,5 @@ html,body{width:800px;height:450px;overflow:hidden;background:#0b0c0d}
 <img class="logo" src="logo.png">
 <div class="kick">WELCOME TO</div>
 <div class="big">THE <span>DYNASTY</span></div><div class="shine"></div>
-<div class="bar"></div>
-<div class="tags"><div class="tag t1"><b>32</b> coaches</div><div class="tag t2"><b>4</b> conferences</div><div class="tag t3">stream <b>every</b> game</div></div>
 <div class="fade"></div>
 </div></body></html>
