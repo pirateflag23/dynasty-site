@@ -24,6 +24,9 @@ jobs:
             jq -c '{keys: (if type=="object" then keys else null end), n: (.data|length? // null), first: (.data[0:2]? // .)}' "$f" 2>/dev/null | cut -c1-6000 || head -c 1500 "$f"
             echo
           done
+      - name: List API endpoints (openapi.json)
+        run: |
+          [ -f probe/_openapi.json.json ] && jq -r '.paths | to_entries[] | "\(.key) :: \((.value.get.summary // .value.get.description // "") | gsub("\n";" ") | .[0:220]) :: params=\([.value.get.parameters[]? | (.name + (if .schema.enum then "[" + (.schema.enum|map(tostring)|join("|")) + "]" else "" end))] | join(","))"' probe/_openapi.json.json || true
       - uses: actions/upload-artifact@v4
         with:
           name: api-probe
