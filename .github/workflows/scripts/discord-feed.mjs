@@ -15,7 +15,7 @@
 //        data/player-stats-all.json (from build-player-stats.mjs), data/bot/*.json (written for the slash bot)
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { gameOfTheWeek, pickem, powerRankings, seriesFor } from "./league-extras.mjs";
+import { gameOfTheWeek, pickem, powerRankings, seriesFor, carouselCards } from "./league-extras.mjs";
 // Graphics (PNG) need the packages in ./graphics — loaded lazily so text posts still work without them.
 const graphics = () => import("./graphics/top25.mjs");
 const finalGraphics = () => import("./graphics/final.mjs");
@@ -314,6 +314,7 @@ async function main() {
       await pickem(X, wg, label, nowW).catch((e) => log(`Pick'em failed: ${e.message}`));
     }
     await powerRankings(X).catch((e) => log(`Power rankings failed: ${e.message}`));
+    await carouselCards(X).catch((e) => log(`Carousel failed: ${e.message}`));
   }
 
   /* ============ #heisman watch ============ */

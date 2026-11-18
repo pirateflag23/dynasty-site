@@ -415,6 +415,36 @@ async function main() {
       quote: { text: s.kind === "W" ? pick(tk + "sw", ["We don't talk about the streak. We talk about Tuesday practice.", "One week at a time. Corny, but it works."]) : pick(tk + "sl", ["Nobody's panicking in this building.", "I know what the outside noise is saying. We'll fix it."]), by: coachSays(tk) } });
   }
 
+  // Coaching carousel: compare who coaches where with the last sync. Moves are logged in carousel.json
+  // (discord-feed.mjs posts a card for each one) and the recent ones become stories.
+  const carFile = `${DIR}/carousel.json`, car = await readJson(carFile, null);
+  const nowMem = Object.fromEntries(members.data.filter((m) => m.user_name && m.user_name !== "CPU").map((m) => [m.user_name, m.team_key]));
+  if (car) {
+    const lcm = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k.toLowerCase(), [k, v]]));
+    const was = lcm(car.members || {}), now = lcm(nowMem), at = new Date().toISOString();
+    for (const [u, [gt, tk]] of Object.entries(now)) {
+      const prev = was[u]?.[1];
+      if (prev == null) car.moves.push({ kind: "join", gt, to: tk, to_name: tName(tk), period: cur.id, season_text: cur.season_text, at });
+      else if (String(prev) !== String(tk)) car.moves.push({ kind: "move", gt, from: prev, from_name: tName(prev), to: tk, to_name: tName(tk), period: cur.id, season_text: cur.season_text, at });
+    }
+    for (const [u, [gt, tk]] of Object.entries(was)) if (!now[u]) car.moves.push({ kind: "leave", gt, from: tk, from_name: tName(tk), period: cur.id, season_text: cur.season_text, at });
+  }
+  const carOut = { members: nowMem, moves: (car?.moves || []).slice(-80) };
+  await writeFile(carFile, JSON.stringify(carOut));
+  const recentMoves = carOut.moves.filter((m) => Date.now() - Date.parse(m.at) < 7 * 86400e3);
+  for (const m of recentMoves) {
+    const ch = coachHist.find((c) => c.gamertag.toLowerCase() === m.gt.toLowerCase());
+    const nm = coachName(m.gt), who = `[[c:${m.gt}|${nm ? `Coach ${lastName(nm)}` : m.gt}]]`;
+    const stint = m.from && ch?.stints?.filter((x) => String(x.team_key) === String(m.from)).reduce((a, x) => ({ w: a.w + x.w, l: a.l + x.l }), { w: 0, l: 0 });
+    const toT = m.to ? team.get(m.to) : null;
+    const toLine = toT ? ` ${T(m.to, m.to_name)} is ${toT.record}${toT.rank > 0 && toT.rank <= 25 ? ` and ranked No. ${toT.rank}` : ""}.` : "";
+    const st = stint && stint.w + stint.l ? ` He went ${stint.w}-${stint.l} there.` : "";
+    const base = { id: `carousel:${m.gt}:${m.kind}:${m.to || m.from}:${m.period}`, cat: "game", kind: "carousel", team: m.to || m.from, user: true, kick: "Coaching carousel", score: 130 };
+    if (m.kind === "move") gamesOut.push({ ...base, h: `${who} leaves ${T(m.from, m.from_name)} for ${T(m.to, m.to_name)}`, d: `${m.gt} is taking over at ${m.to_name} after his run at ${m.from_name}.${st}${toLine}` });
+    else if (m.kind === "join") gamesOut.push({ ...base, h: `${T(m.to, m.to_name)} hands the keys to ${who}`, d: `${m.gt} joins The Dynasty as the new head coach at ${m.to_name}.${toLine}` });
+    else gamesOut.push({ ...base, h: `${who} is out at ${T(m.from, m.from_name)}`, d: `${m.gt} and ${m.from_name} have parted ways.${st} The program goes back to the CPU for now.` });
+  }
+
   // real NCAA FBS records: one that fell this period, or a player closing in on one
   const records = await readJson(`data/history/${LID}/records.json`, { broken: [] });
   const ncaa = await readJson("data/ncaa-records.json", null);

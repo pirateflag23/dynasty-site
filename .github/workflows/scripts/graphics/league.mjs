@@ -122,3 +122,25 @@ ${rows.map((r) => `<div class="row" style="--c1:${teamCols(colors, r.name).c1}">
 <footer><span>Posted midweek · rankings move every week</span><b>thedynastycfb.com</b></footer>`);
   return shoot(html, { chromeChannel });
 }
+
+/* ---------- Coaching carousel card ---------- */
+// kind: move | join | leave; from/to: { name, logo, record, rank } (either may be null)
+export async function renderCarousel({ kind = "move", coach = "", from = null, to = null, headline = "", text = "", label = "", siteLogo = "", colors = {}, chromeChannel = "chrome" }) {
+  const css = `.hero{text-align:center;padding:16px 0 4px;background:radial-gradient(ellipse at center,#2a1212 0,#121314 70%)}
+.hero h1{font:800 54px/1 RC;letter-spacing:.08em;text-transform:uppercase;color:#fff}.hero .tg{font:700 15px RC;letter-spacing:.3em;color:#cc0000;text-transform:uppercase;margin-top:4px}
+.move{display:grid;grid-template-columns:1fr 140px 1fr;align-items:center;padding:20px 40px 10px}
+.tm{text-align:center}.tm .lg3{display:grid;place-items:center;height:170px}.tm b{display:block;font:800 30px RC;text-transform:uppercase;margin-top:6px}.tm small{font:500 15px R;color:#9a9b9e}
+.tm.gone{opacity:.55;filter:grayscale(.6)}.arrow{font:800 70px RC;color:#cc0000;text-align:center}
+.coach{text-align:center;padding:4px 0 10px}.coach em{font-style:normal;font:800 24px RC;background:#cc0000;color:#fff;padding:5px 16px;border-radius:4px;letter-spacing:.04em}
+.story{padding:12px 40px 18px;text-align:center}.story h2{font:800 30px/1.15 RC}.story p{font:500 18px/1.45 R;color:#d5d6d8;margin-top:8px}`;
+  const T = (t, gone) => t ? `<div class="tm ${gone ? "gone" : ""}"><div class="lg3">${badge(t.name, t.logo, colors, 160)}</div><b>${esc(short(t.name))}</b><small>${esc([t.rank > 0 && t.rank <= 25 ? `No. ${t.rank}` : "", t.record].filter(Boolean).join(" · "))}</small></div>`
+    : `<div class="tm gone"><div class="lg3" style="font:800 30px RC;color:#6c6d6f">${kind === "join" ? "NEW TO THE LEAGUE" : "CPU"}</div></div>`;
+  const tag = kind === "move" ? "On the move" : kind === "join" ? "New hire" : "Departure";
+  const html = await page(css, `${head("BREAKING", "Coaching carousel", label, siteLogo)}
+<div class="hero"><h1>Coaching Carousel</h1><div class="tg">${tag}</div></div>
+<div class="move">${T(from, kind !== "join")}<div class="arrow">➜</div>${T(to, false)}</div>
+${coach ? `<div class="coach"><em>${esc(coach)}</em></div>` : ""}
+<div class="story">${headline ? `<h2>${esc(headline)}</h2>` : ""}${text ? `<p>${esc(text)}</p>` : ""}</div>
+<footer><span>TD Wire · coaching carousel</span><b>thedynastycfb.com</b></footer>`);
+  return shoot(html, { chromeChannel });
+}

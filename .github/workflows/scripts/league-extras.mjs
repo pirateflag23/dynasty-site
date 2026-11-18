@@ -208,3 +208,31 @@ async function writeBlurbs(x, rows) {
     return JSON.parse(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1)).lines || {};
   } catch (e) { x.log(`Power rankings blurbs fell back to plain facts: ${e.message}`); return {}; }
 }
+
+/* ---------------- Coaching carousel: one card per coach move, as soon as a sync sees it ---------------- */
+export async function carouselCards(x) {
+  const ch = x.pickChannel(x.cfg.channels.carousel || x.cfg.channels.headlines);
+  if (!ch) return;
+  let car = null, wire = null;
+  try { car = JSON.parse(await readFile(`data/stories/${x.lid}/carousel.json`, "utf8")); } catch { return; }
+  try { wire = JSON.parse(await readFile(`data/stories/${x.lid}/latest.json`, "utf8")); } catch { /* fine */ }
+  const plain = (s) => String(s || "").replace(/\[\[\w:[^|\]]*\|([^\]]*)\]\]/g, "$1");
+  for (const m of car.moves || []) {
+    if (Date.now() - Date.parse(m.at) > 3 * 86400e3 && !x.replay("carousel")) continue;
+    const id = `carousel:${m.gt}:${m.kind}:${m.to || m.from}:${m.period}`;
+    await x.once(id, "carousel", ch, async () => {
+      const s = [...(wire?.games || [])].find((q) => q.id === id);
+      const headline = plain(s?.h) || (m.kind === "move" ? `${m.gt} leaves ${m.from_name} for ${m.to_name}` : m.kind === "join" ? `${m.to_name} hires ${m.gt}` : `${m.gt} is out at ${m.from_name}`);
+      const text = plain(s?.d);
+      const map = await x.logoMap();
+      const T = (k, n) => { if (!k) return null; const t = x.teams.get(k) || x.teams.get(Number(k)) || {}; return { name: n, logo: x.logoFor(n, map), record: t.record, rank: t.rank }; };
+      const embed = { title: `🎠 Coaching carousel · ${headline}`, color: RED, description: text || undefined, url: x.site("home") };
+      if (x.cfg.graphics?.carousel === false) return { embeds: [embed] };
+      try {
+        const { renderCarousel } = await lg();
+        const img = await renderCarousel({ kind: m.kind, coach: m.gt, from: T(m.from, m.from_name), to: T(m.to, m.to_name), headline, text, label: m.season_text || "", siteLogo: x.siteLogo(), colors: await x.colors() });
+        return png("carousel.png", img, embed.title, RED, embed.url);
+      } catch (e) { x.log(`Carousel graphic failed: ${e.message}`); return { embeds: [embed] }; }
+    });
+  }
+}
