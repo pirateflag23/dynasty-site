@@ -181,7 +181,7 @@ async function main() {
       c.n = p.n || c.n; c.f = p.f || c.f; c.l = p.l || c.l; c.p = p.p || c.p;
       c.seasons.push({ y, t: p.t, tn: teamName.get(p.t) || "", p: p.p, s: p.s, partial: !!pf.partial });
       careers.set(p.k, c);
-      seasonRows.push({ k: p.k, n: p.n, p: p.p, y, tn: teamName.get(p.t) || "", s: p.s });
+      seasonRows.push({ k: p.k, n: p.n, p: p.p, y, t: p.t, tn: teamName.get(p.t) || "", s: p.s });
     }
   }
   const award = (k, a) => { const c = careers.get(k); if (c) c.awards.push(a); };
@@ -203,13 +203,32 @@ async function main() {
 
   const top = (rows, k, n = 25) => rows.filter((r) => r.s[k]).sort((a, b) => b.s[k] - a.s[k]).slice(0, n);
   const careerRows = [...careers.values()].map((c) => ({ k: c.k, n: c.n, p: c.p, span: `${c.seasons[0].y}${c.seasons.length > 1 ? "–" + c.seasons[c.seasons.length - 1].y : ""}`,
-    tn: [...new Set(c.seasons.map((r) => r.tn))].join(" / "), s: c.totals }));
+    tn: [...new Set(c.seasons.map((r) => r.tn))].join(" / "), t: c.seasons[c.seasons.length - 1].t, y: c.seasons[c.seasons.length - 1].y, s: c.totals }));
   const leaders = { career: {}, season: {}, cats: LEADER_CATS, seasons };
   for (const k of Object.keys(LEADER_CATS)) {
     leaders.career[k] = top(careerRows, k).map((r) => ({ k: r.k, n: r.n, p: r.p, span: r.span, tn: r.tn, v: r.s[k], g: r.s.gamesPlayed || 0 }));
     leaders.season[k] = top(seasonRows, k, 50).map((r) => ({ k: r.k, n: r.n, p: r.p, y: r.y, tn: r.tn, v: r.s[k], g: r.s.gamesPlayed || 0 }));
   }
   await writeFile(`${DIR}/leaders.json`, JSON.stringify(leaders));
+
+  // real NCAA FBS records this dynasty has passed. first_seen sticks so the site and the AI desk know when each fell.
+  const ncaa = await readJson("data/ncaa-records.json");
+  if (ncaa) {
+    const prev = new Map(((await readJson(`${DIR}/records.json`))?.broken || []).map((b) => [`${b.scope}:${b.cat}:${b.k}:${b.y}`, b]));
+    const broken = [];
+    for (const scope of ["season", "career"]) for (const [cat, rec] of Object.entries(ncaa[scope] || {})) {
+      for (const r of scope === "season" ? seasonRows : careerRows) {
+        const v = r.s[cat] || 0; if (v <= rec.value) continue;
+        const y = r.y, was = prev.get(`${scope}:${cat}:${r.k}:${scope === "season" ? y : ""}`);
+        broken.push({ scope, cat, label: LEADER_CATS[cat], k: r.k, n: r.n, p: r.p, t: r.t, tn: r.tn, y: scope === "season" ? y : "", span: r.span || String(y), v,
+          old: { holder: rec.holder, school: rec.school, years: rec.years, value: rec.value },
+          first_seen_period: was?.first_seen_period ?? cur.id, first_seen_at: was?.first_seen_at ?? new Date().toISOString(), first_v: was?.first_v ?? v });
+      }
+    }
+    broken.sort((a, b) => String(b.first_seen_at).localeCompare(String(a.first_seen_at)));
+    await writeFile(`${DIR}/records.json`, JSON.stringify({ through: ncaa.through, broken }));
+    if (broken.length) log(`Records: ${broken.length} NCAA mark(s) passed in this dynasty.`);
+  }
 
   await writeFile(`${DIR}/index.json`, JSON.stringify({ league_id: LID, league: league.name, seasons, current_season: cur.season, last_period_id: cur.id,
     last_data_version: league.data_version, updated: new Date().toISOString(), learned_names: coachNames, shards: SHARDS }));

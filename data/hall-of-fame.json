@@ -1,0 +1,5 @@
+{
+  "_about": "The Dynasty Hall of Fame. Add inductees here. players: {name, pos, team, years, class, line}. coaches: {gamertag, name, teams, years, class, line}. class = induction year.",
+  "players": [],
+  "coaches": []
+}

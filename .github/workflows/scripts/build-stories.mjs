@@ -415,11 +415,44 @@ async function main() {
       quote: { text: s.kind === "W" ? pick(tk + "sw", ["We don't talk about the streak. We talk about Tuesday practice.", "One week at a time. Corny, but it works."]) : pick(tk + "sl", ["Nobody's panicking in this building.", "I know what the outside noise is saying. We'll fix it."]), by: coachSays(tk) } });
   }
 
+  // real NCAA FBS records: one that fell this period, or a player closing in on one
+  const records = await readJson(`data/history/${LID}/records.json`, { broken: [] });
+  const ncaa = await readJson("data/ncaa-records.json", null);
+  const leadersH = await readJson(`data/history/${LID}/leaders.json`, null);
+  const NOUN = { passYards: "passing yards", passTD: "touchdown passes", rushYards: "rushing yards", rushTD: "rushing touchdowns", receivingYards: "receiving yards",
+    receiveReceptions: "catches", receiveTouchdowns: "touchdown catches", defenseTotalTackles: "tackles", defenseSacks: "sacks", defenseInterceptions: "interceptions", kickFieldGoalsMade: "field goals" };
+  const fmt = (n) => Number(n).toLocaleString("en-US");
+  const keyOfName = (n) => standings.data.find((t) => t.name === n)?.team_key;
+  for (const b of records.broken || []) {
+    if (b.first_seen_period !== cur.id) continue;
+    const tk = b.t || keyOfName(b.tn), lg = tk ? lastGame(tk) : null;
+    const what = `${b.scope === "season" ? "single-season" : "career"} ${NOUN[b.cat] || b.label}`;
+    gamesOut.push({ id: `rec:${b.scope}:${b.cat}:${b.k}`, cat: "game", kind: "record", team: tk, user: userTeams.has(tk), game: lg?.key, kick: "Record book", score: 120,
+      h: `${P(b.k, b.n)} breaks the NCAA ${what} record`,
+      d: `${b.n} now has ${fmt(b.v)} ${NOUN[b.cat] || ""}, passing ${b.old.holder} (${b.old.school}, ${b.old.years}) and the ${fmt(b.old.value)} that stood as the real-life FBS mark.`,
+      quote: tk && userTeams.has(tk) ? { text: pick(b.k + "rq", ["I told him after the game: that one's yours forever.", "Kid's earned every bit of it. The line deserves a steak dinner."]), by: coachSays(tk) } : undefined });
+  }
+  if (ncaa && leadersH) {
+    const chase = [];
+    for (const [cat, rec] of Object.entries(ncaa.season || {})) {
+      const r = (leadersH.season[cat] || []).find((x) => String(x.y) === String(hist.current_season ?? cur.season));
+      if (!r || r.v >= rec.value || !r.g) continue;
+      const pace = Math.round((r.v / r.g) * 13), left = rec.value - r.v;
+      if (r.v / rec.value < 0.6 || pace < rec.value * 0.95) continue;
+      const tk = keyOfName(r.tn), lg = tk ? lastGame(tk) : null;
+      if (!lg || lg.week !== latestWeek) continue;
+      chase.push({ id: `chase:${cat}:${r.k}:${latestWeek}`, cat: "game", kind: "chase", team: tk, user: userTeams.has(tk), game: lg.key, kick: "Chasing history", score: 70 + (r.v / rec.value) * 30,
+        h: `${P(r.k, r.n)} is ${fmt(left)} ${NOUN[cat]} from the NCAA single-season record`,
+        d: `${fmt(r.v)} through ${r.g} games puts ${r.n} on pace for about ${fmt(pace)}. The real-life mark is ${fmt(rec.value)}, set by ${rec.holder} (${rec.school}, ${rec.years}).` });
+    }
+    gamesOut.push(...chase.sort((a, b) => b.score - a.score).slice(0, 2));
+  }
+
   // keep the strongest angle per game unless a second one is truly big, then rank everything
   const perGame = new Map();
   for (const s of gamesOut.sort((a, b) => b.score - a.score)) { const n = perGame.get(s.game) || 0; if (n >= 2 || (n === 1 && s.score < 60)) continue; perGame.set(s.game, n + 1); s.keep = true; }
   // cap repetitive angles so the feed reads like a newspaper, not a list
-  const CAPS = { "4th": 3, int: 4, pass: 4, rush: 3, rec: 3, def: 3, flags: 2, fg: 2, to: 2, "3rd": 1, top: 1, blowout: 3 };
+  const CAPS = { chase: 2, "4th": 3, int: 4, pass: 4, rush: 3, rec: 3, def: 3, flags: 2, fg: 2, to: 2, "3rd": 1, top: 1, blowout: 3 };
   const used = {};
   const gameStories = gamesOut.filter((s) => s.keep).map(({ keep, ...s }) => s).sort((a, b) => b.score - a.score)
     .filter((s) => { const k = s.kind.split(":")[0]; used[k] = (used[k] || 0) + 1; return !CAPS[k] || used[k] <= CAPS[k]; })
