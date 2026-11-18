@@ -521,6 +521,16 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
 .cb-pick .conf.Medium{background:#a78bfa}.cb-pick .conf.Low{background:color-mix(in srgb,currentColor 45%,transparent)}
 .cb p{margin:6px 0 0;font-size:13px;line-height:1.5;color:var(--ink)}.cb .call{font-style:italic;color:var(--dim)}
 .cb-calls li{display:flex;gap:8px;align-items:center;padding:6px 14px;font-size:12px;border-top:1px solid var(--line-2)}.cb-calls .ok{color:#16a34a;font-weight:800}.cb-calls .x{color:var(--red);font-weight:800}
+.scn{padding:12px 14px;border-top:1px solid var(--line-2)}.scn:first-of-type{border-top:0}
+.scn-h{display:flex;align-items:center;gap:8px;font-weight:700}.scn-h .pc{margin-left:auto;font:800 18px var(--head)}
+.scn-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin:8px 0}
+.scn-g div{background:color-mix(in srgb,var(--ink) 5%,transparent);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--dim)}
+.scn-g b{display:block;font:800 17px var(--head);color:var(--ink)}
+.scn p{margin:4px 0 0;font-size:13px;line-height:1.45}.scn p .k{font:800 11px var(--head);text-transform:uppercase;color:var(--red);margin-right:6px}
+.scn .up{color:#16a34a;font-weight:700}.scn .dn{color:var(--red);font-weight:700}
+.scn-pick{padding:10px 14px;border-bottom:1px solid var(--line-2)}.scn-pick select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.std-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:start}
+.pr-row td{vertical-align:top}.pr-row small{display:block;color:var(--dim);white-space:normal;line-height:1.35;margin-top:2px}
 .cfp-t td,.cfp-t th{white-space:nowrap}.cfp-bar{display:flex;align-items:center;gap:6px}.cfp-bar .b{width:70px;height:8px;border-radius:4px;background:color-mix(in srgb,currentColor 10%,transparent);overflow:hidden}.cfp-bar .b i{display:block;height:100%;background:var(--red)}
 .cfp-t tr.cut td{border-bottom:2px dashed var(--red)}.cfp-d.up{color:#16a34a}.cfp-d.dn{color:var(--red)}
 .cfp-n{padding:8px 14px;border-top:1px solid var(--line-2);font-size:13px;line-height:1.45}.cfp-n b{font:800 11px var(--head);text-transform:uppercase;color:var(--red);margin-right:6px}
@@ -1159,6 +1169,7 @@ function renderStandings() {
   const confs = Object.keys(byConf).sort().filter((c) => !standingsUsersOnly || byConf[c].some((t) => t.user_controlled));
   const sortConf = (a, b) => { const A = parseRec(a.conference_record), B = parseRec(b.conference_record); return (B.w - B.l) - (A.w - A.l) || b.wins - a.wins || a.losses - b.losses; };
   $("#view").innerHTML = `<nav class="subnav" aria-label="Standings"><h1>Standings</h1><a href="#standings" aria-current="page">Conferences</a><a href="#standings/cfp">Playoff odds</a></nav>
+    <div class="std-top" id="std-top">${scenariosCard(WIRE?.cfp)}</div>
     <div class="card"><div class="ctrl" style="border:0"><button class="pill" id="uo" aria-pressed="${standingsUsersOnly}">Conferences with league coaches</button></div></div>
     ${confs.map((c) => `<section class="card"><h2 class="card-h">${esc(c)}</h2><div class="scroll"><table class="tbl">
       <thead><tr><th>Team</th><th>Conf</th><th>Overall</th><th>PF</th><th>PA</th><th>OVR</th><th>OFF</th><th>DEF</th></tr></thead>
@@ -1168,6 +1179,8 @@ function renderStandings() {
         <td>${t.overall ?? ""}</td><td>${t.offense ?? ""}</td><td>${t.defense ?? ""}</td></tr>`).join("")}</tbody></table></div></section>`).join("")
       || '<div class="card"><div class="empty">Standings not synced yet.</div></div>'}`;
   $("#uo").onclick = () => { standingsUsersOnly = !standingsUsersOnly; renderStandings(); };
+  wireScn(renderStandings);
+  leagueSideCards().then((h) => { const el = $("#std-top"); if (el && h && !el.dataset.side) { el.dataset.side = 1; el.insertAdjacentHTML("beforeend", h); } });
 }
 
 /* ---------- recruiting ---------- */
@@ -2384,6 +2397,39 @@ function cfpCard() {
   return `<section class="card"><h2 class="card-h">Playoff odds <small><a class="tl" href="#standings/cfp">Full outlook</a></small></h2><table class="tbl cfp-mini"><tbody>${c.teams.slice(0, 12).map((t, i) => `<tr class="${t.user ? "user" : ""}"><td><div class="team-cell"><span class="num">${i + 1}</span>${badge(t.name)}<span class="nm">${rk(t.rank)}${tLink(t.name, t.team)}</span></div></td><td style="text-align:right;font-weight:800">${pctTxt(t.make)}</td></tr>`).join("")}</tbody></table>
     <div class="wire-tag">${c.final ? "Final projection" : `${c.sims.toLocaleString()} simulations · ${esc(c.season_text || "")}`}</div></section>`;
 }
+/* ---------- playoff scenarios, Pick'em, coach power rankings ---------- */
+const SIDE = {};
+const sideData = (name) => (SIDE[name] ??= fetch(`${DATA_BASE}/${name}`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+let scnPick = "";
+function scnBlock(k, x) {
+  const pc = (v) => (v == null ? "–" : `${v}%`);
+  const grid = [...(x.by_losses || []).filter((r) => r.make != null).map((r) => `<div><b>${pc(r.make)}</b>${esc(r.label)} <small>(${r.chance}% likely)</small></div>`),
+    x.conf_title != null && !/independent/i.test(x.conf || "") ? `<div><b>${pc(x.conf_title)}</b>Win the ${esc(x.conf)}</div>` : ""].join("");
+  const nx = x.next ? `<p><span class="k">Next</span>${x.next.home ? "vs" : "at"} ${tLink(x.next.opp_name, x.next.opp)}: win and it's <span class="up">${pc(x.next.win)}</span>, lose and it's <span class="dn">${pc(x.next.loss)}</span>.</p>` : "";
+  const rt = (x.root || []).length ? `<p><span class="k">Root for</span>${x.root.map((r) => `${tLink(r.want_name, r.want)} over ${esc(r.over_name)} <span class="up">+${r.gain}</span>`).join(" · ")}</p>` : "";
+  const lock = x.make >= 99 ? "<p>All but locked in.</p>" : x.make <= 0.5 && !(x.by_losses || []).some((r) => r.make > 1) ? "<p>Needs a miracle. No path shows up in the simulations.</p>" : "";
+  return `<div class="scn"><div class="scn-h">${badge(x.name)}${tLink(x.name, k)}<span class="pc">${pc(x.make)}</span></div><div class="scn-g">${grid}</div>${nx}${rt}${lock}</div>`;
+}
+function scenariosCard(c) {
+  const S = c?.scenarios; if (!S || !Object.keys(S).length) return "";
+  const users = Object.entries(S).filter(([, x]) => x.user).sort((a, b) => b[1].make - a[1].make);
+  const others = Object.entries(S).filter(([, x]) => !x.user).sort((a, b) => a[1].name.localeCompare(b[1].name));
+  const picked = scnPick && S[scnPick] && !S[scnPick].user ? [[scnPick, S[scnPick]]] : [];
+  return `<section class="card" id="scn-card"><h2 class="card-h">Playoff scenarios <small>${c.sims?.toLocaleString?.() || ""} simulations</small></h2>
+    <div class="scn-pick"><select id="scn-sel"><option value="">League coaches</option>${others.map(([k, x]) => `<option value="${k}" ${String(k) === String(scnPick) ? "selected" : ""}>${esc(x.name)} (${x.make}%)</option>`).join("")}</select></div>
+    ${[...picked, ...(picked.length ? [] : users)].map(([k, x]) => scnBlock(k, x)).join("") || '<div class="empty">No league coaches in the race yet.</div>'}
+    <div class="cfp-legend">Odds by how many more games a team loses, plus the other results that help them most. "+6" means that result adds about 6 points to their playoff odds.</div></section>`;
+}
+function wireScn(rerender) { const sel = $("#scn-sel"); if (sel) sel.onchange = () => { scnPick = sel.value; rerender(); }; }
+async function leagueSideCards() {
+  const [pk, pr] = await Promise.all([sideData(`pickem/${hLeague()}.json`), sideData(`power-rankings-${hLeague()}.json`)]);
+  const mv = (m) => (m == null ? '<span class="cfp-d up">NEW</span>' : m > 0 ? `<span class="cfp-d up">▲${m}</span>` : m < 0 ? `<span class="cfp-d dn">▼${-m}</span>` : "–");
+  const prC = pr?.rows?.length ? `<section class="card"><h2 class="card-h">Coach power rankings <small>${esc(pr.label || "")}</small></h2><table class="tbl"><tbody>${pr.rows.map((r) => `<tr class="pr-row"><td style="width:28px;font-weight:800">${r.pos}</td><td style="width:40px">${mv(r.move)}</td>
+    <td style="text-align:left"><div class="team-cell">${badge(r.name)}<span class="nm">${tLink(r.name, r.k)} <small style="display:inline;margin:0">${esc(r.coach)} · ${esc(r.record)}</small></span></div><small>${esc(r.blurb || "")}</small></td></tr>`).join("")}</tbody></table></section>` : "";
+  const pkC = pk?.rows?.length ? `<section class="card"><h2 class="card-h">Pick'em standings <small>${esc(String(pk.season || ""))}</small></h2><table class="tbl"><thead><tr><th></th><th style="text-align:left">Player</th><th>W</th><th>L</th><th>Last</th></tr></thead><tbody>${pk.rows.map((r) => `<tr><td>${r.rank}</td><td style="text-align:left">${esc(r.name)}${r.perfect ? " ⭐" : ""}</td><td><b>${r.w}</b></td><td>${r.l}</td><td>${esc(r.last || "–")}</td></tr>`).join("")}</tbody></table><div class="cfp-legend">Make your picks in the #pickem channel on Discord.</div></section>` : "";
+  return prC + pkC;
+}
+
 function renderCfp() {
   const c = WIRE?.cfp;
   const nav = `<nav class="subnav" aria-label="Standings"><h1>Standings</h1><a href="#standings">Conferences</a><a href="#standings/cfp" aria-current="page">Playoff odds</a></nav>`;
@@ -2400,9 +2446,11 @@ function renderCfp() {
       <div class="scroll"><table class="tbl cfp-t"><thead><tr><th>Team</th><th>Rec</th><th>Make CFP</th><th>Δ</th><th>Bye</th><th>Conf</th><th>Title</th><th>Proj</th><th>Power</th><th>SOS</th><th>Rem SOS</th><th>Pt diff</th><th>OVR</th></tr></thead><tbody>${rows}</tbody></table></div>
       <details class="cfp-legend"><summary>What drives these numbers</summary><p>${esc(c.method)}</p><p><b>Make CFP</b> chance to reach the 12-team field. <b>Δ</b> change since last advance. <b>Bye</b> top-four seed. <b>Conf</b> conference title. <b>Title</b> national championship. <b>Proj</b> average final record. <b>Power</b> rank from team ratings and scoring margin. <b>SOS</b> full-schedule strength rank (1 = hardest). <b>Rem SOS</b> remaining schedule rank (1 = hardest). <b>Pt diff</b> average scoring margin. The dashed line marks the 12-team cut.</p></details></section>
   </div><div>
+    ${scenariosCard(c)}
     <section class="card"><h2 class="card-h">The committee room</h2>${(c.notes || []).map((n) => `<div class="cfp-n"><b>${esc(n.k)}</b>${wireHtml(n.d)}</div>`).join("") || '<div class="empty">Notes appear after the first full week.</div>'}</section>
     ${sw ? `<section class="card"><h2 class="card-h">Games that swing the field <small>Week ${esc(c.next_week ?? "")}</small></h2>${sw}</section>` : ""}
   </div></div>`;
+  wireScn(renderCfp);
 }
 
 /* ---------- offseason features ---------- */

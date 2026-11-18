@@ -13,6 +13,7 @@ const PAGES = "https://pirateflag23.github.io/dynasty-site/data/stories";
 const REPO = "pirateflag23/dynasty-site";
 const WORKFLOW = "player-stats.yml";
 const ON_DECK_HOURS = 60; // keep in step with on_deck_delay_hours in discord.config.json
+const PR_HOURS = 30; // matches power_rankings.after_hours in discord.config.json
 
 async function getJson(url, init) {
   const r = await fetch(url, init);
@@ -42,6 +43,14 @@ async function dispatch(env) {
   if (r.status !== 204) throw new Error(`dispatch -> ${r.status} ${await r.text()}`);
 }
 
+// first 12:00 Eastern at least PR_HOURS after the advance (same rule as discord-feed.mjs)
+function prTarget(since) {
+  const t0 = since + PR_HOURS * 3600e3;
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(new Date(t0)).map((x) => [x.type, x.value]));
+  const h = Number(p.hour) + Number(p.minute) / 60;
+  return t0 + ((12 - h + 24) % 24) * 3600e3;
+}
+
 async function run(env, force = false) {
   if (!env.GH_TOKEN) return { ok: false, why: "GH_TOKEN secret not set" };
   const c = await check(env);
@@ -51,9 +60,15 @@ async function run(env, force = false) {
     onDeckDue = (await env.GREETER.get("ondeck_dispatched")) !== String(c.period);
     if (onDeckDue) await env.GREETER.put("ondeck_dispatched", String(c.period));
   }
-  if (!c.stale && !onDeckDue && !force) return { ok: true, dispatched: false, ...c };
+  // Coach power rankings go out mid-window: the first noon (Eastern) at least PR_HOURS after the advance.
+  let prDue = false;
+  if (c.since && Date.now() >= prTarget(c.since) && env.GREETER) {
+    prDue = (await env.GREETER.get("pr_dispatched")) !== String(c.period);
+    if (prDue) await env.GREETER.put("pr_dispatched", String(c.period));
+  }
+  if (!c.stale && !onDeckDue && !prDue && !force) return { ok: true, dispatched: false, ...c };
   await dispatch(env);
-  return { ok: true, dispatched: true, onDeckDue, ...c };
+  return { ok: true, dispatched: true, onDeckDue, prDue, ...c };
 }
 
 export default {

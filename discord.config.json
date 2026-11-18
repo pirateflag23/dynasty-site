@@ -5,7 +5,9 @@
   "bot_name": "TD",
   "logo_base": "https://dynasty-proxy.jw1388954.workers.dev",
 
-  "graphics": { "top25": true, "final": true, "matchups": true, "recruiting": true, "scores": true, "potw": true, "advance": true, "heisman": true, "headlines": true, "ondeck": true, "schedule": true },
+  "graphics": { "top25": true, "final": true, "matchups": true, "recruiting": true, "scores": true, "potw": true, "advance": true, "heisman": true, "headlines": true, "ondeck": true, "schedule": true, "gotw": true, "pickem": true, "power_rankings": true, "series": true },
+  "bot_url": "https://odl-bot.jw1388954.workers.dev",
+  "power_rankings": { "after_hours": 30 },
 
   "reporter_rules": { "chime_channels": ["general"], "chime_every_hours": 72, "min_people": 3, "thread_hours": 6, "replies_per_day": 25 },
   "reporters": [
@@ -22,6 +24,9 @@
   "advance_notes": ["Please try and schedule your game within 24hr", "Remember to include \"TheDynasty\" in your stream title"],
 
   "channels": {
+    "gotw": "game-of-the-week",
+    "pickem": "pickem",
+    "power_rankings": "power-rankings",
     "final": "final",
     "scores": "scores",
     "top25": "top-25",

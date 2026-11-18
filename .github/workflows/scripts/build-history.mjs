@@ -144,7 +144,7 @@ async function main() {
         if (g.type === "confchamp") { c.cc_apps++; if (res === "w") { c.cc_wins++; c.titles.push({ season: s.season, title: g.label, team: me.t }); row.notes.push(`🏆 ${g.label}`); } else row.notes.push(`${g.label} L`); }
         if (g.type === "cfp" || g.type === "natty") { cfpSeason.add(me.u); if (res !== "t") c[`cfp_${res}`]++; row.notes.push(`${g.label} ${res === "w" ? "W" : "L"}`); }
         if (g.type === "natty") { c.natty_apps++; if (res === "w") { c.natty_wins++; c.titles.push({ season: s.season, title: "National Championship", team: me.t }); } }
-        if (op.u) { const h = (c.h2h[op.u] ??= { w: 0, l: 0, t: 0 }); h[res]++; }
+        if (op.u) { const h = (c.h2h[op.u] ??= { w: 0, l: 0, t: 0, games: [] }); h[res]++; (h.games ??= []).push({ y: s.season, wk: g.label || `Week ${g.w}`, w: g.w, key: g.key, me: me.t, op: op.t, ms: me.s, os: op.s, res, type: g.type }); }
       }
     }
     for (const u of cfpSeason) coach(u).cfp_apps++;

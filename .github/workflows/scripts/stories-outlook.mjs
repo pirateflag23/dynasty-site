@@ -166,15 +166,23 @@ export async function buildOutlook(c) {
     const watch = remaining.filter((g) => g.week === nextWeek);
     const cond = new Map(watch.map((g) => [g.key, { hw: [0, 0], aw: [0, 0], n: 0, hmk: [0, 0], amk: [0, 0] }]));
     const isConf = (g) => { const a = fbs.get(g.home.team_key), b = fbs.get(g.away.team_key); return a.conference === b.conference && !/independent/i.test(a.conference || ""); };
+    // Playoff scenarios: for user teams and anyone .500 or better, track odds by how many more games they lose, with a conference title,
+    // and for every other remaining game, how their odds move with each result ("root for").
+    const scT = standings.data.filter((t) => fbs.has(t.team_key) && (userTeams.has(t.team_key) || t.wins >= t.losses)).map((t) => t.team_key);
+    const SC = new Map(scT.map((k) => [k, { loss: [[0, 0], [0, 0], [0, 0], [0, 0]], champ: [0, 0], made: 0, mh: new Uint32Array(remaining.length) }]));
+    const startL = new Map(standings.data.map((t) => [t.team_key, t.losses]));
+    const homeWins = new Uint32Array(remaining.length), out = new Uint8Array(remaining.length);
     for (let i = 0; i < N; i++) {
       const W = new Map(), L = new Map(), CW = new Map(), CL = new Map();
       for (const t of standings.data) { W.set(t.team_key, t.wins); L.set(t.team_key, t.losses); const [a, b] = confRec(t); CW.set(t.team_key, a || 0); CL.set(t.team_key, b || 0); }
       const outcome = new Map();
-      for (const g of remaining) {
+      for (const [gi, g] of remaining.entries()) {
         const hw = rnd() < pWin(g.home.team_key, g.away.team_key), win = hw ? g.home.team_key : g.away.team_key, lose = hw ? g.away.team_key : g.home.team_key;
+        out[gi] = hw ? 1 : 0; if (hw) homeWins[gi]++;
         W.set(win, W.get(win) + 1); L.set(lose, L.get(lose) + 1); if (isConf(g)) { CW.set(win, CW.get(win) + 1); CL.set(lose, CL.get(lose) + 1); }
         if (cond.has(g.key)) outcome.set(g.key, hw);
       }
+      const regL = new Map(scT.map((k) => [k, L.get(k)]));
       const champs = new Set();
       for (const [, ks] of confs) {
         if (ks.length < 2) { champs.add(ks[0]); continue; }
@@ -193,6 +201,12 @@ export async function buildOutlook(c) {
       const r1 = [play(seeds[4], seeds[11]), play(seeds[5], seeds[10]), play(seeds[6], seeds[9]), play(seeds[7], seeds[8])];
       const qf = [play(seeds[0], r1[3], true), play(seeds[1], r1[2], true), play(seeds[2], r1[1], true), play(seeds[3], r1[0], true)];
       const champ = play(play(qf[0], qf[3], true), play(qf[1], qf[2], true), true); tally.get(champ).title++;
+      for (const k of scT) {
+        const x = SC.get(k), m = field.has(k) ? 1 : 0;
+        const b = Math.max(0, Math.min(3, regL.get(k) - startL.get(k))); x.loss[b][0]++; x.loss[b][1] += m;
+        if (champs.has(k)) { x.champ[0]++; x.champ[1] += m; }
+        if (m) { x.made++; for (let gi = 0; gi < out.length; gi++) if (out[gi]) x.mh[gi]++; }
+      }
       for (const g of watch) { const c2 = cond.get(g.key), hw = outcome.get(g.key) ? 0 : 1; c2.hw[hw]++; if (field.has(g.home.team_key)) c2.hmk[hw]++; if (field.has(g.away.team_key)) c2.amk[hw]++; }
     }
     const base = prevIdx.cfp?.period === cur.id ? prevIdx.cfp.prev_odds || null : prevIdx.cfp ? Object.fromEntries(prevIdx.cfp.teams.map((t) => [t.team, t.make])) : null;
@@ -220,7 +234,30 @@ export async function buildOutlook(c) {
     const g2w = watch.map((g) => { const c2 = cond.get(g.key); const sw = (mk, side) => { const won = side === "h" ? c2.hw[0] : c2.hw[1], lost = side === "h" ? c2.hw[1] : c2.hw[0]; const a = won ? mk[side === "h" ? 0 : 1] / won : 0, b = lost ? mk[side === "h" ? 1 : 0] / lost : 0; return Math.round((a - b) * 100); };
       const hs = sw(c2.hmk, "h"), as = sw(c2.amk, "a"); return { game: g.key, home: g.home.team_key, away: g.away.team_key, home_name: g.home.team, away_name: g.away.team, home_swing: hs, away_swing: as, win_home: Math.round(pWin(g.home.team_key, g.away.team_key) * 100), swing: Math.max(hs, as) }; })
       .filter((g) => g.swing >= 10).sort((a, b) => b.swing - a.swing).slice(0, 5);
-    cfp = { period: cur.id, prev_odds: base, season_text: text, sims: N, next_week: nextWeek, teams, notes, games: g2w,
+    // scenarios, in percentage points
+    const P1 = (a) => (a[0] >= N * 0.005 ? Math.round((a[1] / a[0]) * 1000) / 10 : null), share = (a) => Math.round((a[0] / N) * 1000) / 10;
+    const scenarios = {};
+    for (const [k, x] of SC) {
+      const make = Math.round((x.made / N) * 1000) / 10;
+      if (!userTeams.has(k) && (make < 2 || make > 98)) continue;
+      const root = [];
+      for (const [gi, g] of remaining.entries()) {
+        if (g.home.team_key === k || g.away.team_key === k) continue;
+        const hw = homeWins[gi], aw = N - hw; if (hw < N * 0.03 || aw < N * 0.03) continue;
+        const ifH = x.mh[gi] / hw, ifA = (x.made - x.mh[gi]) / aw, d = Math.round((ifH - ifA) * 1000) / 10;
+        if (Math.abs(d) >= 1.5) root.push({ game: g.key, week: g.week, want: d > 0 ? g.home.team_key : g.away.team_key, want_name: d > 0 ? g.home.team : g.away.team, over: d > 0 ? g.away.team_key : g.home.team_key, over_name: d > 0 ? g.away.team : g.home.team, gain: Math.abs(d) });
+      }
+      root.sort((a, b) => b.gain - a.gain);
+      const own = remaining.find((g) => g.week === nextWeek && (g.home.team_key === k || g.away.team_key === k));
+      let next = null;
+      if (own) { const gi = remaining.indexOf(own), home = own.home.team_key === k, wins = home ? homeWins[gi] : N - homeWins[gi], madeW = home ? x.mh[gi] : x.made - x.mh[gi];
+        next = { game: own.key, opp: home ? own.away.team_key : own.home.team_key, opp_name: home ? own.away.team : own.home.team, home, win: wins ? Math.round((madeW / wins) * 1000) / 10 : null, loss: N - wins ? Math.round(((x.made - madeW) / (N - wins)) * 1000) / 10 : null, win_prob: Math.round((wins / N) * 100) }; }
+      const left = remaining.filter((g) => g.home.team_key === k || g.away.team_key === k).length;
+      scenarios[k] = { name: fbs.get(k).name, user: userTeams.has(k), make, left, next, conf: fbs.get(k).conference,
+        by_losses: x.loss.map((a, i) => ({ losses: i, label: i === 0 ? "Win out" : i === 3 ? "Lose 3+" : `Lose ${i}`, chance: share(a), make: P1(a) })).filter((r) => r.losses <= left),
+        conf_title: P1(x.champ), conf_title_chance: share(x.champ), root: root.slice(0, 4) };
+    }
+    cfp = { period: cur.id, prev_odds: base, season_text: text, sims: N, next_week: nextWeek, teams, notes, games: g2w, scenarios,
       method: "Every remaining regular-season game is simulated 4,000 times from team ratings and scoring margin (home field worth about 2.5 points). Conference title games pit the top two in each league. A committee-style ranking weighs wins, losses, strength of schedule, conference titles and the current poll. The field is the five highest-ranked conference champions plus the next seven, with byes for the top four seeds." };
   } else if (!offseasonWindow && prevIdx.cfp) cfp = { ...prevIdx.cfp, final: true };
 

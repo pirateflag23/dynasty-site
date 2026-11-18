@@ -1,0 +1,11 @@
+// Slash-command + Pick'em bot (odl-bot). Deployed by .github/workflows/deploy-bot.yml.
+// Variables/secrets set in the Cloudflare dashboard (DISCORD_PUBLIC_KEY, DISCORD_APP_ID, DYNASTY_API_KEY, SITE_URL, DATA_URL)
+// are kept on deploy (keep_vars). KV "PICKS" (Pick'em) is added at deploy time.
+{
+  "name": "odl-bot",
+  "main": "worker.js",
+  "account_id": "94040c1270d9dc5406fa79b47377f21f",
+  "compatibility_date": "2026-11-16",
+  "workers_dev": true,
+  "keep_vars": true
+}
