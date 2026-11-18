@@ -77,7 +77,8 @@ async function main() {
   const schedule = await api("/schedule");
   const games = schedule.data;
   const playedCount = games.filter((g) => g.played).length;
-  const sig = `${cur.id}:${leagueRes.data_version}:${playedCount}`; // data_version sits on the response, not league.data
+  const STORY_V = 2; // bump when the story code changes so the next sync rebuilds without forcing every box score
+  const sig = `${cur.id}:${leagueRes.data_version}:${playedCount}:v${STORY_V}`; // data_version sits on the response, not league.data
   if (prevIdx.sig === sig && !process.env.FORCE) { log("Stories up to date."); return; }
   await mkdir(DIR, { recursive: true });
 
