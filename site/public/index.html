@@ -1180,6 +1180,7 @@ function renderStandings() {
       || '<div class="card"><div class="empty">Standings not synced yet.</div></div>'}`;
   $("#uo").onclick = () => { standingsUsersOnly = !standingsUsersOnly; renderStandings(); };
   wireScn(renderStandings);
+  if (!WIRE) wireLoad().then((w) => { if (w?.cfp && location.hash.replace(/^#/, "") === "standings") renderStandings(); });
   leagueSideCards().then((h) => { const el = $("#std-top"); if (el && h && !el.dataset.side) { el.dataset.side = 1; el.insertAdjacentHTML("beforeend", h); } });
 }
 
