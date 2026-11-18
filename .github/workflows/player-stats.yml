@@ -54,6 +54,10 @@ jobs:
           FORCE: ${{ inputs.force && '1' || '' }}
           OUTLOOK_TEST: ${{ inputs.test_offseason && '1' || '' }}
         run: node .github/workflows/scripts/build-stories.mjs
+      - name: TD Wire AI desk (beat-writer rewrite of the week's stories)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node .github/workflows/scripts/ai-writer.mjs
       - name: Register slash commands (only when they change)
         if: ${{ hashFiles('discord.config.json') != '' }}
         env:
