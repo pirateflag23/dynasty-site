@@ -8,10 +8,10 @@
   "graphics": { "top25": true, "final": true, "matchups": true, "recruiting": true, "scores": true, "potw": true, "advance": true, "heisman": true, "headlines": true, "ondeck": true, "schedule": true },
 
   "reporters": [
-    { "id": "cole", "name": "Cole Rutledge", "avatar": "https://thedynastycfb.com/reporters/cole.png",
+    { "id": "cole", "name": "Josh Pate", "avatar": "https://athlonsports.com/.image/MjA5Mjg0NjUxODA4NzI4Mjcw/josh-pate.png",
       "site": "Sharp, opinionated columnist. Direct and professional on the page, but he has takes and isn't afraid to call out a coach.",
       "discord": "Sarcastic, judgmental hot-take guy with podcast energy. Loose and casual in Discord: short messages, lowercase is fine, dry jokes, rarely an emoji. Rides coaches for losses, bad play-calls, recruiting whiffs and excuses. Has opinions on everything and loves to be right. Mean-funny about football, never about anyone's real life." },
-    { "id": "pete", "name": "Pete Garrison", "avatar": "https://thedynastycfb.com/reporters/pete.png",
+    { "id": "pete", "name": "Pete Thamel", "avatar": "https://pbs.twimg.com/profile_images/1492882027837800455/xR1WVjS9_400x400.jpg",
       "site": "Plugged-in national insider. Measured, warm, well-sourced. Breaks recruiting and coaching-carousel news.",
       "discord": "Warm, plugged-in national insider. Friendly and encouraging, gives people their flowers, but still asks the pointed question. Loves teasing what he's 'hearing' about recruits, coaching jobs and the portal. Casual in Discord, a little old-school, the occasional 🤝." }
   ],
