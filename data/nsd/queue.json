@@ -3,257 +3,256 @@
  "league_id": 4943020,
  "channel_id": "1571602273149259836",
  "channel": "recruiting",
- "start": "2026-11-18T17:02:55.077Z",
- "end": "2026-11-18T17:32:55.077Z",
- "built": "2026-11-18T16:52:55.078Z",
- "test": true,
+ "start": "2026-11-18T18:50:03.648Z",
+ "end": "2026-11-18T19:20:03.648Z",
+ "built": "2026-11-18T18:40:03.649Z",
+ "test": false,
  "items": [
   {
    "id": "open",
-   "title": "\ud83d\udcdd National Signing Day is LIVE",
+   "title": "📝 National Signing Day is LIVE",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/open.png",
-   "at": "2026-11-18T17:02:55.077Z"
+   "at": "2026-11-18T18:50:03.648Z"
   },
   {
    "id": "s561119238",
-   "title": "\u270d\ufe0f Signed: 4\u2605 ATH Xavier Bobo \u2192 Ohio State",
+   "title": "✍️ Signed: 4★ ATH Xavier Bobo → Ohio State",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561119238.png",
-   "at": "2026-11-18T17:04:55.077Z"
+   "at": "2026-11-18T18:52:03.648Z"
   },
   {
    "id": "s561123188",
-   "title": "\u270d\ufe0f Signed: 4\u2605 WR Dalvin Melton \u2192 USC",
+   "title": "✍️ Signed: 4★ WR Dalvin Melton → USC",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561123188.png",
-   "at": "2026-11-18T17:05:43.491Z"
+   "at": "2026-11-18T18:52:52.062Z"
   },
   {
    "id": "s561121384",
-   "title": "\u270d\ufe0f Signed: 4\u2605 SAM Tobias Hamrick \u2192 Indiana",
+   "title": "✍️ Signed: 4★ SAM Tobias Hamrick → Indiana",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561121384.png",
-   "at": "2026-11-18T17:06:31.905Z"
+   "at": "2026-11-18T18:53:40.476Z"
   },
   {
    "id": "s561124086",
-   "title": "\u270d\ufe0f Signed: 4\u2605 WR Adonis LeCounte \u2192 Indiana",
+   "title": "✍️ Signed: 4★ WR Adonis LeCounte → Indiana",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561124086.png",
-   "at": "2026-11-18T17:07:20.318Z"
+   "at": "2026-11-18T18:54:28.889Z"
   },
   {
    "id": "s561125438",
-   "title": "\u270d\ufe0f Signed: 4\u2605 DT Chance Law \u2192 UCLA",
+   "title": "✍️ Signed: 4★ DT Chance Law → UCLA",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561125438.png",
-   "at": "2026-11-18T17:08:08.732Z"
+   "at": "2026-11-18T18:55:17.303Z"
   },
   {
    "id": "s561123260",
-   "title": "\u270d\ufe0f Signed: 4\u2605 CB Joey Yusaf \u2192 UCLA",
+   "title": "✍️ Signed: 4★ CB Joey Yusaf → UCLA",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561123260.png",
-   "at": "2026-11-18T17:08:57.146Z"
+   "at": "2026-11-18T18:56:05.717Z"
   },
   {
    "id": "s561119391",
-   "title": "\u270d\ufe0f Signed: 4\u2605 MIKE Elijah Glowinski \u2192 UCLA",
+   "title": "✍️ Signed: 4★ MIKE Elijah Glowinski → UCLA",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561119391.png",
-   "at": "2026-11-18T17:09:45.560Z"
+   "at": "2026-11-18T18:56:54.131Z"
   },
   {
    "id": "s561123152",
-   "title": "\u270d\ufe0f Signed: 4\u2605 MIKE Dwayne Chin \u2192 Ole Miss",
+   "title": "✍️ Signed: 4★ MIKE Dwayne Chin → Ole Miss",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561123152.png",
-   "at": "2026-11-18T17:10:33.974Z"
+   "at": "2026-11-18T18:57:42.545Z"
   },
   {
    "id": "s561125329",
-   "title": "\u270d\ufe0f Signed: 5\u2605 MIKE Hasheem Wonnum \u2192 Notre Dame",
+   "title": "✍️ Signed: 5★ MIKE Hasheem Wonnum → Notre Dame",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561125329.png",
-   "at": "2026-11-18T17:11:22.387Z"
+   "at": "2026-11-18T18:58:30.958Z"
   },
   {
    "id": "s561120370",
-   "title": "\u270d\ufe0f Signed: 5\u2605 REDG George Feeney \u2192 Oklahoma",
+   "title": "✍️ Signed: 5★ REDG George Feeney → Oklahoma",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561120370.png",
-   "at": "2026-11-18T17:12:10.801Z"
+   "at": "2026-11-18T18:59:19.372Z"
   },
   {
    "id": "s561124450",
-   "title": "\u270d\ufe0f Signed: 5\u2605 ATH Alex Reinbolt \u2192 Alabama",
+   "title": "✍️ Signed: 5★ ATH Alex Reinbolt → Alabama",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561124450.png",
-   "at": "2026-11-18T17:12:59.215Z"
+   "at": "2026-11-18T19:00:07.786Z"
   },
   {
    "id": "s561121905",
-   "title": "\u270d\ufe0f Signed: 5\u2605 WR Jay Kirkendoll \u2192 LSU",
+   "title": "✍️ Signed: 5★ WR Jay Kirkendoll → LSU",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561121905.png",
-   "at": "2026-11-18T17:13:47.629Z"
+   "at": "2026-11-18T19:00:56.200Z"
   },
   {
    "id": "s561123500",
-   "title": "\u270d\ufe0f Signed: 5\u2605 WR Juan Barkow \u2192 Oklahoma",
+   "title": "✍️ Signed: 5★ WR Juan Barkow → Oklahoma",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561123500.png",
-   "at": "2026-11-18T17:14:36.043Z"
+   "at": "2026-11-18T19:01:44.614Z"
   },
   {
    "id": "c832438359",
-   "title": "\ud83d\udccb Ohio State signs 1: Tuddy_Roosevelt's class is in",
+   "title": "📋 Ohio State signs 1: Tuddy_Roosevelt's class is in",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/c832438359.png",
-   "at": "2026-11-18T17:15:24.456Z"
+   "at": "2026-11-18T19:02:33.027Z"
   },
   {
    "id": "s561119712",
-   "title": "\u270d\ufe0f Signed: 5\u2605 CB Alex Leamon \u2192 Miami",
+   "title": "✍️ Signed: 5★ CB Alex Leamon → Miami",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561119712.png",
-   "at": "2026-11-18T17:16:12.870Z"
+   "at": "2026-11-18T19:03:21.441Z"
   },
   {
    "id": "s561122657",
-   "title": "\u270d\ufe0f Signed: 5\u2605 WR Devin Mama \u2192 Alabama",
+   "title": "✍️ Signed: 5★ WR Devin Mama → Alabama",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561122657.png",
-   "at": "2026-11-18T17:17:01.284Z"
+   "at": "2026-11-18T19:04:09.855Z"
   },
   {
    "id": "s561122126",
-   "title": "\u270d\ufe0f Signed: 5\u2605 FS Patrick Leber \u2192 Georgia",
+   "title": "✍️ Signed: 5★ FS Patrick Leber → Georgia",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561122126.png",
-   "at": "2026-11-18T17:17:49.698Z"
+   "at": "2026-11-18T19:04:58.269Z"
   },
   {
    "id": "s561124299",
-   "title": "\u270d\ufe0f Signed: 5\u2605 DT Ezekiel Pratt \u2192 Clemson",
+   "title": "✍️ Signed: 5★ DT Ezekiel Pratt → Clemson",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561124299.png",
-   "at": "2026-11-18T17:18:38.111Z"
+   "at": "2026-11-18T19:05:46.682Z"
   },
   {
    "id": "s561124210",
-   "title": "\u270d\ufe0f Signed: 5\u2605 ATH Bryson Tippmann \u2192 Georgia",
+   "title": "✍️ Signed: 5★ ATH Bryson Tippmann → Georgia",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561124210.png",
-   "at": "2026-11-18T17:19:26.525Z"
+   "at": "2026-11-18T19:06:35.096Z"
   },
   {
    "id": "s561120345",
-   "title": "\u270d\ufe0f Signed: 5\u2605 REDG Rashard Hardy \u2192 Alabama",
+   "title": "✍️ Signed: 5★ REDG Rashard Hardy → Alabama",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561120345.png",
-   "at": "2026-11-18T17:20:14.939Z"
+   "at": "2026-11-18T19:07:23.510Z"
   },
   {
    "id": "s561119775",
-   "title": "\u270d\ufe0f Signed: 5\u2605 MIKE James Lockett \u2192 Michigan",
+   "title": "✍️ Signed: 5★ MIKE James Lockett → Michigan",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561119775.png",
-   "at": "2026-11-18T17:21:03.353Z"
+   "at": "2026-11-18T19:08:11.924Z"
   },
   {
    "id": "s561120305",
-   "title": "\u270d\ufe0f Signed: 5\u2605 LEDG Ahmad Rugamba \u2192 Pittsburgh",
+   "title": "✍️ Signed: 5★ LEDG Ahmad Rugamba → Pittsburgh",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561120305.png",
-   "at": "2026-11-18T17:21:51.767Z"
+   "at": "2026-11-18T19:09:00.338Z"
   },
   {
    "id": "s561125440",
-   "title": "\u270d\ufe0f Signed: 5\u2605 CB Rico Wilcox \u2192 Oregon",
+   "title": "✍️ Signed: 5★ CB Rico Wilcox → Oregon",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561125440.png",
-   "at": "2026-11-18T17:22:40.180Z"
+   "at": "2026-11-18T19:09:48.751Z"
   },
   {
    "id": "s561125068",
-   "title": "\u270d\ufe0f Signed: 5\u2605 SAM Austin Tyms \u2192 Oregon",
+   "title": "✍️ Signed: 5★ SAM Austin Tyms → Oregon",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561125068.png",
-   "at": "2026-11-18T17:23:28.594Z"
+   "at": "2026-11-18T19:10:37.165Z"
   },
   {
    "id": "s561123998",
-   "title": "\u270d\ufe0f Signed: 5\u2605 CB Cordell Christmas \u2192 Notre Dame",
+   "title": "✍️ Signed: 5★ CB Cordell Christmas → Notre Dame",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561123998.png",
-   "at": "2026-11-18T17:24:17.008Z"
+   "at": "2026-11-18T19:11:25.579Z"
   },
   {
    "id": "s561119882",
-   "title": "\u270d\ufe0f Signed: 5\u2605 ATH Kenneth Morey \u2192 Oklahoma",
+   "title": "✍️ Signed: 5★ ATH Kenneth Morey → Oklahoma",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561119882.png",
-   "at": "2026-11-18T17:25:05.422Z"
+   "at": "2026-11-18T19:12:13.993Z"
   },
   {
    "id": "s561120807",
-   "title": "\u270d\ufe0f Signed: 5\u2605 HB Ezekiel Bush \u2192 Ole Miss",
+   "title": "✍️ Signed: 5★ HB Ezekiel Bush → Ole Miss",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561120807.png",
-   "at": "2026-11-18T17:25:53.836Z"
+   "at": "2026-11-18T19:13:02.407Z"
   },
   {
    "id": "c832438301",
-   "title": "\ud83d\udccb East Carolina signs 13: H0ldStillPlease's class is in",
+   "title": "📋 East Carolina signs 13: H0ldStillPlease's class is in",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/c832438301.png",
-   "at": "2026-11-18T17:26:42.249Z"
+   "at": "2026-11-18T19:13:50.820Z"
   },
   {
    "id": "s561122246",
-   "title": "\u270d\ufe0f Signed: 5\u2605 ATH Akeem Roche \u2192 Miami",
+   "title": "✍️ Signed: 5★ ATH Akeem Roche → Miami",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/s561122246.png",
-   "at": "2026-11-18T17:27:30.663Z"
+   "at": "2026-11-18T19:14:39.234Z"
   },
   {
    "id": "t10",
-   "title": "\ud83d\udd1f No. 10: 5\u2605 ATH Melvin Azumah \u2192 Nebraska",
+   "title": "🔟 No. 10: 5★ ATH Melvin Azumah → Nebraska",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/t10.png",
-   "at": "2026-11-18T17:27:31.077Z"
+   "at": "2026-11-18T19:14:39.648Z"
   },
   {
    "id": "t9",
-   "title": "\ud83d\udd1f No. 9: 5\u2605 WR Josh Duggan \u2192 Georgia",
+   "title": "🔟 No. 9: 5★ WR Josh Duggan → Georgia",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/t9.png",
-   "at": "2026-11-18T17:28:03.077Z"
+   "at": "2026-11-18T19:15:11.648Z"
   },
   {
    "id": "t8",
-   "title": "\ud83d\udd1f No. 8: 5\u2605 ATH Cornell Provo \u2192 Tennessee",
+   "title": "🔟 No. 8: 5★ ATH Cornell Provo → Tennessee",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/t8.png",
-   "at": "2026-11-18T17:28:35.077Z"
+   "at": "2026-11-18T19:15:43.648Z"
   },
   {
    "id": "t7",
-   "title": "\ud83d\udd1f No. 7: 5\u2605 REDG Fernando Cutrera \u2192 Notre Dame",
+   "title": "🔟 No. 7: 5★ REDG Fernando Cutrera → Notre Dame",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/t7.png",
-   "at": "2026-11-18T17:29:07.077Z"
+   "at": "2026-11-18T19:16:15.648Z"
   },
   {
    "id": "t6",
-   "title": "\ud83d\udd1f No. 6: 5\u2605 HB George Banogu \u2192 Ole Miss",
+   "title": "🔟 No. 6: 5★ HB George Banogu → Ole Miss",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/t6.png",
-   "at": "2026-11-18T17:29:39.077Z"
+   "at": "2026-11-18T19:16:47.648Z"
   },
   {
    "id": "t5",
-   "title": "\ud83d\udd1f No. 5: 5\u2605 HB Ron Locke \u2192 Alabama",
+   "title": "🔟 No. 5: 5★ HB Ron Locke → Alabama",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/t5.png",
-   "at": "2026-11-18T17:30:11.077Z"
+   "at": "2026-11-18T19:17:19.648Z"
   },
   {
    "id": "t4",
-   "title": "\ud83d\udd1f No. 4: 5\u2605 WR Charles Asiodu \u2192 Tennessee",
+   "title": "🔟 No. 4: 5★ WR Charles Asiodu → Tennessee",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/t4.png",
-   "at": "2026-11-18T17:30:43.077Z"
+   "at": "2026-11-18T19:17:51.648Z"
   },
   {
    "id": "t3",
-   "title": "\ud83d\udd1f No. 3: 5\u2605 WR Manny Newcombe \u2192 Notre Dame",
+   "title": "🔟 No. 3: 5★ WR Manny Newcombe → Notre Dame",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/t3.png",
-   "at": "2026-11-18T17:31:15.077Z"
+   "at": "2026-11-18T19:18:23.648Z"
   },
   {
    "id": "t2",
-   "title": "\ud83d\udd1f No. 2: 5\u2605 WILL Brian Toviessi \u2192 SMU",
+   "title": "🔟 No. 2: 5★ WILL Brian Toviessi → SMU",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/t2.png",
-   "at": "2026-11-18T17:31:47.077Z"
+   "at": "2026-11-18T19:18:55.648Z"
   },
   {
    "id": "t1",
-   "title": "\ud83d\udd1f No. 1: 5\u2605 WILL Kristian Malchow \u2192 Oklahoma",
+   "title": "🔟 No. 1: 5★ WILL Kristian Malchow → Oklahoma",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/t1.png",
-   "at": "2026-11-18T17:32:19.077Z"
+   "at": "2026-11-18T19:19:27.648Z"
   },
   {
    "id": "close",
-   "title": "\ud83c\udfc6 Signing Day final: the top classes",
+   "title": "🏆 Signing Day final: the top classes",
    "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2027/close.png",
-   "at": "2026-11-18T17:32:55.077Z"
+   "at": "2026-11-18T19:20:03.648Z"
   }
- ],
- "retired": "early test show; already posted"
+ ]
 }
