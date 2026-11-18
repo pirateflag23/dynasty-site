@@ -63,10 +63,18 @@ async function leagueContext(env) {
   const stories = latest ? ["games", "recruiting", "portal"].flatMap((c) => (latest[c] || []).slice(0, 6).map((s) => ({ id: s.id, user: !!s.user, team: s.team, h: plain(s.h), d: plain(s.d) }))) : [];
   const reporters = Array.isArray(cfg.reporters) && cfg.reporters.length ? cfg.reporters.map((r) => ({ id: r.id, name: r.name, avatar: r.avatar, voice: r.discord })) : null;
   const ctx = { reporters, at: Date.now(), period: latest?.period?.id || null, week: latest?.period?.season_text || "", stories, storylines: lines?.weeks?.slice(-1)[0]?.lines || [],
-    coaches: cfg.coaches || {} };
+    coaches: cfg.coaches || {}, rules: { ...RULES, ...(cfg.reporter_rules || {}) } };
   await kvPut(env, "rep:ctx", ctx);
   return ctx;
 }
+// How chatty they are. Override any of these in discord.config.json -> "reporter_rules".
+const RULES = {
+  chime_channels: ["general"], // the only places they ever post unprompted
+  chime_every_hours: 72,       // at most one unprompted drop-in per this many hours (one reporter, league-wide)
+  min_people: 3,               // ...and only into a conversation with at least this many people going
+  thread_hours: 6,             // once someone engages, that reporter keeps answering for this long after the last exchange
+  replies_per_day: 25,
+};
 const level = (ctx) => { const n = Number(/Wk (\d+)/.exec(ctx.week || "")?.[1] || 1); return Math.max(0.25, Math.min(1, (n - 1) / 12)); };
 
 function system(rep, ctx, mode) {
@@ -142,12 +150,22 @@ export async function runReporters(env, now = Date.now()) {
   const did = [], errors = [];
   const post = async (rep, chId, text) => { try { await say(env, rep, chId, text, members); return true; } catch (e) { errors.push(String(e.message).slice(0, 200)); return false; } };
 
-  // 1) Replies: someone replied to a reporter or called one by name.
-  for (const m of fresh) {
-    if (counts.replies >= 40 || did.length >= 3) break;
-    let rep = REPORTERS.find((r) => r.call.test(m.content));
+  const R = ctx.rules || RULES;
+  const active = await kvJ(env, "rep:active", null); // {id, ch, at}: the one reporter currently in a conversation
+  const inThread = (chId) => active && active.ch === chId && now - active.at < R.thread_hours * 3600e3;
+
+  // 1) Replies: someone replied to a reporter, called one by name, or kept talking in the thread a reporter is in.
+  //    One reply per run so they never pile on.
+  for (const m of [...fresh].reverse()) {
+    if (counts.replies >= R.replies_per_day || did.length) break;
     const ref = m.referenced_message;
-    if (!rep && ref?.webhook_id && ourHooks.has(ref.webhook_id)) rep = REPORTERS.find((r) => r.name === ref.author.username);
+    let rep = ref?.webhook_id && ourHooks.has(ref.webhook_id) ? REPORTERS.find((r) => r.name === ref.author.username) : null;
+    if (!rep) rep = REPORTERS.find((r) => r.call.test(m.content));
+    if (!rep && inThread(m._ch.id)) {
+      // still talking with the active reporter? only answer if the message plausibly is to them (recent back-and-forth)
+      const lastRep = (convo[m._ch.id] || []).filter((x) => x.webhook_id && ourHooks.has(x.webhook_id)).pop();
+      if (lastRep && (convo[m._ch.id] || []).filter((x) => BigInt(x.id) > BigInt(lastRep.id) && !x.webhook_id).length <= 2) rep = REPORTERS.find((r) => r.id === active.id);
+    }
     if (!rep) continue;
     const who = m.member?.nick || m.author.global_name || m.author.username;
     const isCoach = Object.values(ctx.coaches).some((c) => String(c).toLowerCase() === m.author.username.toLowerCase());
@@ -157,40 +175,27 @@ export async function runReporters(env, now = Date.now()) {
       q.push({ coach: who, handle: m.author.username, text: m.content.slice(0, 240), to: rep.name, at: new Date(now).toISOString() });
       await kvPut(env, "rep:quotes", q.slice(-60));
     }
-    const out = await claude(env, system(rep, ctx, `Someone just talked to you (or replied to you). Answer them directly, in character; tag them with @${m.author.username}. Usually post; only skip if there's genuinely nothing to say.`),
+    const out = await claude(env, system(rep, ctx, `Someone just talked to you (or replied to you). Answer them directly, in character; tag them with @${m.author.username}. Keep it short. Post if they're actually engaging with you; set post to false if the message wasn't really meant for you.`),
       `Channel #${m._ch.name}, recent messages (oldest first):\n${(convo[m._ch.id] || []).map(fmt).join("\n")}\n\nMessage you're answering, from ${who} (@${m.author.username})${ref ? ` replying to "${String(ref.content).slice(0, 200)}"` : ""}:\n${m.content}`).catch(() => null);
-    if (out?.post && out.text && await post(rep, m._ch.id, out.text)) { counts.replies++; did.push(`${rep.id} replied in #${m._ch.name}`); }
+    if (out?.post && out.text && await post(rep, m._ch.id, out.text)) { counts.replies++; await kvPut(env, "rep:active", { id: rep.id, ch: m._ch.id, at: now }); did.push(`${rep.id} replied in #${m._ch.name}`); }
   }
 
-  // 2) After an advance: go get comments from coaches about this week's stories.
-  if (ctx.period && (await kvJ(env, "rep:period")) !== ctx.period) {
-    await kvPut(env, "rep:period", ctx.period);
-    const want = 1 + Math.round(2 * lv);
-    const userStories = ctx.stories.filter((s) => s.user).slice(0, want);
-    for (const [i, s] of userStories.entries()) {
-      const rep = REPORTERS[i % REPORTERS.length];
-      const team = Object.keys(ctx.coaches).find((t) => s.h.includes(t) || s.d.includes(t));
-      const slug = team ? team.toLowerCase().replace(/[^a-z0-9]+/g, "-") : null;
-      const ch = chans.find((c) => slug && c.name.includes(slug) && /-at-/.test(c.name)) || chans.find((c) => c.name === "general");
-      if (!ch) continue;
-      const out = await claude(env, system(rep, ctx, `You're going to a league coach for comment on a story you're working on. Ask ONE pointed question (or rib them, if that's your style) and tag the coach${team ? ` of ${team} (@${ctx.coaches[team]})` : ""}. Always post.`),
-        `The story: ${s.h}. ${s.d}`).catch(() => null);
-      if (out?.text && await post(rep, ch.id, out.text)) did.push(`${rep.id} asked in #${ch.name}`);
-    }
-  }
-
-  // 3) Now and then, chime in on a live conversation.
-  const cap = Math.round(2 + 6 * lv);
-  if (!did.length && counts.spont < cap) {
+  // 2) Rarely, one reporter drops into a busy #general conversation (an argument, a pile-on, a big debate).
+  //    No more press rounds in the matchup chats after advances.
+  if (!did.length && !(active && now - active.at < R.thread_hours * 3600e3)) {
     const lastSpont = await kvJ(env, "rep:lastspont", 0);
-    const live = Object.entries(convo).map(([id, ms]) => ({ id, ms, humans: ms.filter((m) => !m.author.bot && !m.webhook_id && now - Date.parse(m.timestamp) < 15 * 60e3) }))
-      .filter((x) => x.humans.length >= 2).sort((a, b) => b.humans.length - a.humans.length)[0];
-    if (live && now - lastSpont > 45 * 60e3 && Math.random() < 0.35 * lv + 0.1) {
+    const ok = new Set(R.chime_channels);
+    const live = Object.entries(convo).filter(([id]) => ok.has(chans.find((c) => c.id === id)?.name))
+      .map(([id, ms]) => { const humans = ms.filter((m) => !m.author.bot && !m.webhook_id && now - Date.parse(m.timestamp) < 30 * 60e3); return { id, ms, humans, people: new Set(humans.map((m) => m.author.id)).size }; })
+      .filter((x) => x.people >= R.min_people && x.humans.length >= R.min_people + 2).sort((a, b) => b.humans.length - a.humans.length)[0];
+    if (live && now - lastSpont > R.chime_every_hours * 3600e3) {
       const rep = REPORTERS[Math.floor(Math.random() * REPORTERS.length)];
       const ch = chans.find((c) => c.id === live.id);
-      const out = await claude(env, system(rep, ctx, "You're lurking in this channel. Only post if you have something funny, sharp or newsy to add to what people are talking about; otherwise set post to false. Don't repeat what someone already said."),
+      const out = await claude(env, system(rep, ctx, "You're lurking in a busy conversation with several people. Only post if you have something genuinely funny, sharp or newsy to add (taking a side in an argument is fine); otherwise set post to false. One message, don't repeat what someone already said."),
         `Channel #${ch.name}, recent messages (oldest first):\n${live.ms.map(fmt).join("\n")}`).catch(() => null);
-      if (out?.post && out.text && await post(rep, ch.id, out.text)) { counts.spont++; await kvPut(env, "rep:lastspont", now); did.push(`${rep.id} chimed in #${ch.name}`); }
+      // a pass still uses up the window, so they don't keep circling the same conversation
+      await kvPut(env, "rep:lastspont", out?.post ? now : now - (R.chime_every_hours - 6) * 3600e3);
+      if (out?.post && out.text && await post(rep, ch.id, out.text)) { counts.spont++; await kvPut(env, "rep:active", { id: rep.id, ch: ch.id, at: now }); did.push(`${rep.id} chimed in #${ch.name}`); }
     }
   }
   await kvPut(env, `rep:day:${day}`, counts, 3 * 86400);
