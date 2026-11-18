@@ -3202,9 +3202,8 @@
  },
  "nsd": {
   "2027": {
-   "built": "2026-11-18T18:40:03.649Z",
-   "start": "2026-11-18T18:50:03.648Z",
-   "n": 41
+   "skipped": true,
+   "note": "tested earlier; real show runs from the next new season"
   }
  },
  "recBook": {

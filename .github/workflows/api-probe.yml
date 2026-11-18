@@ -1,0 +1,27 @@
+name: API probe (dev)
+# Saves raw Dynasty API responses as a downloadable artifact, for finding what data exists. Nothing is committed.
+on:
+  workflow_dispatch:
+    inputs:
+      paths:
+        description: "Space-separated API paths to fetch"
+        default: "/ /openapi.json /docs /endpoints /periods /recruits?type=transfers /recruits/commits?type=transfers /players-leaving /leaving /retention /transfers /portal /raw /raw-screens /screens /draft /draft-results /coaches /staff"
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch
+        env:
+          KEY: ${{ secrets.DYNASTY_API_KEY }}
+          PATHS: ${{ inputs.paths }}
+        run: |
+          mkdir -p probe
+          for p in $PATHS; do
+            f="probe/$(echo "$p" | tr '/?=&' '____').json"
+            code=$(curl -s -o "$f" -w '%{http_code}' -H "Authorization: Bearer $KEY" "https://dynasty.prestonchoate.dev/v1$p")
+            echo "$code $p ($(wc -c < "$f") bytes)" | tee -a probe/_index.txt
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-probe
+          path: probe/
