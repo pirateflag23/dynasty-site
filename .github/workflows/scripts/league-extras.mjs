@@ -307,7 +307,9 @@ export async function signingDay(x) {
     rows: classes.slice(0, 20).map((c) => ({ rank: c.rank, name: c.name, logo: x.logoFor(c.name, map), coach: x.userTeams.has(c.team_key) ? x.coachName(c.team_key) : "", pts: c.points != null ? `${c.points} pts` : `${c.commits?.total ?? ""}` })), label, siteLogo, colors }));
 
   // timing: opener at start, singles + class cards through 80% of the window, countdown to the end, final rankings last
-  const start = TEST || x.DRY ? Date.now() + 10 * 60e3 : nextEt(C.start_et, 20 * 60e3), H = C.hours * 3600e3;
+  // start_now (testing): begin 10 minutes after the build and squeeze the show into `test_minutes`
+  const quick = TEST || x.DRY || C.start_now;
+  const start = quick ? Date.now() + 10 * 60e3 : nextEt(C.start_et, 20 * 60e3), H = C.start_now ? (C.test_minutes ?? 30) * 60e3 : C.hours * 3600e3;
   const mid = items.filter((q) => q.id !== "open" && q.id !== "close" && !/^t\d+$/.test(q.id)), cd = items.filter((q) => /^t\d+$/.test(q.id));
   const at = (t) => new Date(Math.round(t)).toISOString();
   for (const q of items) {
