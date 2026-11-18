@@ -6,6 +6,9 @@ on:
       paths:
         description: "Space-separated API paths to fetch"
         default: "/ /openapi.json /docs /endpoints /periods /recruits?type=transfers /recruits/commits?type=transfers /players-leaving /leaving /retention /transfers /portal /raw /raw-screens /screens /draft /draft-results /coaches /staff"
+      filter:
+        description: "Optional jq filter applied to each response's .data (printed in the log)"
+        default: ""
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -14,6 +17,7 @@ jobs:
         env:
           KEY: ${{ secrets.DYNASTY_API_KEY }}
           PATHS: ${{ inputs.paths }}
+          FILTER: ${{ inputs.filter }}
         run: |
           mkdir -p probe
           for p in $PATHS; do
@@ -22,6 +26,7 @@ jobs:
             echo "$code $p ($(wc -c < "$f") bytes)" | tee -a probe/_index.txt
             # log a compact sample (artifacts aren't always downloadable): keys, row count, first two rows
             jq -c '{keys: (if type=="object" then keys else null end), n: (.data|length? // null), first: (.data[0:2]? // .)}' "$f" 2>/dev/null | cut -c1-6000 || head -c 1500 "$f"
+            [ -n "$FILTER" ] && jq -c ".data | $FILTER" "$f" 2>&1 | cut -c1-8000
             echo
           done
       - name: List API endpoints (openapi.json)
