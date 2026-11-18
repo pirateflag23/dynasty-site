@@ -93,5 +93,6 @@ jobs:
           git config user.email "odl-stats-bot@users.noreply.github.com"
           git add data/
           git commit -m "Update ODL data"
-          git pull --rebase --autostash || true
+          # data files are rebuilt whole each run: on a clash, this run's (newer) copy wins
+          git pull --rebase -X theirs --autostash || { git rebase --abort; git pull --no-rebase -X ours --no-edit; } || true
           git push

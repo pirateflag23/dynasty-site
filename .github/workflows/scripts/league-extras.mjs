@@ -249,7 +249,7 @@ function nextEt(hhmm, lead) {
   return now + d * 60e3;
 }
 export async function signingDay(x) {
-  const C = { start_et: "19:00", hours: 3, min_signed: 40, ...(x.cfg.nsd || {}) };
+  const C = { start_et: "19:00", hours: 3, min_signed: 40, after_stage: 7, ...(x.cfg.nsd || {}) };
   const ch = x.pickChannel(x.cfg.channels.signing_day || x.cfg.channels.recruiting);
   if (!ch) return;
   const TEST = process.env.NSD_TEST === "1";
@@ -260,12 +260,12 @@ export async function signingDay(x) {
   const all = (await x.api("/recruits").catch(() => ({ data: [] }))).data || [];
   const signed = all.filter((r) => !r.transfer && (TEST ? r.committed : r.signed) && r.school?.team_id);
   if (signed.length < C.min_signed) return;
-  // The real Signing Day comes after the four transfer-portal weeks: that's when nearly every committed
-  // recruit signs at once. Early signees trickle in before that, so wait until most commits have signed
-  // (signed_share, default 80%) and, if set, until the offseason stage reaches after_stage.
+  // The real Signing Day comes after the four transfer-portal weeks (portal week 1 = OFF Stg 3, so NSD = Stg 7).
+  // Most recruits already show as signed well before that, so the offseason stage is the trigger (nsd.after_stage,
+  // default 7); the signed-share check is only a backstop.
   if (!TEST) {
     const stage = +(/OFF\s*Stg\s*(\d+)/i.exec(x.cur.season_text || "")?.[1] || 0);
-    if (C.after_stage && stage < C.after_stage) return;
+    if (C.after_stage && stage < C.after_stage) return; // also keeps it quiet in-season (stage 0)
     const committed = all.filter((r) => !r.transfer && (r.committed || r.signed) && r.school?.team_id).length;
     if (signed.length < (C.signed_share ?? 0.8) * committed) { x.log(`Signing Day: ${signed.length} of ${committed} commits signed so far (early signees); waiting for NSD.`); return; }
   }
