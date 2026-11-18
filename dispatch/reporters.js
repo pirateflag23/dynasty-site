@@ -14,7 +14,8 @@ const MODEL = "claude-sonnet-5-5";
 const GUILD = "1569397791313232013";
 const HOOK_NAME = "TD Wire reporters";
 
-const REPORTERS = [
+// Defaults; the live names, avatars and voices come from "reporters" in discord.config.json.
+let REPORTERS = [
   { id: "cole", name: "Cole Rutledge", avatar: `${SITE}/reporters/cole.png`, call: /\b(cole|rutledge)\b/i,
     voice: "Sarcastic, judgmental hot-take guy with podcast energy. Loose and casual in Discord: short messages, lowercase is fine, dry jokes, rarely an emoji. Rides coaches for losses, bad play-calls, recruiting whiffs and excuses. Has opinions on everything and loves to be right. Mean-funny about football, never about anyone's real life." },
   { id: "pete", name: "Pete Garrison", avatar: `${SITE}/reporters/pete.png`, call: /\b(pete|garrison)\b/i,
@@ -60,7 +61,8 @@ async function leagueContext(env) {
   const lines = await get(`${RAW}/data/stories/${lid}/storylines.json`);
   const plain = (s) => String(s || "").replace(/\[\[\w:[^|\]]*\|([^\]]*)\]\]/g, "$1");
   const stories = latest ? ["games", "recruiting", "portal"].flatMap((c) => (latest[c] || []).slice(0, 6).map((s) => ({ id: s.id, user: !!s.user, team: s.team, h: plain(s.h), d: plain(s.d) }))) : [];
-  const ctx = { at: Date.now(), period: latest?.period?.id || null, week: latest?.period?.season_text || "", stories, storylines: lines?.weeks?.slice(-1)[0]?.lines || [],
+  const reporters = Array.isArray(cfg.reporters) && cfg.reporters.length ? cfg.reporters.map((r) => ({ id: r.id, name: r.name, avatar: r.avatar, voice: r.discord })) : null;
+  const ctx = { reporters, at: Date.now(), period: latest?.period?.id || null, week: latest?.period?.season_text || "", stories, storylines: lines?.weeks?.slice(-1)[0]?.lines || [],
     coaches: cfg.coaches || {} };
   await kvPut(env, "rep:ctx", ctx);
   return ctx;
@@ -117,6 +119,7 @@ export async function runReporters(env, now = Date.now()) {
   if (!env.DISCORD_BOT_TOKEN || !env.ANTHROPIC_API_KEY || !env.GREETER) return { ok: false, why: "needs DISCORD_BOT_TOKEN, ANTHROPIC_API_KEY and KV" };
   if ((await kvJ(env, "rep:off")) === true) return { ok: true, off: true };
   const ctx = await leagueContext(env);
+  if (ctx.reporters) REPORTERS = ctx.reporters.map((r) => ({ ...r, call: new RegExp(`\\b(${r.name.split(/\s+/).map((w) => w.replace(/[^\w]/g, "")).filter(Boolean).join("|")})\\b`, "i") }));
   const lv = level(ctx);
   const day = new Date(now).toISOString().slice(0, 10);
   const counts = await kvJ(env, `rep:day:${day}`, { spont: 0, replies: 0 });
