@@ -55,7 +55,7 @@
   "coaches": { "East Carolina": "Pirate_flag", "Ohio State": "Tuddy_roosevelt",
     "Penn State": "agerm40" },
   "commish_role": "Badmin",
-  "position_rules": [{ "from": "WR", "to": "TE", "min_height": 75, "min_weight": 230, "max_speed": 82, "note": "WR to TE only at 6'3\"+, 230+ lb and 82 speed or slower" }],
+  "position_rules": [{ "from": "WR", "to": "TE", "min_height": 75, "min_weight": 230, "max_speed": 83, "note": "WR to TE only at 6'3\"+, 230+ lb and 83 speed or slower" }],
 
   "matchups": {
     "keep_previous_weeks": 0
