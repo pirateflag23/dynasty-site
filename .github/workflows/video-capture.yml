@@ -1,0 +1,29 @@
+name: Video capture (dev)
+# Screenshots of the live site + recent Discord posts for the promo video, pushed to the video-assets branch.
+on:
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: 'JSON list of [name, hash, {opts}, phone?]'
+        default: '[["home","#home"]]'
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm i --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+      - name: Capture
+        env:
+          PAGES: ${{ inputs.pages }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: node tools/video/capture.mjs
+      - name: Push to video-assets
+        run: |
+          cd out
+          git init -q && git checkout -q -b video-assets
+          git config user.name "video-capture" && git config user.email "actions@users.noreply.github.com"
+          git add -A && git commit -qm "capture $(date -u +%FT%TZ)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" video-assets
