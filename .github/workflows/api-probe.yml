@@ -20,6 +20,9 @@ jobs:
             f="probe/$(echo "$p" | tr '/?=&' '____').json"
             code=$(curl -s -o "$f" -w '%{http_code}' -H "Authorization: Bearer $KEY" "https://dynasty.prestonchoate.dev/v1$p")
             echo "$code $p ($(wc -c < "$f") bytes)" | tee -a probe/_index.txt
+            # log a compact sample (artifacts aren't always downloadable): keys, row count, first two rows
+            jq -c '{keys: (if type=="object" then keys else null end), n: (.data|length? // null), first: (.data[0:2]? // .)}' "$f" 2>/dev/null | cut -c1-6000 || head -c 1500 "$f"
+            echo
           done
       - uses: actions/upload-artifact@v4
         with:
