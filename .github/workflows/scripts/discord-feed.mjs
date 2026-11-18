@@ -16,7 +16,7 @@
 //        data/player-stats-all.json (from build-player-stats.mjs), data/bot/*.json (written for the slash bot)
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { gameOfTheWeek, pickem, powerRankings, seriesFor, carouselCards, signingDay, recordDesk } from "./league-extras.mjs";
+import { gameOfTheWeek, pickem, powerRankings, seriesFor, carouselCards, signingDay, recordDesk, positionRules } from "./league-extras.mjs";
 // Graphics (PNG) need the packages in ./graphics — loaded lazily so text posts still work without them.
 const graphics = () => import("./graphics/top25.mjs");
 const finalGraphics = () => import("./graphics/final.mjs");
@@ -228,7 +228,7 @@ async function main() {
     return rivalryNames;
   };
   await loadRivals();
-  const X = { api, dc, teamKeyById: (id) => byTeamId.get(id), channelId: (n) => textCh(n), lid: league.league_id ?? league.data.league_id, cfg, cur, games, teams, userTeams, state, DRY, log, short, rk, site, once, send, seen, mark, seeding,
+  const X = { api, dc, roleId, teamKeyById: (id) => byTeamId.get(id), channelId: (n) => textCh(n), lid: league.league_id ?? league.data.league_id, cfg, cur, games, teams, userTeams, state, DRY, log, short, rk, site, once, send, seen, mark, seeding,
     replay: (f) => REPLAY.has(f), tName, coachName: (k) => coachName(k), logoFor, logoMap: () => logoMap(), pickChannel: (v) => pickChannel(v),
     siteLogo: () => gfxSiteLogo(), colors: () => gfxColors(), nowWeek: () => nowWeek(), lastResult: (k) => lastResult(k),
     rivalryName: (g) => rivalryNames.get(`${g.away.team}|${g.home.team}`) || "",
@@ -273,7 +273,11 @@ async function main() {
 
   /* ============ #top-25 ============ */
   if (standings.period?.id === cur.id) {
-    await once(`top25:${cur.id}`, "top25", cfg.channels.top25, () => top25Embed());
+    // offseason stages don't move the poll: only re-post when the order actually changes
+    const off = /OFF/i.test(cur.season_text || "");
+    const pollSig = standings.data.filter((t) => t.rank && t.rank <= 25).sort((a, b) => a.rank - b.rank).map((t) => t.team_key).join(",");
+    if (!off || state.top25Sig !== pollSig) await once(`top25:${cur.id}`, "top25", cfg.channels.top25, () => top25Embed());
+    if (!DRY) state.top25Sig = pollSig;
   }
 
   /* ============ #announcements: "we have advanced" card, once per new week ============ */
@@ -324,6 +328,7 @@ async function main() {
     await carouselCards(X).catch((e) => log(`Carousel failed: ${e.message}`));
     await signingDay(X).catch((e) => log(`Signing Day failed: ${e.message}`));
     await recordDesk(X).catch((e) => log(`Record desk failed: ${e.message}`));
+    await positionRules(X).catch((e) => log(`Position rules failed: ${e.message}`));
   }
 
   /* ============ #heisman: weekly watch in-season → one winner card → quiet until Week 0 ============ */

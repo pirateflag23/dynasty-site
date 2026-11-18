@@ -420,3 +420,44 @@ async function peteLine(x, rep, facts) {
     return ((await r.json()).content?.map((c) => c.text || "").join("") || "").trim() || null;
   } catch (e) { x.log(`Record desk AI fell back to template: ${e.message}`); return null; }
 }
+
+/* ---------------- League rule: position changes (Badmin alert in #join-log) ----------------
+   Rules live in discord.config.json "position_rules". Default: a WR may move to TE only if he is at least
+   6'4" (76 in), at least 230 lb and 82 speed or slower. Any league-team player whose position changed since
+   the last sync is checked; a break pings Badmin once per player and move. */
+const ftIn = (h) => `${Math.floor(h / 12)}'${h % 12}"`;
+export async function positionRules(x) {
+  const rules = x.cfg.position_rules ?? [{ from: "WR", to: "TE", min_height: 76, min_weight: 230, max_speed: 82 }];
+  if (!rules.length || !x.userTeams.size) return;
+  const snap = x.state.posSnap || {}, next = {};
+  let base = null; // first run: compare with the end-of-season roster the draft desk saved
+  if (!Object.keys(snap).length) { const r = await readJ(`data/draft/${x.lid}/roster-${x.cur.season}.json`); base = r?.p || {}; }
+  const breaks = [];
+  for (const tk of x.userTeams) {
+    const ros = (await x.api(`/rosters?team=${tk}`).catch(() => null))?.data || [];
+    for (const p of ros) {
+      const was = snap[p.player_key] ?? base?.[p.player_key]?.[3] ?? null;
+      next[p.player_key] = p.position;
+      if (!was || was === p.position) continue;
+      x.log(`Position change: ${p.name} (${x.tName(tk)}) ${was} → ${p.position}`);
+      for (const r of rules.filter((q) => q.from === was && q.to === p.position)) {
+        const spd = p.ratings?.speed, fails = [];
+        if (r.min_height && !(p.height >= r.min_height)) fails.push(`height ${ftIn(p.height)} (needs ${ftIn(r.min_height)}+)`);
+        if (r.min_weight && !(p.weight >= r.min_weight)) fails.push(`weight ${p.weight} lb (needs ${r.min_weight}+)`);
+        if (r.max_speed && !(spd <= r.max_speed)) fails.push(`speed ${spd} (max ${r.max_speed})`);
+        const key = `posrule:${p.player_key}:${was}>${p.position}`;
+        if (fails.length && !x.seen(key)) breaks.push({ key, p, tk, r, was, spd, fails });
+      }
+    }
+  }
+  x.state.posSnap = next; // league-team rosters only
+  for (const b of breaks) {
+    const role = x.roleId(x.cfg.commish_role || "Badmin");
+    const coach = x.coachName(b.tk);
+    const content = `${role ? `<@&${role}> ` : ""}🚩 **Position-change rule broken**\n**${b.p.name}** (${x.tName(b.tk)}${coach ? `, ${coach}` : ""}) was moved **${b.was} → ${b.p.position}**: ${ftIn(b.p.height)}, ${b.p.weight} lb, ${b.spd} speed, ${b.p.overall} OVR.\nFails: ${b.fails.join("; ")}.\nRule: ${b.was} → ${b.p.position} only at ${ftIn(b.r.min_height)}+ / ${b.r.min_weight}+ lb / ${b.r.max_speed} speed or slower.`;
+    if (x.DRY) x.log(`[dry] #join-log: ${content}`);
+    else await x.send(x.cfg.channels?.rules_log || "join-log", { content, allowed_mentions: { roles: role ? [role] : [] } });
+    x.mark(b.key);
+  }
+  if (breaks.length) x.log(`Position rules: ${breaks.length} alert(s) sent.`);
+}
