@@ -3,7 +3,7 @@
   "through": 2025,
   "career": {
     "passYards": { "holder": "Case Keenum", "school": "Houston", "years": "2007-11", "value": 19217 },
-    "passTD": { "holder": "Case Keenum / Dillon Gabriel", "school": "Houston / Oregon", "years": "2011, 2024", "value": 155, "note": "Gabriel tied Keenum in his final game" },
+    "passTD": { "holder": "Case Keenum / Dillon Gabriel", "school": "Houston / Oregon", "years": "2011, 2024", "value": 155 },
     "rushYards": { "holder": "Donnel Pumphrey", "school": "San Diego State", "years": "2013-16", "value": 6405 },
     "rushTD": { "holder": "Keenan Reynolds", "school": "Navy", "years": "2012-15", "value": 88 },
     "receivingYards": { "holder": "Corey Davis", "school": "Western Michigan", "years": "2013-16", "value": 5278 },
