@@ -346,6 +346,58 @@ async function main() {
   const portalStories = portal.sort((a, b) => b.score - a.score).filter((s) => { if (pSeen.has(s.player)) return false; pUsed[s.kind] = (pUsed[s.kind] || 0) + 1; if (pUsed[s.kind] > (pCaps[s.kind] || 3)) return false; pSeen.add(s.player); return true; })
     .slice(0, 18).map((s, i) => { const v = Array.isArray(s.h) ? s.h[(pRot[s.kind] = (pRot[s.kind] ?? hash(s.player) % s.h.length) + 1) % s.h.length] : s.h; return { ...s, h: capH(v.replace(/\.(\]\])?\./g, ".$1")) }; });
 
+  /* ===================== RETENTION: once the portal opens, who Portal Watch flagged and whether he stayed ===================== */
+  // The game's "players leaving" persuasion odds aren't in the API, so the flight-risk read is TD Wire's own:
+  // how many weeks he sat on Portal Watch and why (buried, underpaid, sinking ship …), plus any NIL raise since
+  // the season ended. Flagged + still on the roster once the portal is open = he was kept. Flagged + in the portal = gone.
+  const retention = [];
+  if (/OFF/i.test(cur.season_text || "") && allRos.length) try {
+    const tp = (await api("/recruits?type=transfers").catch(() => ({ data: [] }))).data || [];
+    const inPortal = new Set(tp.filter((r) => r.transfer_from?.name).map((r) => `${nk(r.first_name)}${nk(r.last_name)}|${r.position}|${nk(r.transfer_from.name)}`));
+    const arc = await readJson(`${DIR}/news-${cur.season}.json`, { stories: [] });
+    const flags = new Map();
+    for (const st of arc.stories) {
+      if (st.cat !== "portal" || !st.player || !["breakout", "underpaid", "fit", "buried", "sinking", "struggling"].includes(st.kind)) continue;
+      const f = flags.get(st.player) || flags.set(st.player, { kinds: new Set(), periods: new Set(), team: st.team }).get(st.player);
+      f.kinds.add(st.kind); f.periods.add(st.first_period ?? st.period); f.team ??= st.team;
+    }
+    const endRos = (await readJson(`data/draft/${LID}/roster-${cur.season}.json`, {}))?.p || {};
+    const now = new Map(allRos.map((x) => [x.player_key, x]));
+    const W = { underpaid: 3, sinking: 3, buried: 3, fit: 2, breakout: 2, struggling: 1 };
+    const WHY = { underpaid: "underpaid for his rating", sinking: "stuck on a losing team", buried: "buried on the depth chart", fit: "a bad fit for the scheme", breakout: "about to get expensive after a rating jump", struggling: "under fire for his numbers" };
+    const portalOpen = tp.some((r) => r.transfer_from?.name);
+    if (portalOpen) for (const [pk, f] of flags) {
+      const was = endRos[pk], x = now.get(+pk), tk = x?.team_key ?? was?.[0] ?? f.team; if (!tk) continue;
+      const first = x?.first_name ? `${nk(x.first_name)}${nk(x.last_name)}` : null;
+      const name = x?.name || was?.[5] || "", pos = x?.position || was?.[3] || "";
+      const gone = first ? inPortal.has(`${first}|${pos}|${nk(tName(tk))}`) : [...inPortal].some((k) => k.endsWith(`|${pos}|${nk(tName(tk))}`) && name && k.startsWith(nk(name.split(".").pop())));
+      if (!x && !gone) continue; // graduated, drafted or otherwise off the books
+      if (x && x.team_key !== tk) continue;
+      const kinds = [...f.kinds].sort((a, b) => W[b] - W[a]), weeks = f.periods.size;
+      const risk = W[kinds[0]] + Math.min(weeks, 6) * 0.5 + (kinds.length > 1 ? 1 : 0); // ~2 … 7.5
+      const level = risk >= 5 ? "high" : risk >= 3.5 ? "medium" : "low";
+      const nilWas = was?.[2] ?? null, nilNow = x?.nil_compensation ?? null, raise = nilWas != null && nilNow != null && nilNow - nilWas >= 25 ? nilNow - nilWas : 0;
+      const PT = P(pk, name), TT = tTok(tk), user = userTeams.has(tk), seed = pk + "ret" + cur.season, why = kinds.slice(0, 2).map((k) => WHY[k]).join(" and ");
+      const wk = `${weeks} week${weeks === 1 ? "" : "s"}`;
+      if (!gone) retention.push({ id: `${pk}:stayed:${cur.season}`, cat: "portal", kind: "stayed", player: +pk, team: tk, user, risk: level,
+        kick: level === "high" ? "Against the odds" : "Staying put", score: 60 + risk * 8 + (user ? 30 : 0) + (raise ? 10 : 0),
+        h: capH(level === "high" ? pick(seed, [`Against the odds, ${TT} keeps ${PT}`, `${PT} was a flight risk. ${TT} talked him into staying`, `Nobody gave ${TT} much of a chance to keep ${PT}. He's staying`])
+          : pick(seed, [`${PT} is staying at ${TT}`, `${TT} keeps ${PT} out of the portal`, `Portal Watch had ${PT} on the list. He isn't going anywhere`])),
+        d: `${PT} spent ${wk} on TD Wire's Portal Watch, ${why}${level === "high" ? ", and our read had him as one of the likelier names to leave" : ""}. The portal is open and he's still on the ${TT} roster.${raise ? ` The money helped: his NIL went from ${nilWas}K to ${nilNow}K.` : ""}`,
+        quote: { text: pick(seed + "q", level === "high" ? ["Honestly, I thought he was gone. The staff went to work on him.", "That one was closer than people think.", "They had to sell him on the plan, and they did."] : ["He likes it there. It was never as close as the outside noise made it.", "The staff kept him in the loop the whole way.", "He wants to finish what he started."]), by: user ? `a source close to ${tName(tk)}` : "a source familiar with the decision" } });
+      else retention.push({ id: `${pk}:gone:${cur.season}`, cat: "portal", kind: "gone", player: +pk, team: tk, user, risk: level, kick: "Portal Watch called it",
+        score: 55 + risk * 6 + (user ? 30 : 0),
+        h: capH(pick(seed, [`${PT} hits the portal, and Portal Watch saw it coming`, `${TT} couldn't keep ${PT}: he's in the transfer portal`, `${PT} is officially in the portal after ${wk} on the watch list`])),
+        d: `TD Wire flagged ${PT} for ${wk}, ${why}. He's now in the transfer portal, leaving a hole at ${TT}.` });
+    }
+    retention.sort((a, b) => b.score - a.score);
+    const keep = [...retention.filter((s) => s.kind === "stayed").slice(0, 10), ...retention.filter((s) => s.kind === "gone").slice(0, 6)];
+    const kp = new Set(keep.map((s) => s.player));
+    for (let i = portalStories.length - 1; i >= 0; i--) if (kp.has(portalStories[i].player)) portalStories.splice(i, 1); // the retention story replaces his watch entry
+    portalStories.unshift(...keep);
+    if (keep.length) log(`Retention: ${keep.filter((s) => s.kind === "stayed").length} kept, ${keep.filter((s) => s.kind === "gone").length} gone (of ${flags.size} flagged).`);
+  } catch (e) { log(`Retention stories skipped: ${e.message}`); }
+
   /* ===================== OUTLOOK: crystal ball, CFP odds, offseason features ===================== */
   for (const x of allRos) { if (!rosterCache.has(x.team_key)) rosterCache.set(x.team_key, Promise.resolve(allRos.filter((y) => y.team_key === x.team_key))); }
   const outlook = await buildOutlook({ api, readJson, DIR, LID, cur, prevIdx, games, standings, teamStats, team, ts, userTeams, tName, tTok, keyOfSchool, reasonsFor, board, events,
