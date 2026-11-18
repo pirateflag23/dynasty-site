@@ -252,6 +252,13 @@ async function main() {
   // scheme vs. archetype, depth chart, NIL pay vs. market, rating jumps, team record, stats.
   const portal = [];
   const allRos = (await api("/rosters?scope=all").catch(() => ({ data: [] }))).data || [];
+  // Draft inputs: keep every Pro Potential read (draft picks per school, per position group, by round band) and the
+  // last in-season roster of each year, so the offseason draft can diff them.
+  try {
+    const pp = await api("/school-grades/pro-potential");
+    const ppDir = `data/draft/${LID}/pro-potential`, f = `${ppDir}/${pp.period?.id ?? "x"}.json`;
+    if (!(await readJson(f))) { await mkdir(ppDir, { recursive: true }); await writeFile(f, JSON.stringify({ period: pp.period, data: pp.data })); log(`Draft: saved Pro Potential read ${pp.period?.season_text}`); }
+  } catch (e) { log(`Draft: Pro Potential read failed: ${e.message}`); }
   const statsFile = await readJson("data/player-stats-all.json", { data: [], stat_keys: [] });
   const statOf = new Map(statsFile.data.map((x) => [x.player_key, x.stats || {}]));
   // weekly overall snapshots (every FBS player) to spot rating jumps between advances

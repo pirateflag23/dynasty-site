@@ -10,7 +10,7 @@
 // The offseason pieces compare against data/stories/<league>/baseline.json, an end-of-season
 // snapshot (team, overall, NIL, depth chart spot, key ratings) rewritten every in-season advance.
 
-import { writeFile } from "node:fs/promises";
+import { writeFile, mkdir } from "node:fs/promises";
 
 // key ratings by position group, in the words a reporter would use
 const RATING_WORDS = {
@@ -63,6 +63,7 @@ export async function buildOutlook(c) {
     const b = { season: cur.season, period: cur.id, season_text: text, teams: Object.fromEntries(standings.data.map((t) => [t.team_key, [passR.get(t.team_key) || null, rushR.get(t.team_key) || null, t.record]])), p: {} };
     for (const x of allRos) b.p[x.player_key] = [x.team_key, x.overall, x.nil_compensation ?? 0, x.position, depthRank(x), x.name, x.class_year, (KEYS[GROUP[x.position]] || []).map((k) => x.ratings?.[k] ?? null)];
     await writeFile(`${DIR}/baseline.json`, JSON.stringify(b));
+    { const dd = DIR.replace("data/stories/", "data/draft/"); await mkdir(dd, { recursive: true }); await writeFile(`${dd}/roster-${cur.season}.json`, JSON.stringify(b)); } // last in-season roster of the year, for the draft
     baseline = b;
   }
   if (TEST && baseline) { // perturb a copy so the offseason code has something to find
