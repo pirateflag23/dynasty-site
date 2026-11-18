@@ -76,7 +76,9 @@ async function main() {
     if (!latest?.period) continue;
     const cache = await readJson(`${DIR}/ai-cache.json`, {});
     const memory = await readJson(`${DIR}/storylines.json`, { weeks: [] });
-    const quotes = await readJson(`${DIR}/coach-quotes.json`, { quotes: [] }); // filled by the Discord reporters later
+    // What league coaches told Cole and Pete in Discord (kept by the odl-dispatch Worker).
+    let quotes = { quotes: [] };
+    try { const r = await fetch("https://odl-dispatch.jw1388954.workers.dev/quotes"); if (r.ok) quotes = { quotes: (await r.json()).map((q) => ({ coach: q.coach, text: q.text })) }; } catch { /* none */ }
     const cats = ["games", "recruiting", "portal"];
     // if a story was already rewritten (build-stories skipped this sync), go back to its template facts
     const base = (s) => (s.facts ? { ...s, h: s.facts.h, d: s.facts.d, quote: s.facts.quote ?? null, kick: s.facts.kick ?? s.kick } : s);

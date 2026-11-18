@@ -6,6 +6,7 @@
 // The Action's own concurrency group serializes overlapping runs.
 
 import { runGreeter, inspectGreeter } from "./greeter.js";
+import { runReporters, quotes, reporterStatus } from "./reporters.js";
 
 const PROXY = "https://dynasty-proxy.jw1388954.workers.dev/v1";
 const PAGES = "https://pirateflag23.github.io/dynasty-site/data/stories";
@@ -59,12 +60,16 @@ export default {
   // Cron runs every 2 minutes: the Discord greeter every time, the sync check every 10 minutes.
   async scheduled(event, env, ctx) {
     ctx.waitUntil(runGreeter(env, event.scheduledTime).then((x) => console.log("greeter", JSON.stringify(x))).catch((e) => console.error("greeter", String(e))));
+    ctx.waitUntil(runReporters(env, event.scheduledTime).then((x) => console.log("reporters", JSON.stringify(x))).catch((e) => console.error("reporters", String(e))));
     if (new Date(event.scheduledTime).getUTCMinutes() % 10 === 0)
       ctx.waitUntil(run(env).then((x) => console.log(JSON.stringify(x))).catch((e) => console.error(String(e))));
   },
   // GET / shows what the next cron would do (never dispatches). Handy for checking from a browser.
   async fetch(req, env) {
-    if (new URL(req.url).pathname === "/greeter") {
+    const path = new URL(req.url).pathname;
+    if (path === "/quotes") return Response.json(await quotes(env), { headers: { "access-control-allow-origin": "*" } });
+    if (path === "/reporters") { try { return Response.json(await reporterStatus(env)); } catch (e) { return new Response(String(e), { status: 502 }); } }
+    if (path === "/greeter") {
       try { return Response.json(await inspectGreeter(env)); } catch (e) { return new Response(String(e), { status: 502 }); }
     }
     try { return Response.json({ hasToken: !!env.GH_TOKEN, ...(await check(env)) }); }
