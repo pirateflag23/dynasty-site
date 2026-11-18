@@ -35,7 +35,7 @@
     "portal": "transfer-portal",
     "potw": "national-potw",
     "commish": "commish-board",
-    "matchups_category": "Matchups",
+    "matchups_category": ["Scheduling chats", "Scheduling Chats", "Matchups"],
     "announcements": ["announcements", "announcement", "annoucement", "annoucements"],
     "on_deck": ["on-deck"],
     "schedule": "schedule",

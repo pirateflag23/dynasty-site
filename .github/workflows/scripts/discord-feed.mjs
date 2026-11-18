@@ -817,7 +817,9 @@ async function main() {
   }
 
   async function matchupChats() {
-    const cat = chan[`4:${(cfg.channels.matchups_category || "").toLowerCase()}`] || (DRY ? "cat" : null);
+    // category name(s): first one that exists (renaming the category in Discord only needs a matching name here)
+    const catNames = [cfg.channels.matchups_category].flat().filter(Boolean);
+    const cat = catNames.map((n) => chan[`4:${n.toLowerCase()}`]).find(Boolean) || (DRY ? "cat" : null);
     if (!cat) { log(`⚠️  Category "${cfg.channels.matchups_category}" not found — skipping matchup chats.`); return; }
     const open = games.filter((g) => !g.played);
     if (!open.length) return;
