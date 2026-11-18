@@ -514,6 +514,7 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
 .wire-b{padding:10px 14px;border-top:1px solid var(--line-2)}.wire-b:first-of-type{border-top:0}
 .wire-b h3{margin:0 0 4px;font:800 15px/1.25 var(--head)}.wire-b p{margin:0;font-size:13px;color:var(--dim);line-height:1.45}
 .wire-b .kick{font:800 11px/1 var(--head);color:var(--red);font-style:italic;margin-bottom:4px}
+.wire-by{font:600 11px var(--body);color:var(--dim);margin-top:6px;letter-spacing:.2px}.wire-by .rumor{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:3px;background:#f2b134;color:#141414;font:800 9.5px var(--head);text-transform:uppercase;letter-spacing:.5px;vertical-align:1px}
 .wire-tag{font:700 10px var(--head);color:var(--dim);letter-spacing:.4px;text-transform:uppercase;padding:8px 14px 0}
 </style>
 <style id="tour-css">
@@ -2224,6 +2225,8 @@ function wireHtml(s) {
   return out + esc(s.slice(last));
 }
 const wireQuote = (q) => (q?.text ? `<blockquote class="wire-q">“${esc(q.text)}”<cite>${esc(q.by || "")}</cite></blockquote>` : "");
+// byline + "Rumor mill" tag on stories written by the TD Wire AI desk
+const wireBy = (st) => (st?.by ? `<div class="wire-by">By ${esc(st.by)}${st.rumor ? ' <span class="rumor">Rumor mill</span>' : ""}</div>` : "");
 const wireTeamName = (k) => teamByKey(k)?.name || games().map((g) => [g.home, g.away]).flat().find((s) => s.team_key === k)?.team || "";
 function wireGameCards(list) {
   const pairKinds = /^(upset|comeback|ot|rivalry|shutout|blowout)$/;
@@ -2231,16 +2234,16 @@ function wireGameCards(list) {
     const g = games().find((x) => x.key === st.game);
     const other = g ? (g.home.team_key === st.team ? g.away : g.home).team : "";
     const art = storyArt({ id: st.id, type: st.kind.split(":")[0], team: wireTeamName(st.team), team2: pairKinds.test(st.kind) ? other : "" });
-    return `<article class="story-card"><div class="art">${art}</div><div class="txt"><div class="kick">${esc(st.kick)}</div><h3>${wireHtml(st.h)}</h3>${st.d ? `<p>${wireHtml(st.d)}</p>` : ""}${wireQuote(st.quote)}</div></article>`;
+    return `<article class="story-card"><div class="art">${art}</div><div class="txt"><div class="kick">${esc(st.kick)}</div><h3>${wireHtml(st.h)}</h3>${st.d ? `<p>${wireHtml(st.d)}</p>` : ""}${wireQuote(st.quote)}${wireBy(st)}</div></article>`;
   }).join("");
 }
 const wireRecruit = (e) => WIRE?.recruiting?.find((s) => s.id === `${e.prospect_key}${e.kind}`);
 function wireBattlesCard() {
   const b = (WIRE?.recruiting || []).filter((s) => s.kind === "battle").slice(0, 6);
-  return b.length ? `<section class="card"><h2 class="card-h">Recruiting battles <small>TD Wire</small></h2>${b.map((s) => `<div class="wire-b"><div class="kick">${esc(s.kick)}</div><h3>${wireHtml(s.h)}</h3><p>${wireHtml(s.d)}</p></div>`).join("")}</section>` : "";
+  return b.length ? `<section class="card"><h2 class="card-h">Recruiting battles <small>TD Wire</small></h2>${b.map((s) => `<div class="wire-b"><div class="kick">${esc(s.kick)}</div><h3>${wireHtml(s.h)}</h3><p>${wireHtml(s.d)}</p>${wireBy(s)}</div>`).join("")}</section>` : "";
 }
 const PW_KINDS = [["", "All"], ["breakout", "Price tag rising"], ["underpaid", "Underpaid"], ["fit", "Bad fit"], ["buried", "Buried"], ["struggling", "Under fire"], ["sinking", "Sinking ship"]];
-const pwItem = (s) => { const tn = wireTeamName(s.team); return `<div class="pw${s.user ? " mine" : ""}" data-k="${esc(s.kind)}"><div class="lg">${tn ? badge(tn) : ""}</div><div><div class="kick">${esc(s.kick)}</div><h3>${wireHtml(s.h)}</h3><p>${wireHtml(s.d)}</p>${s.user ? '<div class="meta">League team</div>' : ""}</div></div>`; };
+const pwItem = (s) => { const tn = wireTeamName(s.team); return `<div class="pw${s.user ? " mine" : ""}" data-k="${esc(s.kind)}"><div class="lg">${tn ? badge(tn) : ""}</div><div><div class="kick">${esc(s.kick)}</div><h3>${wireHtml(s.h)}</h3><p>${wireHtml(s.d)}</p>${wireBy(s)}${s.user ? '<div class="meta">League team</div>' : ""}</div></div>`; };
 function wirePortalTeaser() {
   const p = (WIRE?.portal || []).slice(0, 3);
   return p.length ? `<section class="card"><h2 class="card-h">Portal Watch <small><a class="tl" href="#recruiting/portal">See all ${WIRE.portal.length}</a></small></h2>${p.map(pwItem).join("")}</section>` : "";
@@ -2343,7 +2346,7 @@ function renderFeature(id) {
 // Recruiting news: use the Wire's headline/story when one exists for the event.
 const _newsHeadline = newsHeadline, _newsDeck = newsDeck;
 newsHeadline = (e) => { const h = _newsHeadline(e), w = wireRecruit(e); return w ? { ...h, html: wireHtml(w.h) } : h; };
-newsDeck = (e, r) => { const w = wireRecruit(e); return w ? wireHtml(w.d) + wireQuote(w.quote) : _newsDeck(e, r); };
+newsDeck = (e, r) => { const w = wireRecruit(e); return w ? wireHtml(w.d) + wireQuote(w.quote) + wireBy(w) : _newsDeck(e, r); };
 
 const ROUTES = { home: renderHome, scores: renderScores, standings: renderStandings, recruiting: renderRecruiting };
 function route() {
