@@ -324,14 +324,19 @@ async function main() {
     // 5) struggling star
     let bad = null;
     if (starter && x.overall >= 85 && (st.gamesPlayed || 0) >= 3) {
-      if (x.position === "QB" && st.passAttempts >= 60 && (st.passerRating < 115 || st.passINT >= 6)) bad = `${st.passCompletion}-of-${st.passAttempts}, ${st.passYards} yards, ${st.passTD} TD, ${st.passINT} INT (${st.passerRating?.toFixed?.(1) ?? st.passerRating} rating)`;
+      // QB: needs a genuinely poor line. A 42-8 season with a few picks is not "under fire".
+      const tdInt = st.passINT ? st.passTD / st.passINT : st.passTD;
+      if (x.position === "QB" && st.passAttempts >= 60 && ((st.passerRating < 115 && tdInt < 2.5) || st.passINT > st.passTD || (st.passINT >= 10 && tdInt < 1.5))) bad = `${st.passCompletion}-of-${st.passAttempts}, ${st.passYards} yards, ${st.passTD} TD, ${st.passINT} INT (${st.passerRating?.toFixed?.(1) ?? st.passerRating} rating)`;
       if (x.position === "HB" && st.rushAttempts >= 40 && st.rushYards / st.rushAttempts < 4) bad = `${st.rushAttempts} carries for ${st.rushYards} yards (${(st.rushYards / st.rushAttempts).toFixed(1)} a carry)`;
       if (x.position === "WR" && (st.receivingYards || 0) / st.gamesPlayed < 35) bad = `${st.receiveReceptions || 0} catches for ${st.receivingYards || 0} yards in ${st.gamesPlayed} games`;
       if (x.position === "K" && st.kickFieldGoalAttempts >= 5 && st.kickFieldGoalsMade / st.kickFieldGoalAttempts < 0.65) bad = `${st.kickFieldGoalsMade}-of-${st.kickFieldGoalAttempts} on field goals`;
     }
+    // winning teams don't put their stars on blast: skip top-10 / 75%+ teams unless the numbers are truly ugly
+    if (bad && (winPct(tk) >= 0.75 || (ranked(tk) && ranked(tk) <= 10)) && !(x.position === "QB" && st.passerRating < 100)) bad = null;
+    const offSzn = /OFF/i.test(cur?.season_text || "");
     if (bad) add({ kind: "struggling", kick: "Under fire", score: 45 + (x.overall - 85) * 3 + boost,
       h: ([`Is ${TT} ready to go a different direction than ${PT}?`, `${PT} was supposed to be a star. The numbers say otherwise`, `Ratings say ${x.overall}. The stat sheet says something else for ${PT}`]),
-      d: `${bad}. For ${ov} ${pos}${ranked(tk) ? ` on a ranked team` : ""}, that won't cut it. ${pick(seed + "s2", ["The staff will have a big decision this offseason.", "Don't be surprised if the coaches shop the portal at his position.", "One more rough month and the whispers get louder."])}` });
+      d: `${bad}. For ${ov} ${pos}${ranked(tk) ? ` on a ranked team` : ""}, that won't cut it. ${pick(seed + "s2", offSzn ? ["The staff has a big decision to make before next season.", "Don't be surprised if the coaches shop the portal at his position.", "He'll have to win the job back in camp."] : ["The staff will have a big decision this offseason.", "Don't be surprised if the coaches shop the portal at his position.", "One more rough month and the whispers get louder."])}` });
     // 6) star on a sinking ship
     if (x.overall >= 88 && ["SO", "JR"].includes(x.class_year) && gp >= 3 && winPct(tk) <= 0.35) add({ kind: "sinking", kick: "Sinking ship", score: 40 + (x.overall - 88) * 4 + boost,
       h: ([`${PT} deserves better than ${recOf(tk)}. Contenders will be calling`, `Wasted on ${an(recOf(tk))} ${recOf(tk)} team? ${PT} would be the portal's top prize`]),

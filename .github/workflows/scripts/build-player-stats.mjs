@@ -149,6 +149,27 @@ async function main() {
 
   await mkdir(dirname(OUT), { recursive: true });
   await writeFile(OUT, JSON.stringify(out));
+
+  // Single-game highs for every FBS player, top 5 per category per season (record desk: dynasty + NCAA game records).
+  try {
+    const lid = userStats.league_id, season = schedule.season ?? userStats.period?.season;
+    const wk = new Map(schedule.data.map((g) => [g.key, g.week]));
+    const CATS = ["passYards", "passTD", "rushYards", "rushTD", "receivingYards", "receiveReceptions", "receiveTouchdowns", "defenseTotalTackles", "defenseSacks", "defenseInterceptions", "kickFieldGoalsMade"];
+    const highs = Object.fromEntries(CATS.map((c) => [c, []]));
+    for (const g of games) for (const p of g?.box_score?.Players || []) for (const c of CATS) {
+      const v = p.Stats?.[c]; if (!(v > 0)) continue;
+      highs[c].push({ k: p.Key, n: info.get(p.Key)?.name || p.Name, t: p.Team, v, game: g.key, week: wk.get(g.key) ?? null });
+    }
+    for (const c of CATS) highs[c] = highs[c].sort((a, b) => b.v - a.v || (a.week ?? 0) - (b.week ?? 0)).slice(0, 5);
+    if (lid && season) {
+      const file = `data/history/${lid}/game-highs.json`;
+      let prev = {}; try { prev = JSON.parse(await readFile(file, "utf8")); } catch { /* first run */ }
+      prev.seasons ??= {}; prev.seasons[season] = highs; prev.updated = new Date().toISOString();
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(file, JSON.stringify(prev));
+      console.log(`Wrote ${file} (${season}).`);
+    }
+  } catch (e) { console.warn(`Game highs skipped: ${e.message}`); }
   console.log(`Wrote ${OUT}: ${users.length} user-team + ${cpu.length} CPU players from ${games.length} games.`);
 }
 

@@ -26,5 +26,13 @@
     "defenseSacks": { "holder": "Terrell Suggs", "school": "Arizona State", "years": "2002", "value": 24 },
     "defenseInterceptions": { "holder": "Al Worley / Gerod Holliman", "school": "Washington / Louisville", "years": "1968, 2014", "value": 14 },
     "kickFieldGoalsMade": { "holder": "Billy Bennett", "school": "Georgia", "years": "2003", "value": 31 }
+  },
+  "game": {
+    "passYards": { "holder": "Connor Halliday", "school": "Washington State", "years": "2014 (vs. California)", "value": 734 },
+    "passTD": { "holder": "David Klingler", "school": "Houston", "years": "1990 (vs. Eastern Washington)", "value": 11 },
+    "rushYards": { "holder": "Samaje Perine", "school": "Oklahoma", "years": "2014 (vs. Kansas)", "value": 427 },
+    "rushTD": { "holder": "Howard Griffith", "school": "Illinois", "years": "1990 (vs. Southern Illinois)", "value": 8 },
+    "receivingYards": { "holder": "Troy Edwards", "school": "Louisiana Tech", "years": "1998 (vs. Nebraska)", "value": 405 },
+    "receiveReceptions": { "holder": "Randy Gatewood", "school": "UNLV", "years": "1994 (vs. Idaho)", "value": 23 }
   }
 }

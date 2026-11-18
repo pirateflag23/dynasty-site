@@ -323,3 +323,91 @@ export async function signingDay(x) {
   if (!TEST) st[season] = { built: queue.built, start: queue.start, n: items.length };
   x.log(`Signing Day show queued: ${items.length} cards from ${queue.start} to ${queue.end}`);
 }
+
+/* ---------------- Record desk: Pete posts in the main chat when a record falls ----------------
+   NCAA FBS records (single game / season / career, from data/ncaa-records.json) and dynasty records
+   (best game, season and career in this dynasty). Dynasty season records only count once a player passes
+   a mark set in an earlier season, and career/game records only once the dynasty has a finished season,
+   so season one doesn't post every week. The first run just learns the current record book. */
+const REC_LABEL = { passYards: "passing yards", passTD: "passing touchdowns", rushYards: "rushing yards", rushTD: "rushing touchdowns",
+  receivingYards: "receiving yards", receiveReceptions: "receptions", receiveTouchdowns: "receiving touchdowns", defenseTotalTackles: "tackles",
+  defenseSacks: "sacks", defenseInterceptions: "interceptions", kickFieldGoalsMade: "field goals" };
+const readJ = async (p) => { try { return JSON.parse(await (await import("node:fs/promises")).readFile(p, "utf8")); } catch { return null; } };
+
+export async function recordDesk(x) {
+  const dir = `data/history/${x.lid}`;
+  const [ncaa, broken, leaders, idx, highs] = await Promise.all([readJ("data/ncaa-records.json"), readJ(`${dir}/records.json`), readJ(`${dir}/leaders.json`), readJ(`${dir}/index.json`), readJ(`${dir}/game-highs.json`)]);
+  if (!leaders || !idx) return;
+  const season = +(x.cur.season || idx.current_season), first = Math.min(...(idx.seasons || [season]).map(Number));
+  const seasoned = season > first; // dynasty has at least one finished season
+  const firstRun = !x.state.recBook; const book = (x.state.recBook ??= {});
+  const keyOf = (name) => [...x.teams.values()].find((t) => t.name === name)?.team_key;
+  const events = [];
+  const ev = (key, o) => { if (x.seen(key)) return; if (firstRun || x.seeding) { x.mark(key); return; } events.push({ key, ...o }); };
+
+  // NCAA season / career marks (build-history keeps the list; first_seen sticks)
+  for (const b of broken?.broken || []) {
+    ev(`rec:ncaa:${b.scope}:${b.cat}:${b.k}:${b.y}`, { prio: 3, kind: "ncaa", scope: b.scope, cat: b.cat, n: b.n, team: b.t, tn: b.tn, v: b.v, old: b.old, y: b.y });
+  }
+  // single games this season (NCAA + dynasty)
+  const cur = highs?.seasons?.[season] || {};
+  const gameSeed = !!highs && !book._games; if (highs) book._games = true; // first time game highs exist: learn them quietly
+  const gev = (key, o) => { if (gameSeed) { x.mark(key); return; } ev(key, o); };
+  for (const [cat, list] of Object.entries(cur)) {
+    const top = list[0]; if (!top) continue;
+    const rec = ncaa?.game?.[cat];
+    if (rec) for (const g of list.filter((r) => r.v > rec.value)) gev(`rec:ncaa:game:${cat}:${g.k}:${g.game}`, { prio: 3, kind: "ncaa", scope: "game", cat, n: g.n, team: g.t, v: g.v, old: rec, week: g.week, game: g.game });
+    const was = book[`game:${cat}`];
+    if (!was || top.v > was.v) {
+      if (was && seasoned && top.game !== was.game) gev(`rec:dyn:game:${cat}:${top.k}:${top.game}`, { prio: 2, kind: "dynasty", scope: "game", cat, n: top.n, team: top.t, v: top.v, prev: was, week: top.week, game: top.game });
+      book[`game:${cat}`] = { k: top.k, n: top.n, v: top.v, season, game: top.game };
+    }
+  }
+  // dynasty season + career record book (leaders.json is already sorted, #1 first)
+  for (const scope of ["season", "career"]) for (const [cat, list] of Object.entries(leaders[scope] || {})) {
+    const top = list?.[0]; if (!top?.v) continue;
+    const was = book[`${scope}:${cat}`], same = was && was.k === top.k && (scope === "career" || String(was.y) === String(top.y));
+    if (!was || top.v > was.v) {
+      const fair = scope === "season" ? was && Number(was.y) < Number(top.y) : seasoned;
+      if (was && !same && fair) ev(`rec:dyn:${scope}:${cat}:${top.k}${scope === "season" ? ":" + top.y : ""}`, { prio: 1, kind: "dynasty", scope, cat, n: top.n, team: keyOf(top.tn), tn: top.tn, v: top.v, prev: was, y: top.y });
+      book[`${scope}:${cat}`] = { k: top.k, n: top.n, v: top.v, y: top.y, tn: top.tn };
+    }
+  }
+  if (!events.length) return;
+  // one item per player+category+scope (an NCAA record beats the dynasty one), best first, max 3 per post
+  const pick = new Map();
+  for (const e of events.sort((a, b) => b.prio - a.prio)) { const k = `${e.scope}:${e.cat}:${e.n}`; if (!pick.has(k)) pick.set(k, e); else x.mark(e.key); }
+  const items = [...pick.values()].slice(0, 3);
+  const facts = items.map((e) => ({ type: e.kind === "ncaa" ? `NCAA FBS ${e.scope === "game" ? "single-game" : e.scope} record` : `dynasty ${e.scope === "game" ? "single-game" : e.scope} record`,
+    player: e.n, school: e.tn || x.tName(e.team), coach: x.userTeams.has(e.team) ? x.coachName(e.team) : null, stat: REC_LABEL[e.cat] || e.cat, value: e.v,
+    when: e.scope === "game" ? (() => { const g = x.games.find((q) => q.key === e.game); if (!g) return "this season"; const me = g.home.team_key === e.team ? g.home : g.away, o = me === g.home ? g.away : g.home;
+      return `${me.score}-${o.score} ${me.score > o.score ? "win" : me.score < o.score ? "loss" : "tie"} ${me === g.home ? "vs" : "at"} ${o.team}`; })() : e.scope === "season" ? `${e.y} season` : "career",
+    previous: e.old ? `${e.old.value} by ${e.old.holder} (${e.old.school}, ${e.old.years})` : e.prev ? `${e.prev.v} by ${e.prev.n}${e.prev.y ? ` (${e.prev.y})` : ""}` : null }));
+  const rep = (x.cfg.reporters || []).find((r) => r.id === "pete") || { name: "Pete Thamel" };
+  const text = await peteLine(x, rep, facts) || facts.map((f) => `🚨 Record alert: **${f.player}** (${f.school}) just set the ${f.type} with ${f.value} ${f.stat}${f.previous ? `, passing ${f.previous}` : ""}.${f.coach ? ` Flowers to ${f.coach}.` : ""}`).join("\n");
+  const chName = x.cfg.channels?.records || x.cfg.reporter_rules?.chime_channels?.[0] || "general";
+  const ch = x.channelId(chName);
+  if (!ch) { x.log(`Record desk: channel #${chName} not found.`); return; }
+  if (x.DRY) { x.log(`[dry] ${rep.name} in #${chName}: ${text}`); }
+  else {
+    let hooks = await x.dc("GET", `/channels/${ch}/webhooks`);
+    let h = (hooks || []).find((w) => w.name === "TD Wire reporters" && w.token) || await x.dc("POST", `/channels/${ch}/webhooks`, { name: "TD Wire reporters" });
+    const r = await fetch(`https://discord.com/api/v10/webhooks/${h.id}/${h.token}?wait=true`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: rep.name, avatar_url: rep.avatar, content: text.slice(0, 1900), allowed_mentions: { parse: [] } }) });
+    if (!r.ok) throw new Error(`webhook ${r.status} ${(await r.text()).slice(0, 150)}`);
+  }
+  for (const e of events) x.mark(e.key);
+  x.log(`Record desk: posted ${items.length} record(s) as ${rep.name} in #${chName}.`);
+}
+
+async function peteLine(x, rep, facts) {
+  const key = process.env.ANTHROPIC_API_KEY; if (!key || (x.DRY && !process.env.PR_AI)) return null;
+  const sys = `You are ${rep.name}, a college football reporter posting in a league's Discord chat. Voice: ${rep.discord || "warm, plugged-in national insider"}. A record just fell. Write one short Discord message (max 3 sentences per record, under 600 characters total) breaking the news: lead with the record, give the numbers exactly as provided, name the previous holder if given, and give the player (and his coach, if a coach is listed) their flowers. Use only these facts; never invent stats, games, opponents or quotes. No hashtags. Plain text, at most one emoji.`;
+  try {
+    const r = await fetch(`${process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com"}/v1/messages`, { method: "POST",
+      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model: process.env.WRITER_MODEL || "claude-sonnet-5-5", max_tokens: 600, system: sys, messages: [{ role: "user", content: JSON.stringify(facts) }] }) });
+    if (!r.ok) throw new Error(`${r.status}`);
+    return ((await r.json()).content?.map((c) => c.text || "").join("") || "").trim() || null;
+  } catch (e) { x.log(`Record desk AI fell back to template: ${e.message}`); return null; }
+}

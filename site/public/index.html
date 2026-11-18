@@ -555,6 +555,9 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
 .pw .kick{font:800 11px/1 var(--head);color:var(--red);font-style:italic;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
 .pw .meta{font-size:11px;color:var(--dim);margin-top:6px}.pw .lg{width:40px;height:40px;display:grid;place-items:center}
 .pw.mine{background:color-mix(in srgb,var(--red) 6%,transparent)}
+.nw-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:0 14px 10px}.nw-bar select{font:700 13px var(--body);padding:7px 10px;border-radius:6px;border:1px solid var(--line-2);background:var(--card,transparent);color:inherit;max-width:100%}
+.nw-bar .pw-pills{margin:0}.nw-count{font-size:12px;color:var(--dim);padding:0 14px 8px}.nw-more{display:block;margin:12px auto 16px;font:800 13px var(--head);padding:9px 18px;border-radius:999px;border:1px solid var(--line-2);background:transparent;color:inherit;cursor:pointer}
+.pw .wk{display:inline-block;margin-left:6px;color:var(--dim);font-style:normal;text-transform:none;letter-spacing:0;font-weight:700}
 .wire-b{padding:10px 14px;border-top:1px solid var(--line-2)}.wire-b:first-of-type{border-top:0}
 .wire-b h3{margin:0 0 4px;font:800 15px/1.25 var(--head)}.wire-b p{margin:0;font-size:13px;color:var(--dim);line-height:1.45}
 .wire-b .kick{font:800 11px/1 var(--head);color:var(--red);font-style:italic;margin-bottom:4px}
@@ -575,6 +578,7 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
     <a class="brand" href="#home" aria-label="The Dynasty — home"><img class="brand-logo" src="logo.png" alt="The Dynasty" width="244" height="160"></a>
     <nav class="tabs" aria-label="Sections">
       <a href="#home">Home</a>
+      <a href="#news">News</a>
       <a href="#scores">Scores</a>
       <a href="#standings">Standings</a>
       <a href="#stats">Stats</a>
@@ -961,7 +965,7 @@ function renderHome() {
         ${heads ? `<ul class="hl">${heads}</ul>` : '<div class="empty">Headlines appear once league games are played.</div>'}</section>
       ${upcomingCard()}
     </div>
-    <div class="col-right">${cfpCard()}${heismanCard()}${topClassesCard(10)}<section class="card"><h2 class="card-h">Around the league <small>${esc(weekLabel(w))}</small></h2><div class="stories" id="stories">${storiesHtml(buildStories({}))}</div></section></div>
+    <div class="col-right">${cfpCard()}${heismanCard()}${topClassesCard(10)}<section class="card"><h2 class="card-h">Around the league <small>${esc(weekLabel(w))} · <a class="tl" href="#news">All news</a></small></h2><div class="stories" id="stories">${storiesHtml(buildStories({}))}</div></section></div>
   </div>`;
 }
 
@@ -2530,7 +2534,53 @@ const _newsHeadline = newsHeadline, _newsDeck = newsDeck;
 newsHeadline = (e) => { const h = _newsHeadline(e), w = wireRecruit(e); return w ? { ...h, html: wireHtml(w.h) } : h; };
 newsDeck = (e, r) => { const w = wireRecruit(e); return w ? wireHtml(w.d) + wireQuote(w.quote) + wireBy(w) : _newsDeck(e, r); };
 
-const ROUTES = { home: renderHome, scores: renderScores, standings: renderStandings, recruiting: renderRecruiting };
+/* =========================================================
+   NEWS: every TD Wire story of the season (data/stories/<league>/news-<season>.json, kept by build-news-archive.mjs)
+   ========================================================= */
+const NEWS = {}; let newsIdx = null;
+const newsLoad = (season) => { const lid = D.league?.league_id ?? D.league?.data?.league_id; if (!lid) return Promise.resolve(null);
+  return (NEWS[season] ??= fetch(`${WIRE_BASE}/${lid}/news-${season}.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null)); };
+const newsSeasons = () => { const lid = D.league?.league_id ?? D.league?.data?.league_id; if (!lid) return Promise.resolve([]);
+  return (newsIdx ??= fetch(`${WIRE_BASE}/${lid}/news-index.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).then((j) => j?.seasons || []).catch(() => [])); };
+const NW_CATS = [["", "All"], ["game", "Games"], ["recruiting", "Recruiting"], ["portal", "Portal"], ["feature", "Features"]];
+const newsWhen = (st) => /OFF/i.test(st.season_text || "") ? (st.season_text.match(/OFF\s*Stg\s*(\d+)/i) ? `Offseason · Stage ${st.season_text.match(/OFF\s*Stg\s*(\d+)/i)[1]}` : "Offseason") : st.week != null ? weekLabel(st.week) : (st.season_text || "").replace(/^\d{4}\s*/, "").replace(/\bWk\b/, "Week");
+const newsItem = (st) => { const tn = wireTeamName(st.team); const href = st.link || (st.game ? `#game/${st.game}` : "");
+  return `<div class="pw${st.user ? " mine" : ""}"><div class="lg">${tn ? badge(tn) : ""}</div><div><div class="kick">${esc(st.kick || "")}<span class="wk">· ${esc(newsWhen(st))}</span></div><h3>${href ? `<a class="tl" href="${href}">${wireHtml(st.h)}</a>` : wireHtml(st.h)}</h3>${st.d ? `<p>${wireHtml(st.d)}</p>` : ""}${wireQuote(st.quote)}${wireBy(st)}</div></div>`; };
+async function renderNews(q = {}) {
+  const view = $("#view");
+  const seasons = await newsSeasons();
+  const curSeason = +(D.league?.data?.current_period?.season || seasons[0] || new Date().getFullYear());
+  const season = +(q.season || (seasons.includes(curSeason) ? curSeason : seasons[0] || curSeason));
+  view.innerHTML = `<section class="card"><h2 class="card-h">News <small>TD Wire · every story, all season</small></h2><div class="empty">Loading…</div></section>`;
+  const arc = await newsLoad(season);
+  const all = (arc?.stories || []).slice().sort((a, b) => String(b.first_seen).localeCompare(String(a.first_seen)));
+  // school list: league teams first, then every other school that has a story
+  const counts = new Map(); for (const st of all) for (const k of st.teams?.length ? st.teams : [st.team]) if (k) counts.set(k, (counts.get(k) || 0) + 1);
+  const opts = [...counts.keys()].map((k) => ({ k, n: wireTeamName(k), u: !!teamByKey(k)?.user_controlled })).filter((o) => o.n).sort((a, b) => (b.u - a.u) || a.n.localeCompare(b.n));
+  const st = { team: q.team ? +q.team : 0, cat: q.cat || "", shown: 40 };
+  try { const saved = JSON.parse(localStorage.getItem("td-news-team") || "0"); if (!q.team && saved && counts.has(saved)) st.team = saved; } catch { /* storage off */ }
+  const filtered = () => all.filter((x) => (!st.cat || x.cat === st.cat) && (!st.team || (x.teams || [x.team]).includes(st.team)));
+  const have = new Set(all.map((x) => x.cat));
+  view.innerHTML = `<section class="card"><h2 class="card-h">News <small>TD Wire · every story of the ${season} season</small></h2>
+    <div class="nw-bar">
+      <select id="nw-team" aria-label="School"><option value="0">All schools</option>${opts.filter((o) => o.u).length ? `<optgroup label="League teams">${opts.filter((o) => o.u).map((o) => `<option value="${o.k}">${esc(o.n)}${coachOf(o.n) ? ` (${esc(coachOf(o.n))})` : ""}</option>`).join("")}</optgroup>` : ""}<optgroup label="All schools">${opts.filter((o) => !o.u).map((o) => `<option value="${o.k}">${esc(o.n)}</option>`).join("")}</optgroup></select>
+      ${seasons.length > 1 ? `<select id="nw-season" aria-label="Season">${seasons.map((y) => `<option value="${y}"${y === season ? " selected" : ""}>${y}</option>`).join("")}</select>` : ""}
+      <div class="pw-pills">${NW_CATS.filter(([k]) => !k || have.has(k)).map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${k === st.cat}">${l}</button>`).join("")}</div>
+    </div><div class="nw-count" id="nw-count"></div><div id="nw-list"></div></section>`;
+  const sel = $("#nw-team"); sel.value = String(st.team);
+  const paint = () => { const list = filtered();
+    $("#nw-count").textContent = `${list.length} ${list.length === 1 ? "story" : "stories"}${st.team ? ` about ${wireTeamName(st.team)}` : ""}`;
+    $("#nw-list").innerHTML = list.length ? list.slice(0, st.shown).map(newsItem).join("") + (list.length > st.shown ? `<button type="button" class="nw-more" id="nw-more">Show more (${list.length - st.shown} left)</button>` : "")
+      : `<div class="empty">${arc ? "No stories match yet." : "The news archive fills in after the next sync."}</div>`;
+    const more = $("#nw-more"); if (more) more.onclick = () => { st.shown += 40; paint(); }; };
+  sel.onchange = () => { st.team = +sel.value; st.shown = 40; try { localStorage.setItem("td-news-team", JSON.stringify(st.team)); } catch { /* storage off */ } paint(); };
+  const ss = $("#nw-season"); if (ss) ss.onchange = () => renderNews({ season: ss.value, team: st.team || "", cat: st.cat });
+  view.querySelector(".pw-pills").onclick = (ev) => { const b = ev.target.closest("button"); if (!b) return; st.cat = b.dataset.k; st.shown = 40;
+    ev.currentTarget.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b)); paint(); };
+  paint();
+}
+
+const ROUTES = { home: renderHome, scores: renderScores, standings: renderStandings, recruiting: renderRecruiting, news: () => { document.title = `News · ${CONFIG.SITE_NAME}`; renderNews(); } };
 function route() {
   if (!WIRE && D.league) wireLoad().then(() => { if (WIRE && /^#?(recruiting(\/(portal|crystal))?\/?|home|standings\/cfp|feature\/\w+)?$/.test(location.hash)) route(); });
   const name = location.hash.slice(1);

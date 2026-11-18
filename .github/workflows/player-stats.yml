@@ -58,6 +58,8 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node .github/workflows/scripts/ai-writer.mjs
+      - name: News archive (keep every story for the News tab)
+        run: node .github/workflows/scripts/build-news-archive.mjs
       - name: Register slash commands (only when they change)
         if: ${{ hashFiles('discord.config.json') != '' }}
         env:

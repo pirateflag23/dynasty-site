@@ -16,7 +16,7 @@
 //        data/player-stats-all.json (from build-player-stats.mjs), data/bot/*.json (written for the slash bot)
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { gameOfTheWeek, pickem, powerRankings, seriesFor, carouselCards, signingDay } from "./league-extras.mjs";
+import { gameOfTheWeek, pickem, powerRankings, seriesFor, carouselCards, signingDay, recordDesk } from "./league-extras.mjs";
 // Graphics (PNG) need the packages in ./graphics — loaded lazily so text posts still work without them.
 const graphics = () => import("./graphics/top25.mjs");
 const finalGraphics = () => import("./graphics/final.mjs");
@@ -228,7 +228,7 @@ async function main() {
     return rivalryNames;
   };
   await loadRivals();
-  const X = { api, teamKeyById: (id) => byTeamId.get(id), channelId: (n) => textCh(n), lid: league.league_id ?? league.data.league_id, cfg, cur, games, teams, userTeams, state, DRY, log, short, rk, site, once, send, seen, mark, seeding,
+  const X = { api, dc, teamKeyById: (id) => byTeamId.get(id), channelId: (n) => textCh(n), lid: league.league_id ?? league.data.league_id, cfg, cur, games, teams, userTeams, state, DRY, log, short, rk, site, once, send, seen, mark, seeding,
     replay: (f) => REPLAY.has(f), tName, coachName: (k) => coachName(k), logoFor, logoMap: () => logoMap(), pickChannel: (v) => pickChannel(v),
     siteLogo: () => gfxSiteLogo(), colors: () => gfxColors(), nowWeek: () => nowWeek(), lastResult: (k) => lastResult(k),
     rivalryName: (g) => rivalryNames.get(`${g.away.team}|${g.home.team}`) || "",
@@ -323,6 +323,7 @@ async function main() {
     await powerRankings(X).catch((e) => log(`Power rankings failed: ${e.message}`));
     await carouselCards(X).catch((e) => log(`Carousel failed: ${e.message}`));
     await signingDay(X).catch((e) => log(`Signing Day failed: ${e.message}`));
+    await recordDesk(X).catch((e) => log(`Record desk failed: ${e.message}`));
   }
 
   /* ============ #heisman: weekly watch in-season → one winner card → quiet until Week 0 ============ */
