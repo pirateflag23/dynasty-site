@@ -14,6 +14,7 @@ const RED = 0xc8102e, GOLD = 0xf2b134, BLUE = 0x2b6cb0, GREEN = 0x2f9e44;
 
 export default {
   async fetch(req, env, ctx) {
+    if (req.method === "GET" && new URL(req.url).pathname === "/pickem") return pickemDump(env, new URL(req.url).searchParams.get("round"));
     if (req.method !== "POST") return new Response("The Dynasty bot is running.");
     const body = await req.text();
     if (!(await verify(req, body, env.DISCORD_PUBLIC_KEY))) return new Response("bad signature", { status: 401 });
@@ -23,6 +24,11 @@ export default {
       // Defer (Discord needs an answer within 3 s), then edit the reply when the data is ready.
       ctx.waitUntil(handle(i, env).catch((e) => ({ content: `⚠️ ${e.message}` })).then((msg) => edit(env, i.token, msg)));
       return json({ type: 5 });
+    }
+    if (i.type === 3 && String(i.data?.custom_id || "").startsWith("pk|")) {
+      // Pick'em button: answer privately once the pick is saved.
+      ctx.waitUntil(pick(i, env).catch((e) => ({ content: `⚠️ ${e.message}` })).then((msg) => edit(env, i.token, msg)));
+      return json({ type: 5, data: { flags: 64 } });
     }
     return json({ type: 4, data: { content: "Unsupported interaction." } });
   },
@@ -44,6 +50,35 @@ async function verify(req, body, pub) {
       return await crypto.subtle.verify("NODE-ED25519", key, hex(sig), msg);
     }
   } catch { return false; }
+}
+
+/* ---------------- Pick'em ----------------
+   custom_id "pk|<round>|<gameKey>|<teamKey>|<teamName>". One KV entry per player per round: pk:<round>:<userId>. */
+async function pick(i, env) {
+  if (!env.PICKS) return { content: "Pick'em storage isn't set up yet." };
+  const [, round, game, team, tname] = i.data.custom_id.split("|");
+  const u = i.member?.user || i.user, uid = u.id, name = i.member?.nick || u.global_name || u.username;
+  try { // locked once the game has been played
+    const r = await fetch(`${API}/games/${game}`, { headers: { Authorization: `Bearer ${env.DYNASTY_API_KEY}` } });
+    if (r.ok) { const g = (await r.json()).data || {}; if (g.played || g.box_score) return { content: `🔒 That game's already been played. Picks are locked.` }; }
+  } catch { /* if the API is down, take the pick */ }
+  const k = `pk:${round}:${uid}`;
+  const cur = (await env.PICKS.get(k, "json")) || { name, picks: {} };
+  const was = cur.picks[game];
+  cur.name = name; cur.picks[game] = team; cur.at = new Date().toISOString();
+  await env.PICKS.put(k, JSON.stringify(cur), { expirationTtl: 200 * 86400 });
+  const n = Object.keys(cur.picks).length;
+  return { content: `${was && was !== team ? "🔁 Switched to" : "✅ Locked in:"} **${tname || "your pick"}**. You have ${n} pick${n === 1 ? "" : "s"} in this week. You can change any pick until that game is played.` };
+}
+async function pickemDump(env, round) {
+  if (!env.PICKS || !/^[\w-]+$/.test(round || "")) return json({ round, picks: {} });
+  const out = {}; let cursor;
+  do {
+    const l = await env.PICKS.list({ prefix: `pk:${round}:`, cursor });
+    for (const k of l.keys) { const v = await env.PICKS.get(k.name, "json"); if (v) out[k.name.split(":")[2]] = v; }
+    cursor = l.list_complete ? null : l.cursor;
+  } while (cursor);
+  return new Response(JSON.stringify({ round, picks: out }), { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
 }
 
 async function edit(env, token, msg) {

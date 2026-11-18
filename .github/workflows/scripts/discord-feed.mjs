@@ -15,6 +15,7 @@
 //        data/player-stats-all.json (from build-player-stats.mjs), data/bot/*.json (written for the slash bot)
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { gameOfTheWeek, pickem, powerRankings, seriesFor } from "./league-extras.mjs";
 // Graphics (PNG) need the packages in ./graphics — loaded lazily so text posts still work without them.
 const graphics = () => import("./graphics/top25.mjs");
 const finalGraphics = () => import("./graphics/final.mjs");
@@ -197,6 +198,7 @@ async function main() {
       await dc("POST", `/channels/${id}/messages`, {
         content: i === 0 ? payload.content : undefined, embeds: parts[i],
         allowed_mentions: payload.allowed_mentions || { parse: [] },
+        components: i === parts.length - 1 ? payload.components : undefined,
       }, 6, i === 0 ? payload.files : null);
     }
     return true;
@@ -211,6 +213,21 @@ async function main() {
     if (!payload) return;
     if (await send(chName, payload)) { mark(key); if (replay) (state._replayed ??= {})[feature + chName] = true; log(`posted ${key}`); }
   }
+
+  // shared context for league-extras.mjs
+  const { short } = await import("./graphics/common.mjs");
+  const loadRivals = async () => {
+    if (!rivalryNames) { rivalryNames = new Map(); try { for (const [a, b, n] of JSON.parse(await readFile("rivalries.json", "utf8")).rivalries || []) { rivalryNames.set(`${a}|${b}`, n); rivalryNames.set(`${b}|${a}`, n); } } catch { /* optional */ } }
+    return rivalryNames;
+  };
+  await loadRivals();
+  const X = { lid: league.league_id ?? league.data.league_id, cfg, cur, games, teams, userTeams, state, DRY, log, short, rk, site, once, send, seen, mark, seeding,
+    replay: (f) => REPLAY.has(f), tName, coachName: (k) => coachName(k), logoFor, logoMap: () => logoMap(), pickChannel: (v) => pickChannel(v),
+    siteLogo: () => gfxSiteLogo(), colors: () => gfxColors(), nowWeek: () => nowWeek(), lastResult: (k) => lastResult(k),
+    rivalryName: (g) => rivalryNames.get(`${g.away.team}|${g.home.team}`) || "",
+    lastResults: (k, n) => games.filter((g) => g.played && (g.home.team_key === k || g.away.team_key === k)).sort((a, b) => b.week - a.week).slice(0, n)
+      .map((g) => { const me = g.home.team_key === k ? g.home : g.away, o = me === g.home ? g.away : g.home; return me.score > o.score ? "W" : me.score < o.score ? "L" : "T"; }),
+    nextOpp: (k) => { const g = games.filter((q) => !q.played && (q.home.team_key === k || q.away.team_key === k)).sort((a, b) => a.week - b.week)[0]; if (!g) return ""; const home = g.home.team_key === k, o = home ? g.away : g.home; return `${home ? "vs" : "@"} ${rk(teams.get(o.team_key)?.rank)}${o.team}${userTeams.has(o.team_key) ? ` (${coachName(o.team_key)})` : ""}`; } };
 
   state.abbr ??= {};
   const abbr = (k) => state.abbr[k] || (() => { const w = tName(k).replace(/[^A-Za-z ]/g, "").split(" ").filter(Boolean); return (w.length > 1 ? w.map((x) => x[0]).join("") : w[0] || "?").slice(0, 4).toUpperCase(); })();
@@ -285,6 +302,18 @@ async function main() {
       const label = weekLabel(open.find((g) => g.week === nextW));
       await once(`ondeck:${cur.season}:${label}`, "ondeck", ch, () => ondeckPost(ng, label));
     }
+  }
+
+  /* ============ Game of the Week, Pick'em, Coach Power Rankings ============ */
+  {
+    const open = games.filter((g) => !g.played);
+    const nowW = open.length ? Math.min(...open.map((g) => g.week)) : null;
+    if (nowW != null) {
+      const wg = games.filter((g) => g.week === nowW && isUserGame(g)), label = weekLabel(open.find((g) => g.week === nowW));
+      await gameOfTheWeek(X, wg, label).catch((e) => log(`GOTW failed: ${e.message}`));
+      await pickem(X, wg, label, nowW).catch((e) => log(`Pick'em failed: ${e.message}`));
+    }
+    await powerRankings(X).catch((e) => log(`Power rankings failed: ${e.message}`));
   }
 
   /* ============ #heisman watch ============ */
@@ -747,7 +776,8 @@ async function main() {
       const tag = rivalryNames.get(`${g.away.team}|${g.home.team}`) || (g.kind === "user_vs_user" ? "League matchup" : "");
       const name = `preview-${g.key}.png`;
       const note = g.kind === "user_vs_user" ? "Set your game time in this chat · stream it in #live-stream" : "CPU opponent · play it before the advance · stream it in #live-stream";
-      const png = await renderMatchup({ week: weekLabel(g), date: [g.date, g.season || league.data.calendar_year].filter(Boolean).join(" · "), tag, note, away: A, home: H,
+      const series = cfg.graphics?.series === false ? null : await seriesFor(X, g).catch(() => null);
+      const png = await renderMatchup({ week: weekLabel(g), date: [g.date, g.season || league.data.calendar_year].filter(Boolean).join(" · "), tag, note, away: A, home: H, series,
         siteLogo: cfg.site_url ? `${cfg.site_url.replace(/\/$/, "")}/logo.png` : "", colors: await siteTeamColors("site/public/index.html") });
       const e = text.embeds[0];
       return { embeds: [{ title: e.title, url: e.url, color: e.color, image: { url: `attachment://${name}` } }], files: [{ name, data: png }] };

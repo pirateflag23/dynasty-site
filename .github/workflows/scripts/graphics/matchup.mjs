@@ -3,6 +3,7 @@
 //   tag: rivalry name, "Conference game", etc. (optional banner)
 //   away/home: { name, rank, record, confRecord, conference, ovr, off, def, ppg, oppg, last, coach, logo, leaders:[{ tag, name, line }] }
 import { fonts, esc, short, badge, BADGE_CSS, shoot, teamCols, lum, CONF } from "./common.mjs";
+import { SERIES_CSS, seriesBand } from "./league.mjs";
 
 const rgb = (h) => { const v = parseInt(h.slice(1), 16); return [v >> 16, (v >> 8) & 255, v & 255]; };
 const near = (a, b) => { const [x, y] = [rgb(a), rgb(b)]; return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 110; };
@@ -50,7 +51,7 @@ const leaderCol = (t, color, last) => `<div class="lc" style="--c1:${color};--in
   <h3>${esc(short(t.name))}<small>${last ? `Last: ${esc(last)}` : ""}</small></h3>${(t.leaders || []).map((l) =>
   `<div class="ld"><i>${esc(l.tag)}</i><b>${esc(l.name)}</b><span>${esc(l.line)}</span></div>`).join("") || '<div class="ld"><span>No stats yet</span></div>'}</div>`;
 
-export async function renderMatchup({ week = "", date = "", tag = "", note = "", away, home, siteLogo = "", colors = {}, chromeChannel = "chrome" }) {
+export async function renderMatchup({ week = "", date = "", tag = "", note = "", away, home, series = null, siteLogo = "", colors = {}, chromeChannel = "chrome" }) {
   const fontCss = await fonts();
   const [ca, ch] = sideColors(away, home, colors);
   const html = `<!doctype html><html><head><style>
@@ -94,10 +95,12 @@ h2{font:700 13px RC;letter-spacing:.16em;color:#6c6d6f;text-transform:uppercase;
 .ld b{font:700 18px RC;white-space:nowrap}.ld span{font:500 14px R;color:#b9babd;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 footer{display:flex;justify-content:space-between;padding:10px 28px 14px;font:500 14px R;color:#9a9b9e;border-top:1px solid #26282a;margin-top:8px}
 footer b{color:#ededee}
+${SERIES_CSS}
 </style></head><body><div class="card">
 <div class="top"><span class="pv">PREVIEW</span><span class="wk">${esc(week)}<small>${esc(date)}</small></span>${siteLogo ? `<img src="${siteLogo}" onerror="this.remove()">` : ""}</div>
 ${tag ? `<div class="tag">${esc(tag)}</div>` : ""}
 <div class="board">${side(away, colors, "l")}<div class="at">AT</div>${side(home, colors, "r")}</div>
+${seriesBand(series, ca, ch)}
 <div class="body"><h2>Tale of the tape</h2>${tape(away, home, ca, ch)}</div>
 <div class="leaders">${leaderCol(away, ca, away.last)}${leaderCol(home, ch, home.last)}</div>
 <footer><span>${esc(note)}</span><b>thedynastycfb.com</b></footer>
