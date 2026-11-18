@@ -73,6 +73,7 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           REPLAY: ${{ inputs.replay }}
+          NSD_TEST: ${{ inputs.test_offseason && '1' || '' }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
         run: node .github/workflows/scripts/discord-feed.mjs
       - name: Save graphic previews (dry runs)

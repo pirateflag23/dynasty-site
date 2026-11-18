@@ -144,3 +144,60 @@ ${coach ? `<div class="coach"><em>${esc(coach)}</em></div>` : ""}
 <footer><span>TD Wire · coaching carousel</span><b>thedynastycfb.com</b></footer>`);
   return shoot(html, { chromeChannel });
 }
+
+/* ---------- National Signing Day ---------- */
+const STAR = (n) => "★".repeat(n || 0) + `<span style="opacity:.25">${"★".repeat(Math.max(0, 5 - (n || 0)))}</span>`;
+const ht = (i) => (i ? `${Math.floor(i / 12)}'${i % 12}"` : "");
+const NSD_CSS = `.nsd{display:grid;grid-template-columns:330px 1fr;min-height:330px}
+.nsd .sch{position:relative;display:grid;place-items:center;padding:20px;background:linear-gradient(160deg,color-mix(in srgb,var(--c1) 90%,#000),color-mix(in srgb,var(--c1) 45%,#111))}
+.nsd .sch::after{content:"";position:absolute;right:0;top:0;bottom:0;width:8px;background:var(--c2)}
+.nsd .sch b{display:block;text-align:center;font:800 28px RC;text-transform:uppercase;margin-top:10px;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+.nsd .sch small{display:block;text-align:center;font:700 14px R;color:rgba(255,255,255,.8);margin-top:4px}
+.nsd .pl{padding:22px 30px}.nsd .kick{font:800 16px RC;letter-spacing:.24em;color:#f2b134;text-transform:uppercase}
+.nsd .kick.flip{color:#ff5a5f}.nsd h1{font:800 60px/1 RC;text-transform:uppercase;margin-top:6px}
+.nsd .stars{font-size:30px;color:#f2b134;letter-spacing:4px;margin-top:6px}
+.nsd .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.nsd .meta span{font:700 15px R;background:#222325;border-radius:4px;padding:5px 10px;color:#d5d6d8}
+.nsd .meta span.hl{background:#f2b134;color:#141414}
+.nsd .line{font:500 18px/1.4 R;color:#d5d6d8;margin-top:12px}
+.cd{position:absolute;left:18px;top:14px;font:800 64px/1 RC;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6)}`;
+// r: { name, pos, archetype, stars, rank, pos_rank, hometown, state, height, weight, dev }, s: { name, logo, coach, rank }, prev: school name (flip)
+export async function renderSigning({ r, s, kind = "sign", prev = "", countdown = null, line = "", label = "", siteLogo = "", colors = {}, chromeChannel = "chrome" }) {
+  const c = teamCols(colors, s.name);
+  const kick = kind === "flip" ? `Flip! From ${prev} to ${s.name}` : countdown ? `No. ${countdown} recruit in the country` : s.coach ? `Signs with ${s.coach}` : "Signed";
+  const html = await page(NSD_CSS, `${head("SIGNING DAY", "National Signing Day", label, siteLogo)}
+<div class="nsd" style="--c1:${c.c1};--c2:${c.c2}"><div class="sch">${countdown ? `<div class="cd">#${countdown}</div>` : ""}<div>${badge(s.name, s.logo, colors, 190)}<b>${esc(short(s.name))}</b>${s.coach ? `<small>${esc(s.coach)}</small>` : ""}</div></div>
+<div class="pl"><div class="kick ${kind === "flip" ? "flip" : ""}">${esc(kick)}</div><h1>${esc(r.name)}</h1><div class="stars">${STAR(r.stars)}</div>
+<div class="meta">${[r.pos && `<span>${esc(r.pos)}${r.archetype ? ` · ${esc(r.archetype)}` : ""}</span>`, r.rank && `<span class="hl">No. ${r.rank} national</span>`, r.pos_rank && `<span>No. ${r.pos_rank} ${esc(r.pos)}</span>`,
+  (r.hometown || r.state) && `<span>${esc([r.hometown, r.state].filter(Boolean).join(", "))}</span>`, r.height && `<span>${ht(r.height)}, ${r.weight} lb</span>`, r.dev && `<span class="hl">Dev trait: ${esc(r.dev)}</span>`].filter(Boolean).join("")}</div>
+${line ? `<div class="line">${esc(line)}</div>` : ""}</div></div>
+<footer><span>TD Wire · Signing Day live</span><b>thedynastycfb.com</b></footer>`);
+  return shoot(html, { chromeChannel });
+}
+// one league coach's whole class
+export async function renderClassCard({ s, signees = [], rank = null, label = "", siteLogo = "", colors = {}, chromeChannel = "chrome" }) {
+  const c = teamCols(colors, s.name);
+  const css = `.ch{display:flex;align-items:center;gap:22px;padding:18px 28px;background:linear-gradient(90deg,color-mix(in srgb,var(--c1) 85%,#000),#141517);border-bottom:4px solid var(--c2)}
+.ch h1{font:800 44px/1 RC;text-transform:uppercase}.ch p{font:500 16px R;color:rgba(255,255,255,.8);margin-top:4px}.ch .rk{margin-left:auto;text-align:right;font:800 46px RC}.ch .rk small{display:block;font:700 12px RC;letter-spacing:.14em;color:rgba(255,255,255,.7)}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:6px 22px;padding:14px 28px}
+.sg div{display:grid;grid-template-columns:66px 52px 1fr auto;align-items:center;gap:10px;border-bottom:1px solid #222325;padding:6px 0}
+.sg .st{color:#f2b134;font-size:14px;letter-spacing:1px}.sg .ps{font:700 14px RC;color:#9a9b9e}.sg b{font:700 18px RC;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sg small{font:500 13px R;color:#9a9b9e}`;
+  const html = await page(css, `${head("SIGNING DAY", "Class signed", label, siteLogo)}
+<div class="ch" style="--c1:${c.c1};--c2:${c.c2}">${badge(s.name, s.logo, colors, 90)}<div><h1>${esc(short(s.name))}</h1><p>${esc([s.coach, `${signees.length} signee${signees.length === 1 ? "" : "s"}`].filter(Boolean).join(" · "))}</p></div>${rank ? `<div class="rk">#${rank}<small>NATIONAL CLASS</small></div>` : ""}</div>
+<div class="sg">${signees.map((r) => `<div><span class="st">${"★".repeat(r.stars || 0)}</span><span class="ps">${esc(r.pos)}</span><b>${esc(r.name)}</b><small>${r.rank ? `No. ${r.rank}` : esc(r.state || "")}</small></div>`).join("")}</div>
+<footer><span>TD Wire · Signing Day live</span><b>thedynastycfb.com</b></footer>`);
+  return shoot(html, { chromeChannel });
+}
+// opener / closer: { title, sub, lines: [string], rows: [{ rank, name, logo, coach, pts, n }] }
+export async function renderNSDBoard({ title = "", sub = "", lines = [], rows = [], label = "", siteLogo = "", colors = {}, chromeChannel = "chrome" }) {
+  const css = `.hero{text-align:center;padding:22px 0 10px;background:radial-gradient(ellipse at center,#2a2112 0,#121314 70%)}
+.hero h1{font:800 66px/1 RC;letter-spacing:.06em;text-transform:uppercase;background:linear-gradient(180deg,#fff2c9,#f2b134 55%,#a87412);-webkit-background-clip:text;color:transparent}.hero p{font:600 17px R;color:#d5d6d8;margin-top:6px}
+.ls{padding:10px 40px 14px}.ls li{list-style:none;font:500 18px R;color:#d5d6d8;padding:5px 0 5px 18px;position:relative}.ls li::before{content:"";position:absolute;left:0;top:14px;width:8px;height:8px;border-radius:50%;background:#f2b134}
+.cl{display:grid;grid-template-columns:1fr 1fr;gap:6px 22px;padding:6px 28px 14px}.cl div{display:grid;grid-template-columns:40px 40px 1fr auto;gap:10px;align-items:center;border-bottom:1px solid #222325;padding:6px 0}
+.cl .n{font:800 22px RC;color:#9a9b9e;text-align:center}.cl b{font:700 19px RC}.cl b small{font:500 13px R;color:#9a9b9e;margin-left:6px}.cl em{font-style:normal;font:700 15px R;color:#f2b134}`;
+  const html = await page(css, `${head("SIGNING DAY", "National Signing Day", label, siteLogo)}
+<div class="hero"><h1>${esc(title)}</h1>${sub ? `<p>${esc(sub)}</p>` : ""}</div>
+${lines.length ? `<ul class="ls">${lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}
+${rows.length ? `<div class="cl">${rows.map((r) => `<div><span class="n">${r.rank}</span>${badge(r.name, r.logo, colors, 34)}<b>${esc(short(r.name))}${r.coach ? `<small>${esc(r.coach)}</small>` : ""}</b><em>${esc(r.pts ?? "")}</em></div>`).join("")}</div>` : ""}
+<footer><span>TD Wire · Signing Day live</span><b>thedynastycfb.com</b></footer>`);
+  return shoot(html, { chromeChannel });
+}

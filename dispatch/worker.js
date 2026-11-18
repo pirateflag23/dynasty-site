@@ -5,6 +5,7 @@
 // If the API's current period/data_version no longer matches that stamp, the Action has work to do, so we dispatch it.
 // The Action's own concurrency group serializes overlapping runs.
 
+import { runNSD } from "./nsd.js";
 import { runGreeter, inspectGreeter } from "./greeter.js";
 import { runReporters, quotes, reporterStatus } from "./reporters.js";
 
@@ -75,6 +76,7 @@ export default {
   // Cron runs every 2 minutes: the Discord greeter every time, the sync check every 10 minutes.
   async scheduled(event, env, ctx) {
     ctx.waitUntil(runGreeter(env, event.scheduledTime).then((x) => console.log("greeter", JSON.stringify(x))).catch((e) => console.error("greeter", String(e))));
+    ctx.waitUntil(runNSD(env, event.scheduledTime).then((x) => x.posted?.length && console.log("nsd", JSON.stringify(x))).catch((e) => console.error("nsd", String(e))));
     ctx.waitUntil(runReporters(env, event.scheduledTime).then((x) => console.log("reporters", JSON.stringify(x))).catch((e) => console.error("reporters", String(e))));
     if (new Date(event.scheduledTime).getUTCMinutes() % 10 === 0)
       ctx.waitUntil(run(env).then((x) => console.log(JSON.stringify(x))).catch((e) => console.error(String(e))));

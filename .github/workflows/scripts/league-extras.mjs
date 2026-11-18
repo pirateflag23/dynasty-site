@@ -236,3 +236,88 @@ export async function carouselCards(x) {
     });
   }
 }
+
+/* ---------------- National Signing Day: build a timed show ----------------
+   When a sync first sees the signings land, every card is rendered now (images committed under data/nsd/) and queued with a
+   release time. dispatch/nsd.js (cron, every 2 min) posts each card to Discord when its time comes. */
+const etParts = (t) => Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(new Date(t)).map((q) => [q.type, q.value]));
+// next HH:MM Eastern at least `lead` ms from now
+function nextEt(hhmm, lead) {
+  const [H, M] = hhmm.split(":").map(Number), now = Date.now() + lead, p = etParts(now);
+  let d = (H * 60 + M) - (Number(p.hour) * 60 + Number(p.minute));
+  if (d < 0) d += 1440;
+  return now + d * 60e3;
+}
+export async function signingDay(x) {
+  const C = { start_et: "19:00", hours: 3, min_signed: 40, ...(x.cfg.nsd || {}) };
+  const ch = x.pickChannel(x.cfg.channels.signing_day || x.cfg.channels.recruiting);
+  if (!ch) return;
+  const TEST = process.env.NSD_TEST === "1";
+  const season = x.cur.season;
+  if (!TEST && /Wk \d+$/.test(x.cur.season_text || "")) return; // signings land in the offseason
+  const st = (x.state.nsd ??= {});
+  if (st[season] && !TEST) return;
+  const all = (await x.api("/recruits").catch(() => ({ data: [] }))).data || [];
+  const signed = all.filter((r) => !r.transfer && (TEST ? r.committed : r.signed) && r.school?.team_id);
+  if (signed.length < C.min_signed) return;
+  if (x.seeding) { st[season] = { skipped: true }; return; }
+  x.log(`Signing Day: ${signed.length} signings, building the show`);
+  const commits = (await x.api("/recruits/commits").catch(() => ({ data: [] }))).data || [];
+  const lastCommit = new Map(); for (const c of [...commits].reverse()) if (c.kind === "commit") lastCommit.set(c.prospect_key, c);
+  const keyOf = (s) => x.teamKeyById(s?.team_id);
+  const map = await x.logoMap(), colors = await x.colors(), siteLogo = x.siteLogo();
+  const school = (k, n) => ({ name: k ? x.tName(k) : n, logo: x.logoFor(k ? x.tName(k) : n, map), coach: k && x.userTeams.has(k) ? x.coachName(k) : "" });
+  const R = (r) => ({ name: [r.first_name, r.last_name].filter(Boolean).join(" ") || r.name, pos: r.position, archetype: r.archetype, stars: r.stars, rank: r.national_rank, pos_rank: r.position_rank, hometown: r.hometown, state: r.state, height: r.height, weight: r.weight, dev: r.dev_trait });
+  const flipFrom = (r) => { const c = lastCommit.get(r.prospect_key); return c && c.school?.team_id !== r.school.team_id ? c.school?.name : c?.previous_school && c.previous_school.team_id !== r.school.team_id ? c.previous_school.name : ""; };
+  const byRank = (a, b) => (a.national_rank || 9999) - (b.national_rank || 9999);
+  const top10 = [...signed].sort(byRank).slice(0, 10);
+  const inTop = new Set(top10.map((r) => r.prospect_key));
+  const isUser = (r) => x.userTeams.has(keyOf(r.school));
+  const singles = signed.filter((r) => !inTop.has(r.prospect_key) && ((isUser(r) && r.stars >= 4) || r.stars === 5 || (r.national_rank && r.national_rank <= 40) || (flipFrom(r) && r.stars >= 4)))
+    .sort((a, b) => (isUser(b) - isUser(a)) || byRank(a, b)).slice(0, C.max_singles ?? 60).sort((a, b) => byRank(b, a)); // worst to best
+  const classes = (await x.api("/recruits/classes").catch(() => ({ data: [] }))).data || [];
+  const clsRank = new Map(classes.map((c) => [c.team_key, c.rank]));
+  const userCls = [...x.userTeams].map((k) => ({ k, list: signed.filter((r) => keyOf(r.school) === k).sort(byRank) })).filter((c) => c.list.length).sort((a, b) => (clsRank.get(b.k) || 999) - (clsRank.get(a.k) || 999));
+
+  const dir = `data/nsd/${x.lid}/${season}`, rawBase = `${(x.cfg.raw_base || "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main").replace(/\/$/, "")}/${dir}`;
+  await mkdir(x.DRY ? "graphics-preview/nsd" : dir, { recursive: true });
+  const label = `${season} class`, items = [];
+  let n = 0;
+  const lim = x.DRY ? 8 : 1e9;
+  const card = async (id, title, render) => {
+    if (n++ >= lim) return;
+    try { const img = await render(); const f = `${id}.png`; await writeFile(`${x.DRY ? "graphics-preview/nsd" : dir}/${f}`, img); items.push({ id, title, image: `${rawBase}/${f}` }); }
+    catch (e) { x.log(`NSD card ${id} failed: ${e.message}`); items.push({ id, title }); }
+  };
+  const G = await lg();
+  const userSigned = signed.filter(isUser);
+  await card("open", "📝 National Signing Day is LIVE", () => G.renderNSDBoard({ title: "Signing Day is live", sub: `${signed.length} signatures are in. We'll take you through every big one, then the top 10 in the country.`,
+    lines: [`${userSigned.length} recruits signed with league coaches`, `${signed.filter((r) => r.stars === 5).length} five-stars and ${signed.filter((r) => r.stars === 4).length} four-stars signed nationally`, "Top 10 countdown starts in the final half hour"], label, siteLogo, colors }));
+  const main = [];
+  for (const r of singles) { const k = keyOf(r.school), fl = flipFrom(r);
+    main.push(["s" + r.prospect_key, `${fl ? "🔄 FLIP" : "✍️ Signed"}: ${r.stars}★ ${r.position} ${R(r).name} → ${school(k, r.school.name).name}`, () => G.renderSigning({ r: R(r), s: school(k, r.school.name), kind: fl ? "flip" : "sign", prev: fl, label, siteLogo, colors })]); }
+  const clsCards = userCls.map((c) => ["c" + c.k, `📋 ${x.tName(c.k)} signs ${c.list.length}: ${x.coachName(c.k)}'s class is in`, () => G.renderClassCard({ s: school(c.k), signees: c.list.slice(0, 26).map((r) => ({ stars: r.stars, pos: r.position, name: R(r).name, rank: r.national_rank, state: r.state })), rank: clsRank.get(c.k), label, siteLogo, colors })]);
+  // spread the class cards evenly through the singles
+  const step = clsCards.length ? Math.max(1, Math.floor(main.length / clsCards.length)) : 1;
+  clsCards.forEach((c, i) => main.splice(Math.min(main.length, (i + 1) * step + i), 0, c));
+  for (const [id, t, f] of main) await card(id, t, f);
+  for (const [i, r] of [...top10].reverse().entries()) { const k = keyOf(r.school), fl = flipFrom(r);
+    await card("t" + (10 - i), `🔟 No. ${10 - i}: ${r.stars}★ ${r.position} ${R(r).name} → ${school(k, r.school.name).name}`, () => G.renderSigning({ r: R(r), s: school(k, r.school.name), kind: fl ? "flip" : "sign", prev: fl, countdown: 10 - i, label, siteLogo, colors })); }
+  await card("close", "🏆 Signing Day final: the top classes", () => G.renderNSDBoard({ title: "Final class rankings", sub: `${season} recruiting class`,
+    rows: classes.slice(0, 20).map((c) => ({ rank: c.rank, name: c.name, logo: x.logoFor(c.name, map), coach: x.userTeams.has(c.team_key) ? x.coachName(c.team_key) : "", pts: c.points != null ? `${c.points} pts` : `${c.commits?.total ?? ""}` })), label, siteLogo, colors }));
+
+  // timing: opener at start, singles + class cards through 80% of the window, countdown to the end, final rankings last
+  const start = TEST || x.DRY ? Date.now() + 10 * 60e3 : nextEt(C.start_et, 20 * 60e3), H = C.hours * 3600e3;
+  const mid = items.filter((q) => q.id !== "open" && q.id !== "close" && !/^t\d+$/.test(q.id)), cd = items.filter((q) => /^t\d+$/.test(q.id));
+  const at = (t) => new Date(Math.round(t)).toISOString();
+  for (const q of items) {
+    if (q.id === "open") q.at = at(start);
+    else if (q.id === "close") q.at = at(start + H);
+    else if (cd.includes(q)) q.at = at(start + H * 0.82 + (cd.indexOf(q) * (H * 0.16)) / Math.max(1, cd.length - 1));
+    else q.at = at(start + 2 * 60e3 + (mid.indexOf(q) * (H * 0.78)) / Math.max(1, mid.length));
+  }
+  const queue = { season, league_id: x.lid, channel_id: x.channelId(ch), channel: ch, start: at(start), end: at(start + H), built: new Date().toISOString(), test: TEST, items };
+  await writeFile(x.DRY ? "graphics-preview/nsd/queue.json" : `data/nsd/queue.json`, JSON.stringify(queue, null, 1));
+  if (!TEST) st[season] = { built: queue.built, start: queue.start, n: items.length };
+  x.log(`Signing Day show queued: ${items.length} cards from ${queue.start} to ${queue.end}`);
+}
