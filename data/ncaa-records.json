@@ -1,0 +1,30 @@
+{
+  "_about": "Official NCAA FBS individual records, through the 2025 season. Edit a value here if a record falls in real life. Defensive stats (tackles, sacks) are official only since 2000; bowl games count only since 2002.",
+  "through": 2025,
+  "career": {
+    "passYards": { "holder": "Case Keenum", "school": "Houston", "years": "2007-11", "value": 19217 },
+    "passTD": { "holder": "Case Keenum / Dillon Gabriel", "school": "Houston / Oregon", "years": "2011, 2024", "value": 155, "note": "Gabriel tied Keenum in his final game" },
+    "rushYards": { "holder": "Donnel Pumphrey", "school": "San Diego State", "years": "2013-16", "value": 6405 },
+    "rushTD": { "holder": "Keenan Reynolds", "school": "Navy", "years": "2012-15", "value": 88 },
+    "receivingYards": { "holder": "Corey Davis", "school": "Western Michigan", "years": "2013-16", "value": 5278 },
+    "receiveReceptions": { "holder": "Zay Jones", "school": "East Carolina", "years": "2013-16", "value": 399 },
+    "receiveTouchdowns": { "holder": "Jarett Dillard", "school": "Rice", "years": "2005-08", "value": 60 },
+    "defenseTotalTackles": { "holder": "Carlton Martial", "school": "Troy", "years": "2018-22", "value": 577 },
+    "defenseSacks": { "holder": "Jaylon Ferguson", "school": "Louisiana Tech", "years": "2015-18", "value": 45 },
+    "defenseInterceptions": { "holder": "Al Brosky", "school": "Illinois", "years": "1950-52", "value": 29 },
+    "kickFieldGoalsMade": { "holder": "Christopher Dunn", "school": "NC State", "years": "2018-22", "value": 97 }
+  },
+  "season": {
+    "passYards": { "holder": "Bailey Zappe", "school": "Western Kentucky", "years": "2021", "value": 5967 },
+    "passTD": { "holder": "Bailey Zappe", "school": "Western Kentucky", "years": "2021", "value": 62 },
+    "rushYards": { "holder": "Barry Sanders", "school": "Oklahoma State", "years": "1988", "value": 2628 },
+    "rushTD": { "holder": "Barry Sanders", "school": "Oklahoma State", "years": "1988", "value": 37 },
+    "receivingYards": { "holder": "Trevor Insley", "school": "Nevada", "years": "1999", "value": 2060 },
+    "receiveReceptions": { "holder": "Zay Jones", "school": "East Carolina", "years": "2016", "value": 158 },
+    "receiveTouchdowns": { "holder": "Troy Edwards", "school": "Louisiana Tech", "years": "1998", "value": 27 },
+    "defenseTotalTackles": { "holder": "Lawrence Flugence", "school": "Texas Tech", "years": "2002", "value": 193 },
+    "defenseSacks": { "holder": "Terrell Suggs", "school": "Arizona State", "years": "2002", "value": 24 },
+    "defenseInterceptions": { "holder": "Al Worley / Gerod Holliman", "school": "Washington / Louisville", "years": "1968, 2014", "value": 14 },
+    "kickFieldGoalsMade": { "holder": "Billy Bennett", "school": "Georgia", "years": "2003", "value": 31 }
+  }
+}

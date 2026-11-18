@@ -445,6 +445,32 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
 .h-season h3{margin:0 0 6px;font:800 16px var(--head)}
 .h-season ul{margin:0;padding-left:18px;font-size:13px;line-height:1.6}
 .h-note{padding:10px 14px;font-size:12px;color:var(--dim)}
+.tbl tr.ncaa-rec td{background:color-mix(in srgb,#f2b134 24%,var(--card,#fff));border-top:2px solid #c9921c;border-bottom:2px solid #c9921c}
+.tbl tr.ncaa-rec .rec-tag{display:inline-block;font:800 10px var(--head);letter-spacing:.08em;text-transform:uppercase;background:#c9921c;color:#fff;border-radius:4px;padding:2px 6px;margin-right:6px}
+.tbl tr.beat td{background:color-mix(in srgb,#f2b134 14%,transparent)}
+.rec-crown{font:800 10px var(--head);letter-spacing:.06em;text-transform:uppercase;color:#a87412;margin-left:6px}
+.chase{margin:4px 14px 10px;padding:10px 12px;border:1px solid color-mix(in srgb,#f2b134 55%,transparent);border-radius:10px;background:color-mix(in srgb,#f2b134 8%,transparent);font-size:13px}
+.chase .kick{font:800 11px var(--head);letter-spacing:.08em;text-transform:uppercase;color:#a87412;display:block;margin-bottom:2px}
+.chase .bar{height:8px;border-radius:999px;background:color-mix(in srgb,var(--ink) 10%,transparent);margin-top:8px;overflow:hidden}
+.chase .bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#c9921c,#f2b134)}
+.chase small{color:var(--dim)}
+.shelf{border:1px solid color-mix(in srgb,#f2b134 55%,transparent);border-radius:12px;margin:0 14px 14px;overflow:hidden}
+.shelf h3{margin:0;padding:10px 12px;font:800 16px var(--head);background:linear-gradient(90deg,color-mix(in srgb,#f2b134 28%,transparent),transparent);border-bottom:1px solid color-mix(in srgb,#f2b134 40%,transparent)}
+.shelf h3 small{display:block;font:500 12px var(--body);color:var(--dim)}
+.shelf-row{display:flex;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}
+.shelf-row:first-of-type{border-top:0}
+.shelf-row .big{font:800 20px var(--head);min-width:76px;text-align:right}
+.shelf-row .who{flex:1;font-size:13px}.shelf-row .who small{display:block;color:var(--dim)}
+.hof{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;padding:14px}
+.hof-wing{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.hof-wing h3{margin:0;padding:12px;font:800 17px var(--head);background:linear-gradient(135deg,#1d1d1f,#3a2f12);color:#f2d38a;letter-spacing:.02em}
+.hof-wing h3 small{display:block;font:500 12px var(--body);color:#d8c79a}
+.hof-plaque{display:flex;gap:10px;padding:12px;border-top:1px solid var(--line)}
+.hof-plaque:first-of-type{border-top:0}
+.hof-plaque .cls{font:800 12px var(--head);color:#a87412;min-width:44px}
+.hof-plaque b{display:block}.hof-plaque small{color:var(--dim)}
+.hof-empty{padding:26px 14px;text-align:center;color:var(--dim);font-size:13px}
+.hof-empty .pl{font-size:34px;display:block;margin-bottom:6px;opacity:.75}
 .h-sec{margin:18px 14px 8px;font:800 17px var(--head);border-bottom:2px solid var(--red);padding-bottom:4px}
 .h-natty{margin:12px 14px;padding:14px;border-radius:10px;color:#fff;background:radial-gradient(ellipse at 20% 0,color-mix(in srgb,#f2b134 45%,transparent),transparent 60%),var(--nav-2)}
 .h-natty .lbl{font:800 13px var(--head);letter-spacing:.5px;text-transform:uppercase;color:#f2b134;margin-bottom:8px}
@@ -2010,9 +2036,39 @@ const coachLabel = (c, link = true) => {
 const hWl = (w, l, t) => `${w}-${l}${t ? "-" + t : ""}`;
 const hPct = (v) => (v == null ? "—" : v.toFixed(3).replace(/^0/, ""));
 const hNum = (v) => (v == null ? "—" : Number(v).toLocaleString("en-US"));
+const DATA_BASE = HISTORY_BASE.replace(/\/history$/, "");
+let ncaaP = null, hofP = null;
+const ncaaRecords = () => (ncaaP ??= fetch(`${DATA_BASE}/ncaa-records.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+const hallOfFame = () => (hofP ??= fetch(`${DATA_BASE}/hall-of-fame.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+const REC_NOUN = { passYards: "yards", passTD: "TD passes", rushYards: "yards", rushTD: "rushing TD", receivingYards: "yards", receiveReceptions: "catches",
+  receiveTouchdowns: "TD catches", defenseTotalTackles: "tackles", defenseSacks: "sacks", defenseInterceptions: "INTs", kickFieldGoalsMade: "field goals" };
+const SEASON_GAMES = 13; // pace basis: 12 regular season + a postseason game
+/* gold "NCAA record" row + the closest active chaser, for one leaders table */
+function recordBits(d, sub, cat, rec, idx) {
+  const R = rec?.[sub === "careers" ? "career" : "season"]?.[cat];
+  if (!R) return { row: "", chase: "", beat: () => false };
+  const cur = Math.max(...d.seasons.map(Number));
+  const row = `<tr class="ncaa-rec"><td>🏛</td><td class="pl"><span class="rec-tag">NCAA record</span><b>${esc(R.holder)}</b>${R.note ? ` <small>${esc(R.note)}</small>` : ""}</td><td>${esc(R.years)}</td><td>${esc(R.school)}</td><td></td><td><b>${hNum(R.value)}</b></td></tr>`;
+  const all = (sub === "careers" ? d.career : d.season)[cat] || [];
+  const live = sub === "careers" ? all.find((r) => String(r.span).endsWith(String(cur))) : all.find((r) => Number(r.y) === cur);
+  let chase = "";
+  if (live) {
+    const who = `<a class="pl-link" href="#player/${live.k}"><b>${esc(live.n)}</b></a> <small>${esc(live.p || "")} · ${esc(live.tn)}</small>`;
+    if (live.v > R.value) chase = `<div class="chase"><span class="kick">👑 Record broken</span>${who} owns the NCAA ${sub === "careers" ? "career" : "single-season"} mark with <b>${hNum(live.v)}</b>, passing ${esc(R.holder)}'s ${hNum(R.value)}.</div>`;
+    else {
+      const pct = Math.min(100, Math.round((live.v / R.value) * 100)), left = R.value - live.v;
+      const pace = sub === "seasons" && live.g && live.g < SEASON_GAMES ? Math.round((live.v / live.g) * SEASON_GAMES) : null;
+      const paceTxt = pace ? ` · on pace for <b>${hNum(pace)}</b>${pace > R.value ? " 🔥" : ""}` : "";
+      const gl = sub === "seasons" && live.g < SEASON_GAMES ? ` with ~${SEASON_GAMES - live.g} games left` : "";
+      chase = `<div class="chase"><span class="kick">${sub === "careers" ? "Active career leader" : `${cur} leader`} · chasing ${esc(R.holder)}</span>${who} is <b>${hNum(left)}</b> ${REC_NOUN[cat] || ""} off the record${gl} (${pct}% of the way)${paceTxt}
+        <div class="bar"><i style="width:${pct}%"></i></div></div>`;
+    }
+  }
+  return { row, chase, beat: (r) => r.v > R.value };
+}
 
 function hShell(sub, inner) {
-  const tabs = [["coaches", "Coaches"], ["careers", "Career leaders"], ["seasons", "Season leaders"], ["champions", "Champions"], ["trophies", "Trophy room"]];
+  const tabs = [["coaches", "Coaches"], ["careers", "Career leaders"], ["seasons", "Season leaders"], ["champions", "Champions"], ["trophies", "Trophy room"], ["hof", "Hall of Fame"]];
   return `<section class="card"><h2 class="card-h">Dynasty history <small>${esc(D.league?.data?.name || "")}</small></h2>
     <nav class="h-sub">${tabs.map(([k, l]) => `<a href="#history/${k}" ${k === sub ? 'aria-current="page"' : ""}>${l}</a>`).join("")}</nav>
     <div id="h-in">${inner}</div></section>`;
@@ -2038,16 +2094,19 @@ async function renderHistory(sub = "coaches") {
     };
     draw();
   } else if (sub === "careers" || sub === "seasons") {
-    const d = await hGet("leaders.json");
+    const [d, rec] = await Promise.all([hGet("leaders.json"), ncaaRecords()]);
     if (!d) { $("#h-in").innerHTML = '<div class="empty">No leaders yet.</div>'; return; }
     const draw = () => {
+      const rb = recordBits(d, sub, hCat, rec);
       let rows = (sub === "careers" ? d.career : d.season)[hCat] || [];
       if (sub === "seasons" && hYear !== "all") rows = rows.filter((r) => String(r.y) === String(hYear));
       $("#h-in").innerHTML = `<div class="ctrl">${Object.entries(d.cats).map(([k, l]) => `<button class="pill" data-cat="${k}" aria-pressed="${k === hCat}">${esc(l)}</button>`).join("")}</div>
         ${sub === "seasons" ? `<div class="ctrl"><button class="pill" data-yr="all" aria-pressed="${hYear === "all"}">All seasons</button>${d.seasons.map((y) => `<button class="pill" data-yr="${y}" aria-pressed="${String(y) === String(hYear)}">${y}</button>`).join("")}</div>` : ""}
+        ${rb.chase}
         <div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Player</th><th>${sub === "careers" ? "Seasons" : "Season"}</th><th>Team</th><th>G</th><th>${esc(d.cats[hCat])}</th></tr></thead><tbody>
-        ${rows.slice(0, 25).map((r, i) => `<tr><td>${i + 1}</td><td class="pl"><a class="pl-link" href="#player/${r.k}">${esc(r.n)}</a> <small>${esc(r.p || "")}</small></td><td>${sub === "careers" ? esc(r.span) : r.y}</td><td>${esc(r.tn)}</td><td>${r.g}</td><td><b>${hNum(r.v)}</b></td></tr>`).join("") || '<tr><td colspan="6">No data</td></tr>'}</tbody></table></div>
-        <div class="h-note">${sub === "careers" ? "Totals across every season of this dynasty, all teams combined." : "Best single seasons in dynasty history. Pick a season to compare years."}</div>`;
+        ${rb.row}
+        ${rows.slice(0, 25).map((r, i) => `<tr${rb.beat(r) ? ' class="beat"' : ""}><td>${i + 1}</td><td class="pl"><a class="pl-link" href="#player/${r.k}">${esc(r.n)}</a> <small>${esc(r.p || "")}</small>${rb.beat(r) ? '<span class="rec-crown">👑 NCAA record</span>' : ""}</td><td>${sub === "careers" ? esc(r.span) : r.y}</td><td>${esc(r.tn)}</td><td>${r.g}</td><td><b>${hNum(r.v)}</b></td></tr>`).join("") || '<tr><td colspan="6">No data</td></tr>'}</tbody></table></div>
+        <div class="h-note">${sub === "careers" ? "Totals across every season of this dynasty, all teams combined." : "Best single seasons in dynasty history. Pick a season to compare years."}${rec ? ` Gold row: the official real-life NCAA FBS record (through ${rec.through}). Dynasty careers only count seasons played in this league.` : ""}</div>`;
       document.querySelectorAll("[data-cat]").forEach((b) => b.onclick = () => { hCat = b.dataset.cat; draw(); });
       document.querySelectorAll("[data-yr]").forEach((b) => b.onclick = () => { hYear = b.dataset.yr; draw(); });
     };
@@ -2056,6 +2115,8 @@ async function renderHistory(sub = "coaches") {
     await renderChampions();
   } else if (sub === "trophies") {
     await renderTrophies();
+  } else if (sub === "hof") {
+    await renderHof();
   }
 }
 
@@ -2127,7 +2188,7 @@ async function renderChampions() {
 /* ---------- trophy room: every title, bowl and rivalry trophy, with its history ---------- */
 let hTrophyFilter = "all";
 async function renderTrophies() {
-  const [{ list, byTag }, rv] = await Promise.all([hSeasons(), fetch(`${HISTORY_BASE.replace(/\/data\/history$/, "")}/rivalries.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : { rivalries: [] })).catch(() => ({ rivalries: [] }))]);
+  const [{ list, byTag }, rv, recs] = await Promise.all([hSeasons(), fetch(`${HISTORY_BASE.replace(/\/data\/history$/, "")}/rivalries.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : { rivalries: [] })).catch(() => ({ rivalries: [] })), hGet("records.json")]);
   const nm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
   const rivalOf = new Map(); for (const [a, b, n] of rv.rivalries || []) { rivalOf.set(nm(a) + "|" + nm(b), n); rivalOf.set(nm(b) + "|" + nm(a), n); }
   const T = new Map();
@@ -2142,11 +2203,34 @@ async function renderTrophies() {
   const kinds = [["all", "All"], ["cfp", "Playoff"], ["conf", "Conference titles"], ["bowl", "Bowls"], ["rivalry", "Rivalry trophies"]];
   let rows = [...T.values()].filter((t) => hTrophyFilter === "all" || t.kind === hTrophyFilter).sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
   const icon = { cfp: "🏆", conf: "🥇", bowl: "🏈", rivalry: "⚔️" };
-  $("#h-in").innerHTML = `<div class="ctrl">${kinds.map(([k, l]) => `<button class="pill" data-tf="${k}" aria-pressed="${k === hTrophyFilter}">${l}</button>`).join("")}</div>
+  $("#h-in").innerHTML = `${recordShelf(recs)}<div class="ctrl">${kinds.map(([k, l]) => `<button class="pill" data-tf="${k}" aria-pressed="${k === hTrophyFilter}">${l}</button>`).join("")}</div>
     <div class="h-trophies">${rows.map((t) => `<div class="h-tcard ${t.kind}"><h4>${icon[t.kind]} ${esc(t.name)}${t.kind === "rivalry" ? ` <small>${esc(t.games[0].g.a.t)} vs ${esc(t.games[0].g.h.t)}</small>` : ""}</h4>
       ${t.games.sort((a, b) => b.season - a.season || b.g.w - a.g.w).map(({ season, g }) => `<div class="h-trow"><span class="yr">${season}</span>${hResult(g, byTag)}</div>`).join("")}</div>`).join("") || '<div class="empty">No trophies in this category yet.</div>'}</div>
     <div class="h-note">Every championship, playoff game, bowl and rivalry trophy in this dynasty. 🎮 marks a league coach.</div>`;
   document.querySelectorAll("[data-tf]").forEach((b) => b.onclick = () => { hTrophyFilter = b.dataset.tf; renderTrophies(); });
+}
+
+function recordShelf(recs) {
+  const b = recs?.broken || [];
+  return `<div class="shelf"><h3>👑 Records broken in The Dynasty<small>Real-life NCAA FBS records that a player in this league has passed.</small></h3>
+    ${b.length ? b.map((r) => `<div class="shelf-row"><div class="big">${hNum(r.v)}</div><div class="who"><a class="pl-link" href="#player/${r.k}"><b>${esc(r.n)}</b></a> ${esc(r.p || "")} · ${esc(r.tn)}
+      <small>${r.scope === "season" ? `${r.y} single-season` : "Career"} ${esc(r.label)}. Passed ${esc(r.old.holder)} (${esc(r.old.school)}, ${esc(r.old.years)}): ${hNum(r.old.value)}</small></div></div>`).join("")
+    : `<div class="hof-empty"><span class="pl">🏛</span>No NCAA records have fallen yet. Check <a href="#history/seasons">Season leaders</a> to see who's chasing one.</div>`}</div>`;
+}
+
+/* ---------- Hall of Fame: inductees live in data/hall-of-fame.json ---------- */
+async function renderHof() {
+  const h = await hallOfFame();
+  const players = [...(h?.players || [])].sort((a, b) => (b.class || 0) - (a.class || 0));
+  const coaches = [...(h?.coaches || [])].sort((a, b) => (b.class || 0) - (a.class || 0));
+  const empty = (what) => `<div class="hof-empty"><span class="pl">🏛</span>The ${what} wing is waiting on its first class.<br><small>Greatness pending.</small></div>`;
+  $("#h-in").innerHTML = `<div class="hof">
+    <section class="hof-wing"><h3>Players<small>The best to ever suit up in The Dynasty</small></h3>
+      ${players.map((p) => `<div class="hof-plaque"><div class="cls">${esc(p.class || "")}</div><div><b>${esc(p.name)}</b><small>${esc([p.pos, p.team, p.years].filter(Boolean).join(" · "))}</small>${p.line ? `<div>${esc(p.line)}</div>` : ""}</div></div>`).join("") || empty("players")}</section>
+    <section class="hof-wing"><h3>Coaches<small>The ones who built programs</small></h3>
+      ${coaches.map((c) => `<div class="hof-plaque"><div class="cls">${esc(c.class || "")}</div><div><b>${c.gamertag ? `<a href="#coach/${encodeURIComponent(c.gamertag)}">${esc(c.name || c.gamertag)}</a>` : esc(c.name)}</b><small>${esc([c.teams, c.years].filter(Boolean).join(" · "))}</small>${c.line ? `<div>${esc(c.line)}</div>` : ""}</div></div>`).join("") || empty("coaches")}</section>
+  </div>
+  <div class="h-note">No one has been enshrined yet. The first class goes in once The Dynasty has some seasons behind it.</div>`;
 }
 
 async function renderCoach(tag) {
@@ -2354,7 +2438,7 @@ function route() {
   const name = location.hash.slice(1);
   const tm = name.match(/^team\/(\d+)$/), gm = name.match(/^game\/(\d+)$/), rm = name.match(/^recruit\/(\d+)$/), pm = name.match(/^player\/(\d+)$/);
   const rs = name.match(/^recruiting(?:\/(classes|board|portal|crystal))?\/?$/), ss = name.match(/^stats(?:\/(players))?\/?$/);
-  const hs = name.match(/^history(?:\/(coaches|careers|seasons|champions|trophies))?\/?$/), cm = name.match(/^coach\/(.+)$/);
+  const hs = name.match(/^history(?:\/(coaches|careers|seasons|champions|trophies|hof))?\/?$/), cm = name.match(/^coach\/(.+)$/);
   if (hs || cm) { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#history" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); if (cm) renderCoach(decodeURIComponent(cm[1])); else { document.title = `History · ${CONFIG.SITE_NAME}`; renderHistory(hs[1] || "coaches"); } window.scrollTo(0, 0); return; }
   const sc2 = name === "standings/cfp", ft = name.match(/^feature\/(\w+)$/);
   if (sc2 || ft) { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === (sc2 ? "#standings" : "#home") ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `${sc2 ? "Playoff odds" : "Offseason report"} · ${CONFIG.SITE_NAME}`; sc2 ? renderCfp() : renderFeature(ft[1]); window.scrollTo(0, 0); return; }
