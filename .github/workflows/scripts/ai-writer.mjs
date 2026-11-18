@@ -43,8 +43,15 @@ const SYSTEM = `You are the writing staff of TD Wire, the news desk for "The Dyn
 
 Your job: rewrite each story from the fact sheet the way real college football beat writers and insiders write: headlines with bite, ledes that tell you why it matters, and the color around the facts: "sources say", "per a source close to the program", visits that went well or badly, a recruit's family loving a campus, a player not caring for a coach's postgame comments, a breakout star getting phone calls from bigger programs, a hot coach at a small school drawing job rumors that make a recruit nervous, a coach benching a guy over attitude, locker-room tension after a blowout, a fan base getting restless.
 
+How it should read:
+- Lead with the human angle, not the box score. Numbers only when the number IS the story (five picks, a 59-point game). Never cite recruiting influence points or point gaps; turn them into who's leading, closing, slipping or out of it ("Texas reportedly had him on campus this week and it went very well", "Georgia's staff is starting to sweat").
+- Nearly every story should carry at least one piece of invented reporting: a visit, a phone call, a source, a sideline moment, a postgame comment that rubbed someone the wrong way, a booster getting antsy, rival staffs circling a player. Most stories should be "rumor": true.
+- Give most stories a quote. Mix who says it: players, recruits, a recruit's parent or high school coach, rival staffers, "a source close to the program", league coaches (by the name given).
+- Connect stories when you can: a coach's hot streak drawing job rumors that spook a recruit, a blowout loss turning into portal chatter, a feud carrying over from last week.
+- Write like ESPN/The Athletic/247Sports beat coverage, with a little attitude. Not every story needs drama, but the feed as a whole should feel alive.
+
 Rules:
-- FACTS STAY TRUE. Scores, stats, records, rankings, influence numbers, commitments, transfers and who-beat-who come only from the fact sheet. Never change them. You can drop numbers that don't help the story.
+- FACTS STAY TRUE. Scores, stats, records, rankings, influence numbers, commitments, transfers and who-beat-who come only from the fact sheet. Never change them, and never add a new number (scores by quarter, stats, rankings, dollar figures) that isn't in the fact sheet. You can drop numbers that don't help the story.
 - COLOR IS INVENTED. Reasons, reactions, rumors, sources, visits and quotes can be made up, and they don't have to be accurate. Keep them plausible for college football and consistent with the facts. Mark a story "rumor": true when it leans on invented reporting (rumors, unnamed sources, speculated motives).
 - Don't repeat the same angle or phrase across stories. Vary the structure: some straight news, some analysis, some gossip. Avoid stock filler like "neck and neck" and "it remains to be seen".
 - League coaches (gamertags) are fair game for football drama: hot seat, job rumors, play-calling, recruiting misses, feuds with players or rivals, ribbing after losses. Keep it inside the world of the league: no real-life personal matters (health, family, crimes, sexual content) and no slurs.
@@ -75,7 +82,8 @@ async function main() {
     const base = (s) => (s.facts ? { ...s, h: s.facts.h, d: s.facts.d, quote: s.facts.quote ?? null, kick: s.facts.kick ?? s.kick } : s);
     for (const c of cats) latest[c] = (latest[c] || []).map(base);
     const all = cats.flatMap((c) => latest[c].map((s) => ({ ...s, _cat: c })));
-    const src = (s) => hash(JSON.stringify([s.h, s.d, s.quote?.text]));
+    const PROMPT_V = 2; // bump to rewrite every story with a new prompt
+    const src = (s) => hash(JSON.stringify([PROMPT_V, s.h, s.d, s.quote?.text]));
     const todo = KEY ? all.filter((s) => cache[s.id]?.src !== src(s)).slice(0, 90) : [];
     log(`${all.length} stories, ${todo.length} need writing${KEY ? "" : " (no ANTHROPIC_API_KEY: templates stay)"}`);
 
