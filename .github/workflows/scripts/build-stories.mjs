@@ -77,7 +77,7 @@ async function main() {
   const schedule = await api("/schedule");
   const games = schedule.data;
   const playedCount = games.filter((g) => g.played).length;
-  const STORY_V = 3; // bump when the story code changes so the next sync rebuilds without forcing every box score
+  const STORY_V = 4; // bump when the story code changes so the next sync rebuilds without forcing every box score
   const sig = `${cur.id}:${leagueRes.data_version}:${playedCount}:v${STORY_V}`; // data_version sits on the response, not league.data
   if (prevIdx.sig === sig && !process.env.FORCE) { log("Stories up to date."); return; }
   await mkdir(DIR, { recursive: true });
@@ -450,22 +450,26 @@ async function main() {
   // The API has no "encouraged" flag, so: keep a roster snapshot per offseason stage; players who vanish when the
   // league advances out of the Encourage Transfers stage (nsd/encourage stage, default OFF Stg 9) were pushed out.
   // Found departures are kept in encouraged-<season>.json so the stories stay up for the rest of the offseason.
-  if (/OFF/i.test(cur.season_text || "") && allRos.length) try {
+  if (allRos.length) try {
     const ENC = +(process.env.ENCOURAGE_STAGE || 9), stg = (t) => +(/OFF\s*Stg\s*(\d+)/i.exec(t || "")?.[1] || 0);
-    const snapF = `${DIR}/roster-snap.json`, encF = `${DIR}/encouraged-${cur.season}.json`;
-    const prev = await readJson(snapF, null), enc = await readJson(encF, { list: [] });
-    if (prev && prev.period !== cur.id && stg(prev.season_text) === ENC && stg(cur.season_text) > ENC && !enc.done) {
+    const snapF = `${DIR}/roster-snap.json`, prev = await readJson(snapF, null);
+    const encSeason = prev && /OFF/i.test(prev.season_text || "") ? +(/^\d{4}/.exec(prev.season_text)?.[0] || cur.season) : cur.season;
+    const encF = `${DIR}/encouraged-${/OFF/i.test(cur.season_text || "") ? cur.season : encSeason}.json`, enc = await readJson(encF, { list: [] });
+    const offNow = /OFF/i.test(cur.season_text || "");
+    // leaving the Encourage Transfers stage: the next stage, or straight into the new season's preseason
+    if (prev && prev.period !== cur.id && stg(prev.season_text) === ENC && (stg(cur.season_text) > ENC || !offNow) && !enc.done) {
       const now = new Set(allRos.map((x) => x.player_key));
       for (const [pk, r] of Object.entries(prev.p)) {
         const [tk, ovr, pos, name, cls] = r;
         if (now.has(+pk) || ovr < (userTeams.has(tk) ? 55 : 80)) continue;
+        if (!offNow && /SR/.test(cls || "")) continue; // rolled into a new season: seniors graduated, they weren't pushed out
         enc.list.push({ pk: +pk, tk, ovr, pos, name, cls, user: userTeams.has(tk) });
       }
       enc.done = true; enc.from = prev.season_text; enc.to = cur.season_text;
       await writeFile(encF, JSON.stringify(enc));
       log(`Encouraged transfers: ${enc.list.length} notable departures (${enc.list.filter((e) => e.user).length} league teams).`);
     }
-    if (!prev || prev.period !== cur.id) await writeFile(snapF, JSON.stringify({ period: cur.id, season_text: cur.season_text, p: Object.fromEntries(allRos.map((x) => [x.player_key, [x.team_key, x.overall, x.position, x.name, x.class_year]])) }));
+    if ((!prev || prev.period !== cur.id) && (offNow || !prev || /OFF/i.test(prev.season_text || ""))) await writeFile(snapF, JSON.stringify({ period: cur.id, season_text: cur.season_text, p: Object.fromEntries(allRos.map((x) => [x.player_key, [x.team_key, x.overall, x.position, x.name, x.class_year]])) }));
     const encS = enc.list.sort((a, b) => (b.user - a.user) || (b.ovr - a.ovr)).slice(0, 8);
     for (const e of encS) {
       const PT = P(e.pk, e.name), TT = tTok(e.tk), seed = e.pk + "enc" + cur.season, posW = POS_WORD[e.pos] || e.pos;

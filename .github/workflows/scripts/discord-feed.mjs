@@ -268,7 +268,9 @@ async function main() {
   /* ============ #scores weekly roundup ============ */
   const weeksDone = [...new Set(games.map((g) => g.week))].filter((w) => games.filter((g) => g.week === w).every((g) => g.played));
   for (const w of weeksDone.sort((a, b) => b - a).slice(0, 3)) {
-    await once(`scores:${league.data.calendar_year}:${w}`, "scores", cfg.channels.scores, () => scoresPost(w));
+    // key by the games' own season: the league's calendar year flips to the new season before the schedule does
+    const gs = games.find((g) => g.week === w)?.season || cur.season || league.data.calendar_year;
+    await once(`scores:${gs}:${w}`, "scores", cfg.channels.scores, () => scoresPost(w));
   }
 
   /* ============ #top-25 ============ */
