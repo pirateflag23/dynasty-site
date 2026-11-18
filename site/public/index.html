@@ -120,6 +120,14 @@ img.tb{background:none!important;box-shadow:none!important;border-radius:0;objec
 
 /* ---------- Lists ---------- */
 .lst{list-style:none;margin:0;padding:0}
+.heis-win{background:radial-gradient(ellipse at 0% 0%,color-mix(in srgb,#f2b134 20%,transparent),transparent 60%)}
+.hw-top{display:flex;align-items:center;gap:12px;padding:14px 14px 6px}.hw-top>div:nth-child(2){flex:1;min-width:0}
+.hw-tro{font-size:44px;line-height:1;filter:drop-shadow(0 0 10px rgba(242,177,52,.55))}
+.hw-nm{font:800 22px/1.1 var(--head);text-transform:uppercase}.hw-top .b{font-size:12px;color:var(--dim);margin-top:3px}
+.hw-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:6px;padding:6px 14px 4px}
+.hw-stats>div:not(.hw-line){border:1px solid var(--line);border-top:3px solid #f2b134;border-radius:6px;padding:7px 4px;text-align:center}
+.hw-stats b{display:block;font:800 18px var(--head)}.hw-stats small{font:700 10px var(--head);color:var(--dim);text-transform:uppercase;letter-spacing:.3px}
+.hw-line{grid-column:1/-1;font-size:12px;color:var(--dim)}.hw-foot{font-size:11px;color:var(--dim);padding:6px 14px 12px}
 .lst li{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-top:1px solid var(--line-2)}
 .lst li:first-child{border-top:0}
 .lst .r{font:800 20px/1 var(--head);color:var(--dim);width:20px;flex:none}
@@ -782,7 +790,7 @@ async function load() {
   const want = {
     league: "/league", schedule: "/schedule", standings: "/standings",
     heisman: "/awards/heisman", commits: "/recruits/commits", classes: "/recruits/classes",
-    teamstats: "/team-stats", members: "/members"
+    teamstats: "/team-stats", members: "/members", history: "/history"
   };
   const keys = Object.keys(want);
   const res = await Promise.allSettled(keys.map((k) => api(want[k])));
@@ -1045,7 +1053,10 @@ function buildStories(boxes) {
   // heisman
   const hz = D.heisman?.data || [];
   const hu = hz.find((p) => p.user_team);
-  if (hu) add({ id: hu.player_key + "heis" + w, type: "heisman", scene: "trophy", team: hu.team_name, score: 70 - hu.rank * 5, kick: "Heisman watch",
+  const hwin = heismanWinners()[0], hcp = D.league?.data?.current_period || {};
+  if (hwin && +hwin.season === +hcp.season) add({ id: hwin.name + "heiswin" + hwin.season, type: "heisman", scene: "trophy", team: hwin.team?.name, score: 90, kick: "Heisman Trophy",
+    h: `${hwin.team?.name}'s ${hwin.name} wins the ${hwin.season} Heisman Trophy`, d: `${hwin.position} · ${hwin.team?.name}` });
+  else if (hu) add({ id: hu.player_key + "heis" + w, type: "heisman", scene: "trophy", team: hu.team_name, score: 70 - hu.rank * 5, kick: "Heisman watch",
     h: `${hu.name} sits at No. ${hu.rank} in the Heisman race`, d: hu.stat_line || "" });
   else if (hz[0]) add({ id: hz[0].player_key + "heis" + w, type: "heisman", scene: "trophy", team: hz[0].team_name, score: 25, kick: "Heisman watch",
     h: `${hz[0].team_name}'s ${hz[0].name} leads the Heisman race`, d: hz[0].stat_line || "" });
@@ -1106,7 +1117,45 @@ function upcomingCard() {
     <div class="s">${esc([coach(g.away) || "CPU", coach(g.home) || "CPU"].join(" vs "))}${g.kind === "user_vs_user" ? " · head-to-head" : ""}</div></li>`).join("")}</ul>` : `<div class="empty">No ${esc(onDeckConf)} games on deck this week.</div>`}</section>`;
 }
 
+// Heisman Trophy winners from /history, newest season first.
+const heismanWinners = () => (D.history?.data || []).filter((h) => h.kind === "award" && /heisman/i.test(h.title || "")).sort((a, b) => b.season - a.season);
+function heismanTiles(pos = "", s = {}) {
+  const n = (v) => (v == null || !isFinite(v) ? "—" : Number(v).toLocaleString("en-US", { maximumFractionDigits: 1 }));
+  const p = String(pos).toUpperCase(), t = [], add = (l, v, keep = true) => { if (keep && v != null) t.push([l, n(v)]); };
+  if (p === "QB") { add("Pass yds", s.passYards); add("Pass TD", s.passTD); add("INT", s.passINT); add("Rush yds", s.rushYards, s.rushYards > 150); }
+  else if (/^(HB|RB|FB)$/.test(p)) { add("Rush yds", s.rushYards); add("Rush TD", s.rushTD); add("Yds/carry", s.rushAvg); add("Rec yds", s.receivingYards, s.receivingYards > 100); }
+  else if (/^(WR|TE)$/.test(p)) { add("Rec", s.receiveReceptions); add("Rec yds", s.receivingYards); add("Rec TD", s.receiveTouchdowns); add("Yds/game", s.receiveYardsPerGame); }
+  else if (/^(K|P)$/.test(p)) { add("FG made", s.kickFieldGoalsMade); add("FG %", s.kickFieldGoalPercentage); add("Long", s.kickFieldGoalLong); }
+  else { add("Tackles", s.defenseTotalTackles); add("TFL", s.defenseTacklesForLoss); add("Sacks", s.defenseSacks); add("INT", s.defenseInterceptions); }
+  return t.slice(0, 4);
+}
+// Once the season's winner is named (late season / CFP) the card shows him, and keeps showing the most
+// recent winner through the offseason, until the new season's Week 0 watch list arrives.
 function heismanCard() {
+  const cp = D.league?.data?.current_period || {}, last = heismanWinners()[0];
+  const off = /\bOFF\b/i.test(cp.season_text || D.league?.data?.season_text || "");
+  const win = last && (+last.season === +cp.season || off || !(D.heisman?.data || []).length) ? last : null;
+  if (win) return heismanWinnerCard(win);
+  return heismanWatchCard();
+}
+function heismanWinnerCard(w) {
+  const tk = w.team?.team_key, team = w.team?.name || "", st = teamByKey(tk);
+  const wl = (D.heisman?.data || []).find((h) => h.name === w.name);
+  const ln = String(w.name).split(" ").slice(-1)[0].toLowerCase(), fi = String(w.name)[0]?.toLowerCase();
+  setTimeout(() => loadAllPlayers().then((all) => {
+    const p = all.find((x) => x.team_key === tk && String(x.last_name).toLowerCase() === ln && String(x.first_name)[0]?.toLowerCase() === fi);
+    const el = document.getElementById("heis-win-stats");
+    if (p && el) el.innerHTML = heismanTiles(w.position, p.stats).map(([l, v]) => `<div><b>${esc(v)}</b><small>${esc(l)}</small></div>`).join("");
+  }), 0);
+  return `<section class="card heis-win"><h2 class="card-h">Heisman Trophy <small>${esc(w.season)} winner</small></h2>
+    <div class="hw-top"><div class="hw-tro" aria-hidden="true">🏆</div>
+      <div><div class="hw-nm">${plLink(w.name, wl?.player_key)}</div>
+      <div class="b">${esc([w.position, wl?.class_year].filter(Boolean).join(" · "))} · ${st?.rank > 0 && st.rank <= 25 ? "No. " + st.rank + " " : ""}${tLink(team, tk)}${st?.user_controlled ? " 🎮" : ""}${st?.record ? ` (${esc(st.record)})` : ""}</div></div>
+      ${team ? badge(team, true) : ""}</div>
+    <div class="hw-stats" id="heis-win-stats">${wl?.stat_line ? `<div class="hw-line">${esc(String(wl.stat_line).replace(/\n/g, " · "))}</div>` : ""}</div>
+    <div class="hw-foot">The Heisman watch returns in Week 0.</div></section>`;
+}
+function heismanWatchCard() {
   const h = D.heisman?.data || [];
   return `<section class="card"><h2 class="card-h">Heisman watch</h2>
     ${h.length ? `<ul class="lst">${h.map((p) => {

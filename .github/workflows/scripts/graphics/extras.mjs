@@ -1,6 +1,7 @@
 // The Dynasty: smaller weekly graphics → PNG.
 //   renderAdvance({ week, year, season, lines, siteLogo })                 #announcements on each new week
 //   renderHeisman({ label, players:[{ rank, name, pos, cls, team, rank_t, logo, last, stat, isNew, move, user }], siteLogo, colors })
+//   renderHeismanWinner({ season, name, pos, cls, team, rank_t, record, coach, logo, user, stats:[[label, value]], line, trophy, siteLogo, colors })
 //   renderHeadlines({ label, stories:[{ kick, h, d, user }], siteLogo })
 //   renderOnDeck({ label, sub, games:[{ away:{name,rank,record,coach,logo}, home:{...}, tag }], siteLogo, colors })
 import { fonts, esc, short, badge, BADGE_CSS, shoot, teamCols } from "./common.mjs";
@@ -69,6 +70,66 @@ ${BASE}
 <header>${logoImg(siteLogo)}<div class="ttl"><small>The Dynasty</small><h1>Heisman <span>Watch</span></h1></div><div class="meta">${esc(label)}</div></header>
 <div class="list">${players.map(row).join("") || '<div class="hr"><div></div><div></div><div class="who"><small>No candidates yet.</small></div></div>'}</div>
 <footer><span>Ranked by the game's Heisman watch</span><b>thedynastycfb.com</b></footer>
+</div></body></html>`;
+  return shoot(html, { chromeChannel });
+}
+
+// Season stat tiles for a player, picked by position. s = player-stats-all.json stats.
+export function heismanStatTiles(pos = "", s = {}) {
+  const n = (v) => (v == null || !isFinite(v) ? "—" : Number(v).toLocaleString("en-US", { maximumFractionDigits: 1 }));
+  const p = String(pos).toUpperCase(), t = [];
+  const add = (l, v, keep = true) => { if (keep && v != null) t.push([l, n(v)]); };
+  if (p === "QB") { add("Pass yds", s.passYards); add("Pass TD", s.passTD); add("INT", s.passINT); add("Comp %", s.passCompPerc); add("Rush yds", s.rushYards, s.rushYards > 150); add("Rush TD", s.rushTD, s.rushTD > 2); }
+  else if (/^(HB|RB|FB)$/.test(p)) { add("Rush yds", s.rushYards); add("Rush TD", s.rushTD); add("Yds/carry", s.rushAvg); add("Carries", s.rushAttempts); add("Rec yds", s.receivingYards, s.receivingYards > 100); add("Broken tkl", s.rushBrokenTackles); }
+  else if (/^(WR|TE)$/.test(p)) { add("Receptions", s.receiveReceptions); add("Rec yds", s.receivingYards); add("Rec TD", s.receiveTouchdowns); add("Yds/game", s.receiveYardsPerGame); add("Yds/catch", s.receiveAvgYdsPerReception); add("Long", s.receiveLongReception); }
+  else if (/^(K|P)$/.test(p)) { add("FG made", s.kickFieldGoalsMade); add("FG %", s.kickFieldGoalPercentage); add("Long", s.kickFieldGoalLong); add("Punt avg", s.puntsAverage, s.punts > 0); }
+  else { add("Tackles", s.defenseTotalTackles); add("TFL", s.defenseTacklesForLoss); add("Sacks", s.defenseSacks); add("INT", s.defenseInterceptions); add("Forced fum", s.defenseFumbleForced); add("Def TD", s.defenseTouchdowns, s.defenseTouchdowns > 0); }
+  if (s.gamesPlayed) t.push(["Games", n(s.gamesPlayed)]);
+  return t.slice(0, 6);
+}
+
+// Generic gold trophy (a football on a tiered pedestal) — original art, swap in your own image with trophy=URL.
+const TROPHY_SVG = `<svg viewBox="0 0 240 360" xmlns="http://www.w3.org/2000/svg"><defs>
+<linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#8a5a12"/><stop offset=".35" stop-color="#ffe28a"/><stop offset=".55" stop-color="#f2b134"/><stop offset="1" stop-color="#7a4c0c"/></linearGradient>
+<linearGradient id="w" x1="0" x2="1"><stop offset="0" stop-color="#2a1d10"/><stop offset=".5" stop-color="#4a3420"/><stop offset="1" stop-color="#1c130a"/></linearGradient></defs>
+<ellipse cx="120" cy="92" rx="86" ry="52" transform="rotate(-28 120 92)" fill="url(#g)"/>
+<path d="M62 118 Q120 40 178 66" stroke="#7a4c0c" stroke-width="3" fill="none" opacity=".55"/>
+<g stroke="#fff6d8" stroke-width="5" stroke-linecap="round"><path d="M98 96 L142 72"/><path d="M106 78 l8 14M116 72 l8 14M126 67 l8 14"/></g>
+<path d="M100 150 h40 l-6 40 h-28z" fill="url(#g)"/><rect x="84" y="188" width="72" height="16" rx="3" fill="url(#g)"/>
+<path d="M92 204 h56 l10 70 h-76z" fill="url(#g)"/><rect x="62" y="272" width="116" height="20" rx="3" fill="url(#g)"/>
+<rect x="44" y="292" width="152" height="54" rx="4" fill="url(#w)"/><rect x="74" y="306" width="92" height="26" rx="2" fill="url(#g)"/></svg>`;
+
+export async function renderHeismanWinner({ season = "", name = "", pos = "", cls = "", team = "", rank_t = 0, record = "", coach = "", logo = "", user = false, stats = [], line = "", trophy = "", siteLogo = "", colors = {}, chromeChannel = "chrome" }) {
+  const { c1, c2 } = teamCols(colors, team);
+  const [first, ...rest] = String(name).split(" ");
+  const tiles = stats.length ? stats : String(line || "").split(/\n|,\s*/).filter(Boolean).map((x) => { const m = /^([\d,.]+%?)\s+(.*)$/.exec(x.trim()); return m ? [m[2], m[1]] : [x.trim(), ""]; }).slice(0, 6);
+  const html = `<!doctype html><html><head><style>${await fonts()}
+${BADGE_CSS}
+${BASE}
+.card{--accent:#f2b134;--tc:${c1};--tc2:${c2}}
+.hero{position:relative;display:grid;grid-template-columns:300px 1fr;gap:34px;align-items:center;padding:40px 44px 34px;overflow:hidden;
+  background:radial-gradient(ellipse at 18% 40%,rgba(242,177,52,.32),transparent 55%),linear-gradient(110deg,color-mix(in srgb,var(--tc) 38%,#121314) 0,#121314 70%)}
+.hero::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 22px,rgba(255,255,255,.025) 22px 44px);pointer-events:none}
+.tro{position:relative;z-index:1;display:grid;place-items:center;height:380px}
+.tro svg,.tro img{height:360px;max-width:280px;object-fit:contain;filter:drop-shadow(0 0 30px rgba(242,177,52,.45)) drop-shadow(0 8px 14px rgba(0,0,0,.7))}
+.info{position:relative;z-index:1}
+.kick{font:700 20px RC;letter-spacing:.3em;color:#f2b134;text-transform:uppercase}
+.yr{display:inline-block;margin-top:10px;font:800 22px RC;letter-spacing:.1em;background:#f2b134;color:#121213;padding:4px 14px;border-radius:4px}
+.nm{font:800 96px/.9 RC;text-transform:uppercase;margin-top:16px;text-shadow:0 4px 18px rgba(0,0,0,.6)}.nm span{display:block;font-size:46px;color:#d6d7d9}
+.tm{display:flex;align-items:center;gap:16px;margin-top:18px}.tm b{font:800 30px RC;text-transform:uppercase}.tm small{display:block;font:500 17px R;color:#b9babd;margin-top:2px}
+.tm .u{font:700 14px RC;letter-spacing:.08em;background:#cc0000;padding:3px 9px;border-radius:4px;margin-left:6px;vertical-align:middle}
+.tiles{display:grid;grid-template-columns:repeat(${Math.min(6, Math.max(3, tiles.length))},1fr);gap:12px;padding:22px 32px 8px}
+.tile{background:#1f2022;border-radius:8px;padding:16px 10px;text-align:center;border-top:5px solid var(--tc)}
+.tile b{display:block;font:800 46px/1 RC}.tile small{display:block;font:700 15px RC;letter-spacing:.12em;text-transform:uppercase;color:#9a9b9e;margin-top:8px}
+</style></head><body><div class="card">
+<header>${logoImg(siteLogo)}<div class="ttl"><small>The Dynasty</small><h1>Heisman <span>Trophy</span></h1></div><div class="meta">${esc(season)} winner</div></header>
+<div class="hero"><div class="tro">${trophy ? `<img src="${esc(trophy)}">` : TROPHY_SVG}</div>
+<div class="info"><div class="kick">${esc(season)} Heisman Trophy winner</div>
+<div class="nm">${rest.length ? `<span>${esc(first)}</span>${esc(rest.join(" "))}` : esc(first)}</div>
+<div class="tm">${badge(team, logo, colors, 84)}<div><b>${rank_t > 0 && rank_t <= 25 ? `#${rank_t} ` : ""}${esc(short(team))}${user ? '<i class="u">🎮 LEAGUE</i>' : ""}</b>
+<small>${esc([pos, cls, record && `${record} team`, coach && `Coach ${coach}`].filter(Boolean).join(" · "))}</small></div></div></div></div>
+${tiles.length ? `<div class="tiles">${tiles.map(([l, v]) => `<div class="tile"><b>${esc(v)}</b><small>${esc(l)}</small></div>`).join("")}</div>` : ""}
+<footer><span>Final Heisman update of the ${esc(season)} season · the watch returns in Week 0</span><b>thedynastycfb.com</b></footer>
 </div></body></html>`;
   return shoot(html, { chromeChannel });
 }

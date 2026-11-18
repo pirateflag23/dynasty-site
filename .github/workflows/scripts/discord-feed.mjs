@@ -2,6 +2,7 @@
 //   #final            box score for every game with a user team
 //   #scores           weekly roundup once a week's games are all played
 //   #top-25           poll after each advance, with movement
+//   #heisman          weekly watch in-season; the winner card once he is named (last post of the season), quiet until Week 0
 //   #big-performances standout stat lines from every FBS game
 //   #recruiting       per-user-team recruiting report at each advance
 //   #transfer-portal  portal entries and commitments
@@ -324,10 +325,16 @@ async function main() {
     await signingDay(X).catch((e) => log(`Signing Day failed: ${e.message}`));
   }
 
-  /* ============ #heisman watch ============ */
+  /* ============ #heisman: weekly watch in-season → one winner card → quiet until Week 0 ============ */
+  // Once the game names the season's Heisman winner (late season / CFP), that card is the season's last
+  // #heisman post. Weekly watch posts stay off through the offseason and pick back up with the new
+  // season's first (Week 0 preseason) ranking.
   if (cfg.channels.heisman) {
-    const heis = await api("/awards/heisman").catch(() => null);
-    if (heis?.data?.length && (heis.period?.id ?? cur.id) === cur.id) await once(`heisman:${cur.id}`, "heisman", cfg.channels.heisman, () => heismanPost(heis.data));
+    const [heis, hist] = await Promise.all([api("/awards/heisman").catch(() => null), api("/history").catch(() => ({ data: [] }))]);
+    const winner = heismanWinner(hist.data, cur.season);
+    if (winner) await once(`heisman-winner:${cur.season}`, "heisman_winner", cfg.channels.heisman, () => heismanWinnerPost(winner, heis?.data || []));
+    else if (/\bOFF\b/i.test(cur.season_text || "")) log("Heisman watch paused for the offseason.");
+    else if (heis?.data?.length && (heis.period?.id ?? cur.id) === cur.id) await once(`heisman:${cur.id}`, "heisman", cfg.channels.heisman, () => heismanPost(heis.data));
   }
 
   /* ============ #headlines (TD Wire stories written earlier in this workflow) ============ */
@@ -608,6 +615,32 @@ async function main() {
       const png = await renderHeisman({ label: nowWeek(), players, siteLogo: gfxSiteLogo(), colors: await gfxColors() });
       return { embeds: [{ title: text.embeds[0].title, color: GOLD, image: { url: "attachment://heisman.png" } }], files: [{ name: "heisman.png", data: png }] };
     } catch (err) { log(`Heisman graphic failed, posting text instead: ${err.message}`); return text; }
+  }
+
+  // The season's Heisman Trophy from /history (kind "award"), or null if it hasn't been awarded yet.
+  function heismanWinner(list, season) {
+    return (list || []).find((h) => h.kind === "award" && /heisman/i.test(h.title || "") && +h.season === +season) || null;
+  }
+  async function heismanWinnerPost(w, watch) {
+    const tk = w.team?.team_key, team = (tk && tName(tk) !== "?" ? tName(tk) : w.team?.name) || "";
+    const last = String(w.name).split(" ").slice(-1)[0].toLowerCase(), first = String(w.name)[0]?.toLowerCase();
+    const p = allPlayers.find((x) => x.team_key === tk && String(x.last_name).toLowerCase() === last && String(x.first_name)[0]?.toLowerCase() === first);
+    const wl = watch.find((h) => h.name === w.name && (!tk || h.team_key == null || h.team_key === tk));
+    const st = teams.get(tk), user = userTeams.has(tk);
+    const { heismanStatTiles } = await extraGraphics();
+    const stats = p ? heismanStatTiles(w.position, p.stats) : [];
+    const statText = stats.length ? stats.map(([l, v]) => `**${v}** ${l}`).join(" · ") : String(wl?.stat_line || "").replace(/\n/g, " · ");
+    const text = { embeds: [{ title: `🏆 ${cur.season} Heisman Trophy winner`, color: GOLD,
+      description: `**${w.name}** · ${w.position} · ${rk(st?.rank)}${team}${user ? ` 🎮 ${coachTag(tk)}` : ""}${st?.record ? ` (${st.record})` : ""}\n${statText}\n\n_Final Heisman update of the ${cur.season} season. The watch returns in Week 0._` }] };
+    if (cfg.graphics?.heisman === false) return text;
+    try {
+      const { renderHeismanWinner } = await extraGraphics();
+      const png = await renderHeismanWinner({ season: cur.season, name: w.name, pos: w.position, cls: wl?.class_year || "", team, rank_t: st?.rank, record: st?.record || "",
+        coach: user ? memberByTeam.get(tk)?.user_name || "" : "", logo: logoFor(team, await logoMap()), user, stats, line: wl?.stat_line || "",
+        trophy: cfg.heisman_trophy || "", siteLogo: gfxSiteLogo(), colors: await gfxColors() });
+      return { content: user && coachId(tk) ? `Congrats ${coachTag(tk)} 🏆` : undefined, allowed_mentions: { users: user && coachId(tk) && !DRY ? [coachId(tk)] : [] }, embeds: [{ title: text.embeds[0].title, color: GOLD, image: { url: "attachment://heisman-winner.png" } }],
+        files: [{ name: "heisman-winner.png", data: png }] };
+    } catch (err) { log(`Heisman winner graphic failed, posting text instead: ${err.message}`); return text; }
   }
 
   async function headlinesPost(wire) {
