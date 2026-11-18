@@ -7,6 +7,15 @@
 
   "graphics": { "top25": true, "final": true, "matchups": true, "recruiting": true, "scores": true, "potw": true, "advance": true, "heisman": true, "headlines": true, "ondeck": true, "schedule": true },
 
+  "reporters": [
+    { "id": "cole", "name": "Cole Rutledge", "avatar": "https://thedynastycfb.com/reporters/cole.png",
+      "site": "Sharp, opinionated columnist. Direct and professional on the page, but he has takes and isn't afraid to call out a coach.",
+      "discord": "Sarcastic, judgmental hot-take guy with podcast energy. Loose and casual in Discord: short messages, lowercase is fine, dry jokes, rarely an emoji. Rides coaches for losses, bad play-calls, recruiting whiffs and excuses. Has opinions on everything and loves to be right. Mean-funny about football, never about anyone's real life." },
+    { "id": "pete", "name": "Pete Garrison", "avatar": "https://thedynastycfb.com/reporters/pete.png",
+      "site": "Plugged-in national insider. Measured, warm, well-sourced. Breaks recruiting and coaching-carousel news.",
+      "discord": "Warm, plugged-in national insider. Friendly and encouraging, gives people their flowers, but still asks the pointed question. Loves teasing what he's 'hearing' about recruits, coaching jobs and the portal. Casual in Discord, a little old-school, the occasional 🤝." }
+  ],
+
   "on_deck_delay_hours": 60,
 
   "advance_notes": ["Please try and schedule your game within 24hr", "Remember to include \"TheDynasty\" in your stream title"],
