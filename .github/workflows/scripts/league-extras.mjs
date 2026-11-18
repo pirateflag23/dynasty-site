@@ -450,11 +450,37 @@ export async function positionRules(x) {
       }
     }
   }
-  x.state.posSnap = next; // league-team rosters only
+  // incoming signees aren't on the roster yet, but the position change stage can move them too
+  if (/OFF/i.test(x.cur.season_text || "")) {
+    const rec = (await x.api("/recruits").catch(() => null))?.data || [];
+    for (const r of rec) {
+      const tk = r.school?.team_id != null ? x.teamKeyById(r.school.team_id) : null;
+      if (!tk || !x.userTeams.has(tk) || !(r.signed || r.committed) || r.transfer) continue;
+      const id = `r${r.prospect_key}`, was = snap[id];
+      next[id] = r.position;
+      if (!was || was === r.position) continue;
+      const name = `${(r.first_name || "")[0] || ""}.${r.last_name || ""}`;
+      x.log(`Signee position change: ${name} (${x.tName(tk)}) ${was} → ${r.position}`);
+      for (const rule of rules.filter((q) => q.from === was && q.to === r.position)) {
+        const fails = [];
+        if (rule.min_height && !(r.height >= rule.min_height)) fails.push(`height ${ftIn(r.height)} (needs ${ftIn(rule.min_height)}+)`);
+        if (rule.min_weight && !(r.weight >= rule.min_weight)) fails.push(`weight ${r.weight} lb (needs ${rule.min_weight}+)`);
+        const key = `posrule:${id}:${was}>${r.position}`;
+        if (!x.seen(key) && (fails.length || rule.max_speed)) breaks.push({ key, tk, r: rule, was, signee: true, fails: fails.length ? fails : null,
+          p: { name, position: r.position, height: r.height, weight: r.weight, overall: `${r.stars}★ signee` }, spd: "?" });
+      }
+    }
+  }
+  x.state.posSnap = next; // league-team rosters + signees only
   for (const b of breaks) {
     const role = x.roleId(x.cfg.commish_role || "Badmin");
     const coach = x.coachName(b.tk);
-    const content = `${role ? `<@&${role}> ` : ""}🚩 **Position-change rule broken**\n**${b.p.name}** (${x.tName(b.tk)}${coach ? `, ${coach}` : ""}) was moved **${b.was} → ${b.p.position}**: ${ftIn(b.p.height)}, ${b.p.weight} lb, ${b.spd} speed, ${b.p.overall} OVR.\nFails: ${b.fails.join("; ")}.\nRule: ${b.was} → ${b.p.position} only at ${ftIn(b.r.min_height)}+ / ${b.r.min_weight}+ lb / ${b.r.max_speed} speed or slower.`;
+    if (b.signee && !b.fails) { // height/weight pass, but speed isn't in the API until he joins the roster: ask for a check
+      const content = `${role ? `<@&${role}> ` : ""}👀 **Position change to check**\nIncoming signee **${b.p.name}** (${x.tName(b.tk)}${coach ? `, ${coach}` : ""}) was moved **${b.was} → ${b.p.position}**: ${ftIn(b.p.height)}, ${b.p.weight} lb. Size is legal; his speed isn't in the data yet, so check it's ${b.r.max_speed} or slower.`;
+      if (x.DRY) x.log(`[dry] #join-log: ${content}`); else await x.send(x.cfg.channels?.rules_log || "join-log", { content, allowed_mentions: { roles: role ? [role] : [] } });
+      x.mark(b.key); continue;
+    }
+    const content = `${role ? `<@&${role}> ` : ""}🚩 **Position-change rule broken**\n**${b.p.name}** (${x.tName(b.tk)}${coach ? `, ${coach}` : ""}) was moved **${b.was} → ${b.p.position}**: ${ftIn(b.p.height)}, ${b.p.weight} lb${b.signee ? `, ${b.p.overall} (speed not in the data yet)` : `, ${b.spd} speed, ${b.p.overall} OVR`}.\nFails: ${b.fails.join("; ")}.\nRule: ${b.was} → ${b.p.position} only at ${ftIn(b.r.min_height)}+ / ${b.r.min_weight}+ lb / ${b.r.max_speed} speed or slower.`;
     if (x.DRY) x.log(`[dry] #join-log: ${content}`);
     else await x.send(x.cfg.channels?.rules_log || "join-log", { content, allowed_mentions: { roles: role ? [role] : [] } });
     x.mark(b.key);
