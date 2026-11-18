@@ -22,7 +22,13 @@ const log = (...a) => console.log(...a);
 const readJson = async (p, d = null) => { try { return JSON.parse(await readFile(p, "utf8")); } catch { return d; } };
 async function api(path, tries = 5) {
   for (let i = 1; ; i++) {
-    const r = await fetch(API + path, { headers: { Authorization: `Bearer ${KEY}` } });
+    let r;
+    try { r = await fetch(API + path, { headers: { Authorization: `Bearer ${KEY}` } }); }
+    catch (err) { // dropped connection (ECONNRESET etc.): back off and retry like a 5xx
+      if (i >= tries) throw err;
+      console.warn(`${path} → ${err.cause?.code || err.message}, retrying in ${5 * i}s`);
+      await new Promise((res) => setTimeout(res, 5000 * i)); continue;
+    }
     if (r.ok) return r.json();
     if ((r.status === 429 || r.status >= 500) && i < tries) { await new Promise((s) => setTimeout(s, (Number(r.headers.get("retry-after")) || 5 * i) * 1000)); continue; }
     throw new Error(`API ${path} → ${r.status}`);

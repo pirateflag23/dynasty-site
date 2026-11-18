@@ -19,7 +19,13 @@ if (!KEY) { console.error("DYNASTY_API_KEY is not set"); process.exit(1); }
 
 async function api(path, tries = 5) {
   for (let i = 1; ; i++) {
-    const r = await fetch(BASE + path, { headers: { Authorization: `Bearer ${KEY}` } });
+    let r;
+    try { r = await fetch(BASE + path, { headers: { Authorization: `Bearer ${KEY}` } }); }
+    catch (err) { // dropped connection (ECONNRESET etc.): back off and retry like a 5xx
+      if (i >= tries) throw err;
+      console.warn(`${path} → ${err.cause?.code || err.message}, retrying in ${5 * i}s`);
+      await new Promise((res) => setTimeout(res, 5000 * i)); continue;
+    }
     if (r.ok) return r.json();
     if ((r.status === 429 || r.status >= 500) && i < tries) {
       const wait = Number(r.headers.get("retry-after")) || 5 * i;

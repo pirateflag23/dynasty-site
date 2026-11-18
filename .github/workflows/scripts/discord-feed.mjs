@@ -40,7 +40,13 @@ const log = (...a) => console.log(...a);
 /* ---------------- HTTP ---------------- */
 async function api(path, tries = 5) {
   for (let i = 1; ; i++) {
-    const r = await fetch(API + path, { headers: { Authorization: `Bearer ${KEY}` } });
+    let r;
+    try { r = await fetch(API + path, { headers: { Authorization: `Bearer ${KEY}` } }); }
+    catch (err) { // dropped connection (ECONNRESET etc.): back off and retry like a 5xx
+      if (i >= tries) throw err;
+      console.warn(`${path} → ${err.cause?.code || err.message}, retrying in ${5 * i}s`);
+      await new Promise((res) => setTimeout(res, 5000 * i)); continue;
+    }
     if (r.ok) return r.json();
     if ((r.status === 429 || r.status >= 500) && i < tries) { await sleep((Number(r.headers.get("retry-after")) || 5 * i) * 1000); continue; }
     throw new Error(`API ${path} → ${r.status} ${await r.text()}`);
@@ -620,12 +626,12 @@ async function main() {
       return { embeds: [{ title: text.embeds[0].title, url: text.embeds[0].url, color: BLUE, image: { url: "attachment://headlines.png" } }], files: [{ name: "headlines.png", data: png }] };
     } catch (err) { log(`Headlines graphic failed, posting text instead: ${err.message}`); return text; }
   }
-  function prettyWeek(t) { return (/\d{4}\s+(.*)/.exec(t)?.[1] || t).replace(/\bWk\b/, "Week"); }
+  function prettyWeek(t) { return (/\d{4}\s+(.*)/.exec(t)?.[1] || t).replace(/\bWk\b/, "Week").replace(/\bOFF Stg\b/, "Offseason Stage"); }
   // The week everyone sees in-game right now: the displayed label of the next unplayed week (what the
   // matchup chats and the advance post use). The API's period text runs one ahead ("Wk 8" during Week 7).
   function nowWeek() {
     const open = games.filter((g) => !g.played);
-    if (!open.length) return nowWeek();
+    if (!open.length) return prettyWeek(cur.season_text || ""); // offseason: no unplayed games left
     const w = Math.min(...open.map((g) => g.week));
     return weekLabel(open.find((g) => g.week === w));
   }
