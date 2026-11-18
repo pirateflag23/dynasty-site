@@ -11,7 +11,7 @@ export async function runNSD(env, now = Date.now()) {
   if (q.test || !q.channel_id || !q.items?.length) return { ok: true, idle: true };
   const end = Date.parse(q.end);
   if (now > end + 6 * 3600e3) return { ok: true, done: true };
-  const key = `nsd:${q.league_id}:${q.season}`;
+  const key = `nsd:${q.league_id}:${q.season}:${q.built || ""}`; // per build, so a re-run show posts again
   const posted = new Set((await env.GREETER.get(key, "json")) || []);
   const due = q.items.filter((it) => !posted.has(it.id) && Date.parse(it.at) <= now).sort((a, b) => Date.parse(a.at) - Date.parse(b.at)).slice(0, 4);
   const out = [];

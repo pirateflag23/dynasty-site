@@ -260,6 +260,15 @@ export async function signingDay(x) {
   const all = (await x.api("/recruits").catch(() => ({ data: [] }))).data || [];
   const signed = all.filter((r) => !r.transfer && (TEST ? r.committed : r.signed) && r.school?.team_id);
   if (signed.length < C.min_signed) return;
+  // The real Signing Day comes after the four transfer-portal weeks: that's when nearly every committed
+  // recruit signs at once. Early signees trickle in before that, so wait until most commits have signed
+  // (signed_share, default 80%) and, if set, until the offseason stage reaches after_stage.
+  if (!TEST) {
+    const stage = +(/OFF\s*Stg\s*(\d+)/i.exec(x.cur.season_text || "")?.[1] || 0);
+    if (C.after_stage && stage < C.after_stage) return;
+    const committed = all.filter((r) => !r.transfer && (r.committed || r.signed) && r.school?.team_id).length;
+    if (signed.length < (C.signed_share ?? 0.8) * committed) { x.log(`Signing Day: ${signed.length} of ${committed} commits signed so far (early signees); waiting for NSD.`); return; }
+  }
   if (x.seeding) { st[season] = { skipped: true }; return; }
   x.log(`Signing Day: ${signed.length} signings, building the show`);
   const commits = (await x.api("/recruits/commits").catch(() => ({ data: [] }))).data || [];
