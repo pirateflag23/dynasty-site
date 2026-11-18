@@ -271,6 +271,9 @@ async function main() {
   const snaps = (prevIdx.snaps || []).filter((id) => id !== cur.id);
   const prevSnapId = snaps.sort((a, b) => b - a)[0];
   const prevSnap = prevSnapId ? await readJson(`${DIR}/ovr-${prevSnapId}.json`, {}) : {};
+  // NIL per player each period ([team, nil]) so offseason stages can be compared stage to stage (retention raises, portal paydays).
+  if (allRos.length) await writeFile(`${DIR}/nil-${cur.id}.json`, JSON.stringify(Object.fromEntries(allRos.map((x) => [x.player_key, [x.team_key, x.nil_compensation ?? 0]]))));
+  if (allRos.length && process.env.FORCE) { const f = {}; for (const x of allRos) for (const [k, v] of Object.entries(x)) if (k !== "ratings" && !(k in f) && v != null && v !== false && v !== "") f[k] = JSON.stringify(v).slice(0, 80); console.log("Roster fields:", JSON.stringify(f)); }
   if (allRos.length) await writeFile(`${DIR}/ovr-${cur.id}.json`, JSON.stringify(Object.fromEntries(allRos.map((x) => [x.player_key, x.overall]))));
   const snapIds = allRos.length ? [...snaps, cur.id].sort((a, b) => a - b).slice(-40) : snaps;
   // league teams also have week-by-week overall history right now
