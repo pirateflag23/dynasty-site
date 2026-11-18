@@ -370,7 +370,9 @@ async function main() {
       const was = endRos[pk], x = now.get(+pk), tk = x?.team_key ?? was?.[0] ?? f.team; if (!tk) continue;
       const first = x?.first_name ? `${nk(x.first_name)}${nk(x.last_name)}` : null;
       const name = x?.name || was?.[5] || "", pos = x?.position || was?.[3] || "";
-      const gone = first ? inPortal.has(`${first}|${pos}|${nk(tName(tk))}`) : [...inPortal].some((k) => k.endsWith(`|${pos}|${nk(tName(tk))}`) && name && k.startsWith(nk(name.split(".").pop())));
+      // roster names look like "T.St. Clair"; portal rows carry first + last name
+      const ini = nk(name.split(".")[0]).slice(0, 1), last = nk(name.slice(name.indexOf(".") + 1));
+      const gone = (first && inPortal.has(`${first}|${pos}|${nk(tName(tk))}`)) || (!!last && [...inPortal].some((k) => { const [nm, ps, sc] = k.split("|"); return ps === pos && sc === nk(tName(tk)) && nm.endsWith(last) && nm.startsWith(ini); }));
       if (!x && !gone) continue; // graduated, drafted or otherwise off the books
       if (x && x.team_key !== tk) continue;
       const kinds = [...f.kinds].sort((a, b) => W[b] - W[a]), weeks = f.periods.size;
@@ -390,9 +392,21 @@ async function main() {
         h: capH(pick(seed, [`${PT} hits the portal, and Portal Watch saw it coming`, `${TT} couldn't keep ${PT}: he's in the transfer portal`, `${PT} is officially in the portal after ${wk} on the watch list`])),
         d: `TD Wire flagged ${PT} for ${wk}, ${why}. He's now in the transfer portal, leaving a hole at ${TT}.` });
     }
+    // league teams: one story on who walked out the door, flagged or not
+    for (const tk of userTeams) {
+      const out_ = tp.filter((r) => r.transfer_from?.name && nk(r.transfer_from.name) === nk(tName(tk))).sort((a, b) => (b.stars - a.stars) || ((a.national_rank || 9999) - (b.national_rank || 9999)));
+      if (!out_.length) continue;
+      const big = out_.filter((r) => r.stars >= 4), coachN = members.data.find((m) => m.team_key === tk)?.user_name || "", TT = tTok(tk), seed = tk + "exodus" + cur.season;
+      const nm = (r) => `${r.stars}-star ${POS_WORD[r.position] || r.position} ${[r.first_name, r.last_name].filter(Boolean).join(" ")}`;
+      const lead = out_.slice(0, 3).map(nm);
+      retention.push({ id: `${tk}:exodus:${cur.season}`, cat: "portal", kind: "gone", team: tk, user: true, risk: out_.length >= 10 ? "high" : "medium",
+        kick: out_.length >= 10 ? "Portal exodus" : "Portal departures", score: 120 + out_.length * 2 + big.length * 4,
+        h: capH(out_.length >= 10 ? pick(seed, [`${out_.length} players are out the door at ${TT}`, `Portal exodus: ${TT} loses ${out_.length} players, ${big.length} of them four-stars or better`]) : pick(seed, [`${TT} loses ${out_.length} to the portal, led by ${lead[0]}`, `The portal hits ${TT}: ${out_.length} gone`])),
+        d: `${lead.join(", ")}${out_.length > 3 ? ` and ${out_.length - 3} more` : ""} entered the transfer portal from ${TT}.${big.length ? ` That's ${big.length} four- or five-star players${coachN ? ` ${coachN} has to replace` : " to replace"}.` : ""}` });
+    }
     retention.sort((a, b) => b.score - a.score);
-    const keep = [...retention.filter((s) => s.kind === "stayed").slice(0, 10), ...retention.filter((s) => s.kind === "gone").slice(0, 6)];
-    const kp = new Set(keep.map((s) => s.player));
+    const keep = [...retention.filter((s) => s.kind === "stayed").slice(0, 10), ...retention.filter((s) => s.kind === "gone").slice(0, 6 + userTeams.size)];
+    const kp = new Set(keep.map((s) => s.player).filter(Boolean));
     for (let i = portalStories.length - 1; i >= 0; i--) if (kp.has(portalStories[i].player)) portalStories.splice(i, 1); // the retention story replaces his watch entry
     portalStories.unshift(...keep);
     if (keep.length) log(`Retention: ${keep.filter((s) => s.kind === "stayed").length} kept, ${keep.filter((s) => s.kind === "gone").length} gone (of ${flags.size} flagged).`);
