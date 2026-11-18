@@ -412,6 +412,39 @@ async function main() {
     if (keep.length) log(`Retention: ${keep.filter((s) => s.kind === "stayed").length} kept, ${keep.filter((s) => s.kind === "gone").length} gone (of ${flags.size} flagged).`);
   } catch (e) { log(`Retention stories skipped: ${e.message}`); }
 
+  /* ===================== POSITION MOVES: good players switching spots this offseason ===================== */
+  // Compared with the end-of-season roster the draft desk saves. Same-family swaps (OL to OL, DT to edge,
+  // FS to SS, LB to LB, HB to FB) aren't news; real moves are, especially when the new spot gets him on the field.
+  if (/OFF/i.test(cur.season_text || "") && allRos.length) try {
+    const endRos = (await readJson(`data/draft/${LID}/roster-${cur.season}.json`, {}))?.p || {};
+    const FAM = { LT: "OL", LG: "OL", C: "OL", RG: "OL", RT: "OL", DT: "DL", LEDG: "DL", REDG: "DL", MIKE: "LB", WILL: "LB", SAM: "LB", FS: "S", SS: "S", HB: "RB", FB: "RB", K: "ST", P: "ST" };
+    const fam = (p) => FAM[p] || p;
+    // depth rank by overall at a position on a team: then (season-end roster) and now (current roster)
+    const rankThen = (tk, pos, pk, ovr) => 1 + Object.entries(endRos).filter(([k, r]) => r[0] === tk && r[3] === pos && k !== String(pk) && r[1] > ovr).length;
+    const rankNow = (tk, pos, pk, ovr) => 1 + allRos.filter((r) => r.team_key === tk && r.position === pos && r.player_key !== pk && r.overall > ovr).length;
+    const moves = [];
+    for (const x of allRos) {
+      const was = endRos[x.player_key]; if (!was || was[0] !== x.team_key) continue;
+      const from = was[3], to = x.position; if (!from || from === to || fam(from) === fam(to)) continue;
+      const user = userTeams.has(x.team_key); if (x.overall < (user ? 72 : 80)) continue;
+      const r0 = rankThen(x.team_key, from, x.player_key, was[1]), r1 = rankNow(x.team_key, to, x.player_key, x.overall);
+      const s0 = STARTERS[from] || 1, s1 = STARTERS[to] || 1, pt = r0 > s0 && r1 <= s1; // was a backup, now projects to start
+      moves.push({ x, from, to, r0, r1, pt, user, score: x.overall + (user ? 25 : 0) + (pt ? 15 : 0) });
+    }
+    moves.sort((a, b) => b.score - a.score);
+    const POSN = (p) => POS_WORD[p] || p, nth = (n) => `No. ${n}`;
+    for (const m of moves.slice(0, 8)) {
+      const { x } = m, PT = P(x.player_key, x.name), TT = tTok(x.team_key), seed = x.player_key + "pos" + cur.season;
+      const coachN = m.user ? members.data.find((q) => q.team_key === x.team_key)?.user_name : null;
+      portalStories.push({ id: `${x.player_key}:position:${cur.season}`, cat: "portal", kind: "position", player: x.player_key, team: x.team_key, user: m.user,
+        kick: m.pt ? "Path to the field" : "Position change", score: 90 + m.score,
+        h: capH(m.pt ? pick(seed, [`${PT} moves from ${POSN(m.from)} to ${POSN(m.to)}, and it gets him on the field at ${TT}`, `Playing time play: ${TT} shifts ${PT} to ${POSN(m.to)}`, `Stuck at ${POSN(m.from)}, ${PT} gets a fresh start at ${POSN(m.to)}`])
+          : pick(seed, [`${TT} moves ${x.overall}-rated ${PT} from ${POSN(m.from)} to ${POSN(m.to)}`, `${PT} is a ${POSN(m.to)} now at ${TT}`, `Position switch: ${PT} goes from ${POSN(m.from)} to ${POSN(m.to)}`])),
+        d: `${PT} (${x.overall} OVR, ${x.class_year}) was ${nth(m.r0)} on the ${POSN(m.from)} depth chart at the end of the season. At ${POSN(m.to)} he ranks ${nth(m.r1)}${m.pt ? `, which puts him in line to start` : ""}.${coachN ? ` ${coachN}'s call, and it'll be one to watch in camp.` : ""}` });
+    }
+    if (moves.length) log(`Position moves: ${moves.length} notable (${moves.filter((m) => m.pt).length} for playing time), posted ${Math.min(8, moves.length)}.`);
+  } catch (e) { log(`Position-move stories skipped: ${e.message}`); }
+
   /* ===================== OUTLOOK: crystal ball, CFP odds, offseason features ===================== */
   for (const x of allRos) { if (!rosterCache.has(x.team_key)) rosterCache.set(x.team_key, Promise.resolve(allRos.filter((y) => y.team_key === x.team_key))); }
   const outlook = await buildOutlook({ api, readJson, DIR, LID, cur, prevIdx, games, standings, teamStats, team, ts, userTeams, tName, tTok, keyOfSchool, reasonsFor, board, events,

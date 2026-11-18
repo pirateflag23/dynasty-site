@@ -423,11 +423,11 @@ async function peteLine(x, rep, facts) {
 
 /* ---------------- League rule: position changes (Badmin alert in #join-log) ----------------
    Rules live in discord.config.json "position_rules". Default: a WR may move to TE only if he is at least
-   6'4" (76 in), at least 230 lb and 82 speed or slower. Any league-team player whose position changed since
+   6'3" (75 in), at least 230 lb and 82 speed or slower. Any league-team player whose position changed since
    the last sync is checked; a break pings Badmin once per player and move. */
 const ftIn = (h) => `${Math.floor(h / 12)}'${h % 12}"`;
 export async function positionRules(x) {
-  const rules = x.cfg.position_rules ?? [{ from: "WR", to: "TE", min_height: 76, min_weight: 230, max_speed: 82 }];
+  const rules = x.cfg.position_rules ?? [{ from: "WR", to: "TE", min_height: 75, min_weight: 230, max_speed: 82 }];
   if (!rules.length || !x.userTeams.size) return;
   const snap = x.state.posSnap || {}, next = {};
   let base = null; // first run: compare with the end-of-season roster the draft desk saved

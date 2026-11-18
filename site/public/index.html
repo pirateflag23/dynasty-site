@@ -2393,7 +2393,7 @@ function wireBattlesCard() {
   const b = (WIRE?.recruiting || []).filter((s) => s.kind === "battle").slice(0, 6);
   return b.length ? `<section class="card"><h2 class="card-h">Recruiting battles <small>TD Wire</small></h2>${b.map((s) => `<div class="wire-b"><div class="kick">${esc(s.kick)}</div><h3>${wireHtml(s.h)}</h3><p>${wireHtml(s.d)}</p>${wireBy(s)}</div>`).join("")}</section>` : "";
 }
-const PW_KINDS = [["", "All"], ["breakout", "Price tag rising"], ["underpaid", "Underpaid"], ["fit", "Bad fit"], ["buried", "Buried"], ["struggling", "Under fire"], ["sinking", "Sinking ship"], ["stayed", "Stayed"], ["gone", "Left"]];
+const PW_KINDS = [["", "All"], ["breakout", "Price tag rising"], ["underpaid", "Underpaid"], ["fit", "Bad fit"], ["buried", "Buried"], ["struggling", "Under fire"], ["sinking", "Sinking ship"], ["stayed", "Stayed"], ["gone", "Left"], ["position", "Position moves"]];
 const pwItem = (s) => { const tn = wireTeamName(s.team); return `<div class="pw${s.user ? " mine" : ""}" data-k="${esc(s.kind)}"><div class="lg">${tn ? badge(tn) : ""}</div><div><div class="kick">${esc(s.kick)}</div><h3>${wireHtml(s.h)}</h3><p>${wireHtml(s.d)}</p>${wireBy(s)}${s.user ? '<div class="meta">League team</div>' : ""}</div></div>`; };
 function wirePortalTeaser() {
   const p = (WIRE?.portal || []).slice(0, 3);
