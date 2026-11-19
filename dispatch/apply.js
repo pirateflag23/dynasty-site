@@ -65,7 +65,7 @@ export async function postApplication(env, a, { test = false } = {}) {
 
 export async function handleApply(req, env) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(req) });
-  if (req.method === "GET") return reply(req, 200, { ready: !!env.DISCORD_BOT_TOKEN, channel: CHANNEL });
+  if (req.method === "GET") return reply(req, 200, { ready: !!env.DISCORD_BOT_TOKEN, channel: CHANNEL, v: 3 });
   if (req.method !== "POST") return reply(req, 405, { error: "POST only" });
   let b;
   try { b = await req.json(); } catch { return reply(req, 400, { error: "Bad request" }); }
