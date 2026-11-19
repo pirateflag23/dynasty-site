@@ -600,7 +600,7 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
 .fz-boardp{background:#f3f4f6;color:#1f2937;border-color:#d1d5db}.fz-boardp .fz-brand{color:#6b7280}.fz-thread{display:block;color:#1d4ed8;font-weight:800;margin:4px 0;text-decoration:underline}.fz-bmeta{font-size:12px;color:#6b7280}
 .fz-clip{background:#f4ecd8;color:#222;border:1px solid #d8ccb0;border-radius:4px;padding:14px 16px;font-family:Georgia,'Times New Roman',serif;transform:rotate(-.6deg);box-shadow:0 3px 10px rgba(0,0,0,.12)}
 .fz-paper{font:900 22px 'Old English Text MT',Georgia,serif;text-align:center;border-bottom:2px solid #222;padding-bottom:4px;margin-bottom:8px}.fz-clip h3{font:900 24px/1.15 Georgia,serif;margin:6px 0}.fz-clip p{font-size:15px;margin:0}
-.fz-img{position:relative;margin:8px -14px 4px;overflow:hidden}.fz-img svg{display:block;width:100%;height:auto}.fz-photo img{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;background:#222}.fz-cap{position:absolute;left:10px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 8px;border-radius:999px}
+.fz-img{position:relative;margin:8px -14px 4px;overflow:hidden}.fz-img svg{display:block;width:100%;height:auto}.fz-scene{background:linear-gradient(135deg,#2b2f38,#11131a);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.9}.fz-photo img{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;background:#222}.fz-cap{position:absolute;left:10px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 8px;border-radius:999px}
 .fz-receiptwrap{background:#5d4037;padding:18px 0;display:flex;justify-content:center}.fz-receipt{background:#fffdf7;color:#222;font:13px/1.45 'Courier New',monospace;width:230px;padding:12px 14px;transform:rotate(1.5deg);box-shadow:0 4px 12px rgba(0,0,0,.35)}.fz-receipt b{display:block;text-align:center}.fz-rl{text-align:center;overflow:hidden;white-space:nowrap;color:#777}.fz-ri{display:flex;justify-content:space-between}.fz-ri.tot{font-weight:800}
 .fz-signwrap{background:linear-gradient(#3a3f4a,#1c1f26);padding:22px 16px;display:flex;justify-content:center}.fz-sign{background:#fff;color:#111;font:700 26px/1.1 'Marker Felt','Comic Sans MS','Segoe Print',cursive;padding:16px 18px;transform:rotate(-2deg);text-align:center;text-transform:uppercase;box-shadow:0 6px 14px rgba(0,0,0,.4);max-width:90%}
 .fz-board{background:#111;color:#ffb300;display:flex;justify-content:space-around;align-items:center;padding:18px 10px;font:900 18px 'Courier New',monospace}.fz-board b{display:block;font-size:44px;text-align:center}.fz-board .fin{color:#ff5252;font-size:14px}
@@ -2744,7 +2744,7 @@ function tempMedia(p, seed) {
   const drawn = tempImage(im, seed);
   if (!p.photo_file) return drawn;
   const tot = im.type === "receipt" ? (im.items || []).reduce((a, [, pr]) => a + (+pr || 0), 0) : 0;
-  const chip = im.type === "stadium" ? im.caption : im.type === "receipt" ? `🧾 ${im.place ? im.place + " · " : ""}$${tot.toFixed(2)}` : ""; // signs and scoreboards carry their own text in the photo
+  const chip = im.type === "stadium" || im.type === "scene" ? im.caption : im.type === "receipt" ? `🧾 ${im.place ? im.place + " · " : ""}$${tot.toFixed(2)}` : ""; // signs and scoreboards carry their own text in the photo
   return `<div class="fz-img fz-photo"><img src="${PHOTO_BASE}${esc(p.photo_file)}" alt="${esc(p.photo || "Fan photo")}" loading="lazy" onerror="this.parentNode.outerHTML=this.parentNode.nextElementSibling.innerHTML">${chip ? `<span class="fz-cap">${esc(chip)}</span>` : ""}</div><template>${drawn}</template>`;
 }
 function tempImage(im, seed) {
@@ -2758,6 +2758,7 @@ function tempImage(im, seed) {
   if (im.type === "receipt") { const items = (im.items || []).slice(0, 8), tot = items.reduce((a, [, p]) => a + (+p || 0), 0);
     return `<div class="fz-img fz-receiptwrap"><div class="fz-receipt"><b>${esc(im.place || "Stadium Concessions")}</b><div class="fz-rl">********************************</div>${items.map(([n, pr]) => `<div class="fz-ri"><span>${esc(n)}</span><span>$${(+pr || 0).toFixed(2)}</span></div>`).join("")}<div class="fz-rl">--------------------------------</div><div class="fz-ri tot"><span>TOTAL</span><span>$${tot.toFixed(2)}</span></div><div class="fz-rl">THANK YOU · GO TEAM</div></div></div>`; }
   if (im.type === "sign") return `<div class="fz-img fz-signwrap"><div class="fz-sign">${esc(im.text || "")}</div></div>`;
+  if (im.type === "scene") return `<div class="fz-img fz-scene"><span>📷</span>${im.caption ? `<span class="fz-cap">${esc(im.caption)}</span>` : ""}</div>`;
   if (im.type === "scoreboard") return `<div class="fz-img fz-board"><div><span>${esc(im.away || "AWAY")}</span><b>${esc(im.as ?? 0)}</b></div><div class="fin">FINAL</div><div><span>${esc(im.home || "HOME")}</span><b>${esc(im.hs ?? 0)}</b></div></div>`;
   return "";
 }

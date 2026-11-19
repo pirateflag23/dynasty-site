@@ -126,9 +126,10 @@ Hard rules:
 Return JSON only:
 {"clip": null or {"paper": "invented paper name", "headline": "...", "dek": "one sentence"},
  "posts": [ {"platform": "chirp|facespace|snapgram|board", "name": "display name", "handle": "@handle (chirp/snapgram) or board username", "thread": "thread title (board only)", "text": "...", "likes": number, "replies": number, "reposts": number,
-   "image": null or {"type": "stadium", "fill": 0-1, "caption": "..."} or {"type": "receipt", "place": "...", "items": [["item", 12.5], ...]} or {"type": "sign", "text": "handwritten sign text"} or {"type": "scoreboard", "home": "ABBR", "away": "ABBR", "hs": n, "as": n},
+   "image": null or {"type": "stadium", "fill": 0-1, "caption": "..."} or {"type": "receipt", "place": "...", "items": [["item", 12.5], ...]} or {"type": "sign", "text": "handwritten sign text"} or {"type": "scoreboard", "home": "ABBR", "away": "ABBR", "hs": n, "as": n} or {"type": "scene", "caption": "short photo caption"},
    "photo": only on posts with an image: one or two sentences describing what a real fan's phone photo of that moment looks like (the scene, crowd size, light, weather, time of day, team colors). No text, signs, logos, mascots, jersey numbers or recognizable real people. For a receipt post describe the food and drinks on a tray instead; for a sign post describe the fans holding the sign up (the sign's words are added separately). } ] }
-Write 12 posts: mix all four platforms, 2-3 snapgram posts with an image (a half-empty stadium when attendance would plausibly drop, a concessions receipt when people complain about cost, a fan sign, a scoreboard photo), 2-3 board threads. Include a clipping about half the time. Engagement numbers should fit the post (angry hot takes get the most). Keep chirps under 280 characters. If a post's text mentions what the receipt cost, it must match the receipt items' total.`;
+Write 12 posts: mix all four platforms, 3-4 posts with an image (mostly snapgram, sometimes chirp or facespace), 2-3 board threads.
+Vary the pictures. Don't default to stadium + receipt + sign + scoreboard every time; pick what this fan base would actually be posting about right now, good or bad. Ideas (use "scene" for anything that isn't a stadium, receipt, sign or scoreboard): tailgate grills and smoke at dawn, a parking-lot traffic jam leaving early, a $60 parking sign or cash lot, rain ponchos and puddles, a lightning-delay crowd under the concourse, sweating fans in 95-degree noon heat, sunburned students, freezing fans in blankets with breath fogging, the student section with painted chests, the band on the field, a flyover or fireworks, the empty upper deck, the bathroom line at halftime, the beer line, trash all over the stands after a loss, fans storming the field, a torn-down goalpost, a sunset over the stadium, a kid in a jersey asleep on dad's shoulder, a dog in a team bandana at the tailgate, a grandpa in a 1980s jacket, a cracked phone on the bleachers, a rival fan looking smug, a bowl-trip hotel lobby, empty bleachers in the 4th quarter, a sold-out crowd losing its mind, a souvenir cup collection, a merch stand with the clearance rack. Fit the season: early-season heat, November cold, bowl trips, offseason (spring game, empty stadium, a recruit visit from afar, renovation cranes). Include a clipping about half the time. Engagement numbers should fit the post (angry hot takes get the most). Keep chirps under 280 characters. If a post's text mentions what the receipt cost, it must match the receipt items' total.`;
 
 function facts(tk, c) {
   const t = c.t, recent = c.gl.slice(-4).map((g) => `${g.wk}: ${g.win ? "W" : "L"} ${g.us}-${g.them} ${g.home ? "vs" : "at"} ${g.oppRank && g.oppRank <= 25 ? `No. ${g.oppRank} ` : ""}${g.opp}${g.oppUser ? " (league coach)" : ""}`);
@@ -166,9 +167,10 @@ const STYLE = "Candid smartphone photo taken by a fan at an American college foo
 // the only words allowed in a picture: a fan sign's text or a scoreboard's score, spelled out exactly
 const textFor = (im) => im?.type === "sign" && im.text ? `The handmade poster board sign they hold up reads exactly "${String(im.text).slice(0, 60)}" in thick black marker, clearly readable. No other text anywhere.`
   : im?.type === "scoreboard" ? `The scoreboard clearly shows only "${im.away} ${im.as}" and "${im.home} ${im.hs}" and "FINAL". No other text anywhere.` : "No text or writing anywhere in the picture.";
+const PAUSED = !!cfg.temperature?.paused; // freeze: no AI feeds, no photos; temperatures still update, existing feeds stay up
 async function photo(desc, quality, name, im) {
   const usd = PH.cost[quality] ?? 0.04;
-  if (!OKEY || spend.usd + usd > PH.monthly_budget) return null;
+  if (!OKEY || PAUSED || spend.usd + usd > PH.monthly_budget) return null;
   const r = await fetch("https://api.openai.com/v1/images/generations", { method: "POST", headers: { Authorization: `Bearer ${OKEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: PH.model, prompt: `${STYLE}\n\n${desc}\n\n${textFor(im)}`, size: PH.size, quality, n: 1, output_format: "jpeg", output_compression: 82 }) });
   if (!r.ok) { log(`photo failed (${r.status}): ${(await r.text()).slice(0, 200)}`); return null; }
@@ -193,8 +195,8 @@ let wrote = 0;
 for (const tk of userTeams) {
   const c = compute(tk), was = prev.teams?.[tk];
   const sig = hash(JSON.stringify(["v4", cur.id, c.t.record, c.last?.key, band(c.temp)[1], (latest.portal || []).filter((p) => p.team === tk).map((p) => p.id).sort()])).toString(36);
-  let feed = was?.sig === sig ? was.feed : null;
-  if (!feed && AKEY) {
+  let feed = was?.sig === sig || (PAUSED && was?.feed) ? was.feed : null;
+  if (!feed && AKEY && !PAUSED) {
     try {
       const raw = await claude(SYSTEM, JSON.stringify(facts(tk, c), null, 1));
       const j = JSON.parse(raw.match(/\{[\s\S]*\}/)[0]);
@@ -206,11 +208,13 @@ for (const tk of userTeams) {
   feed ||= was?.sig === sig ? was.feed : templateFeed(tk, c);
   const b = band(c.temp);
   const history = [...(was?.history || []).filter((h) => h.p !== cur.id), { p: cur.id, label: cur.season_text, temp: c.temp }].slice(-40);
+  const keepSig = PAUSED && was?.feed && was.sig !== sig ? was.sig : sig; // paused: remember the old sig so the feed is rewritten once unpaused
   out.teams[tk] = { name: c.t.name, nickname: c.t.nickname, coach: coachOf(c.t.name, tk), record: c.t.record, rank: pollRank(c.t), temp: c.temp, raw: c.raw, period: cur.id,
-    band: b[1], mood: b[2], factors: c.factors, prevTemp: history.length > 1 ? history.at(-2).temp : null, history, sig, feed, updated: was?.sig === sig ? was.updated : new Date().toISOString() };
+    band: b[1], mood: b[2], factors: c.factors, prevTemp: history.length > 1 ? history.at(-2).temp : null, history, sig: keepSig, feed, updated: was?.sig === sig || (PAUSED && was?.feed) ? was.updated : new Date().toISOString() };
 }
 out.spend = spend;
 out.photos = Object.values(out.teams).flatMap((t) => (t.feed?.posts || []).map((p) => p.photo_file).filter(Boolean)); // files still in use (the photos branch keeps only these)
 await writeFile(FILE, JSON.stringify(out));
 log(`photos this month: ${spend.count} ($${spend.usd.toFixed(2)} of $${PH.monthly_budget})`);
+if (PAUSED) log("PAUSED (discord.config.json temperature.paused): temperatures updated, feeds and photos frozen");
 log(`${userTeams.length} teams, ${wrote} new AI feeds: ${Object.values(out.teams).map((t) => `${t.name} ${t.temp}°`).join(", ")}`);
