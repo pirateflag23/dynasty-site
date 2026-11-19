@@ -555,6 +555,9 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
 .pw .kick{font:800 11px/1 var(--head);color:var(--red);font-style:italic;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
 .pw .meta{font-size:11px;color:var(--dim);margin-top:6px}.pw .lg{width:40px;height:40px;display:grid;place-items:center}
 .pw.mine{background:color-mix(in srgb,var(--red) 6%,transparent)}
+.rstar{background:none;border:0;cursor:pointer;font-size:18px;line-height:1;color:#c9a227;padding:2px 6px 2px 0;flex:none}.rstar[aria-pressed="false"]{color:var(--dim)}.rstar:hover{color:#e0b52c}
+.rstar.big{font-size:28px;vertical-align:4px;padding-left:4px}.rb-mine[aria-pressed="true"]{background:#c9a227;color:#111;border-color:#c9a227}.rb-mine span{font-weight:800;margin-left:2px}
+.rb-note{font-size:12px;color:var(--dim);padding:0 14px 8px}
 .nw-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:0 14px 10px}.nw-bar select{font:700 13px var(--body);padding:7px 10px;border-radius:6px;border:1px solid var(--line-2);background:var(--card,transparent);color:inherit;max-width:100%}
 .nw-bar .pw-pills{margin:0}.nw-count{font-size:12px;color:var(--dim);padding:0 14px 8px}.nw-more{display:block;margin:12px auto 16px;font:800 13px var(--head);padding:9px 18px;border-radius:999px;border:1px solid var(--line-2);background:transparent;color:inherit;cursor:pointer}
 .pw .wk{display:inline-block;margin-left:6px;color:var(--dim);font-style:normal;text-transform:none;letter-spacing:0;font-weight:700}
@@ -1411,7 +1414,7 @@ function renderRecruit(key) {
     $("#view").innerHTML = `
       <section class="card tp-head">
         <div class="rc-top"><span class="rc-pos">${esc(r.position)}</span><div>
-          <h1 class="rc-name">${esc([r.first_name, r.last_name].filter(Boolean).join(" ") || r.name)}${stars(r.stars)}</h1>
+          <h1 class="rc-name">${esc([r.first_name, r.last_name].filter(Boolean).join(" ") || r.name)}${stars(r.stars)} ${starBtn(r.prospect_key, true)}</h1>
           <div class="tp-sub">${esc(r.position)} · ${esc(r.archetype || "")} · ${esc([r.hometown, r.state].filter(Boolean).join(", "))}</div></div></div>
         <div class="tp-facts">
           <div class="tp-fact"><b>${r.national_rank ? "No. " + r.national_rank : "—"}</b><span>National</span></div>
@@ -1449,7 +1452,22 @@ function renderRecruit(key) {
 
 // searchable recruit board
 const BOARD_MAX = 300, BOARD_PAGE = 50;
-let rbState = { q: "", pos: "", stars: "", status: "", state: "", cls: "", page: 0 };
+/* My board: starred recruits, saved in this browser only (no login). */
+const STAR_KEY = "td-starred-recruits";
+const starSet = () => { try { return new Set(JSON.parse(localStorage.getItem(STAR_KEY) || "[]")); } catch { return new Set(); } };
+const isStarred = (k) => starSet().has(+k);
+function toggleStar(k) { const s = starSet(); k = +k; s.has(k) ? s.delete(k) : s.add(k); try { localStorage.setItem(STAR_KEY, JSON.stringify([...s])); } catch { /* storage off */ } return s.has(k); }
+const starBtn = (k, big) => `<button type="button" class="rstar${big ? " big" : ""}" data-star="${k}" aria-pressed="${isStarred(k)}" aria-label="${isStarred(k) ? "Remove from" : "Add to"} My board" title="${isStarred(k) ? "On My board" : "Add to My board"}">${isStarred(k) ? "★" : "☆"}</button>`;
+// one delegated handler for every star button on the site
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-star]"); if (!b) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const on = toggleStar(b.dataset.star);
+  document.querySelectorAll(`[data-star="${b.dataset.star}"]`).forEach((x) => { x.textContent = on ? "★" : "☆"; x.setAttribute("aria-pressed", on); x.title = on ? "On My board" : "Add to My board"; x.setAttribute("aria-label", `${on ? "Remove from" : "Add to"} My board`); });
+  const mb = $("#rb-mine-n"); if (mb) mb.textContent = starSet().size;
+  if (rbState.mine && $("#rb-rows") && rbState._redraw) rbState._redraw();
+});
+let rbState = { q: "", pos: "", stars: "", status: "", state: "", cls: "", page: 0, mine: false };
 function recruitBoardHtml(list) {
   const posOpts = [...new Set(list.map((r) => r.position))].sort();
   const stOpts = [...new Set(list.map((r) => r.state).filter(Boolean))].sort();
@@ -1458,11 +1476,13 @@ function recruitBoardHtml(list) {
       <input id="rb-q" type="search" placeholder="Search name or hometown" value="${esc(rbState.q)}" aria-label="Search recruits">
       ${sel("rb-pos", "All positions", posOpts, rbState.pos)}${sel("rb-stars", "All stars", [5, 4, 3, 2, 1], rbState.stars)}
       ${sel("rb-state", "All states", stOpts, rbState.state)}${sel("rb-cls", "Any class", ["HS", "JUCO", "JUCO (FR)", "JUCO (SO)", "JUCO (JR)"], rbState.cls)}${sel("rb-status", "Any status", ["Uncommitted", "Committed"], rbState.status)}
-    </div><div id="rb-rows"></div>`;
+      <button type="button" class="pill rb-mine" id="rb-mine" aria-pressed="${rbState.mine}">★ My board <span id="rb-mine-n">${starSet().size}</span></button>
+    </div><div class="rb-note">Stars are saved in this browser only, so your board stays private (and won't follow you to another device).</div><div id="rb-rows"></div>`;
 }
 function recruitRows(list) {
   const q = rbState.q.toLowerCase();
-  const rows = list.filter((r) => (!q || `${r.first_name} ${r.last_name} ${r.name} ${r.hometown}`.toLowerCase().includes(q))
+  const mine = rbState.mine ? starSet() : null;
+  const rows = list.filter((r) => (!mine || mine.has(r.prospect_key)) && (!q || `${r.first_name} ${r.last_name} ${r.name} ${r.hometown}`.toLowerCase().includes(q))
     && (!rbState.pos || r.position === rbState.pos) && (!rbState.stars || String(r.stars) === rbState.stars) && (!rbState.state || r.state === rbState.state)
     && (!rbState.status || (rbState.status === "Committed") === !!r.committed)
     && (!rbState.cls || (rbState.cls === "JUCO" ? classLabel(r.class).startsWith("JUCO") : classLabel(r.class) === rbState.cls)));
@@ -1474,11 +1494,11 @@ function recruitRows(list) {
       <span>${from + 1}–${from + top.length} of ${held.length}${rows.length > BOARD_MAX ? ` <small>(${rows.length.toLocaleString()} match; narrow filters to see past ${BOARD_MAX})</small>` : ""}</span>
       <button class="pill" data-pg="1" ${rbState.page >= pages - 1 ? "disabled" : ""} aria-label="Next page">Next ›</button></div>` : "";
   return top.length ? `${pager}<div class="scroll"><table class="tbl"><thead><tr><th>Recruit</th><th>Pos</th><th>Stars</th><th>Hometown</th><th>Class</th><th>Status</th><th>Leader / school</th></tr></thead><tbody>
-    ${top.map((r) => `<tr><td><div class="team-cell"><span class="num">${r.national_rank || ""}</span>${rLink(r.name, r.prospect_key)}</div></td><td>${esc(r.position)}</td><td>${stars(r.stars)}</td>
+    ${top.map((r) => `<tr><td><div class="team-cell">${starBtn(r.prospect_key)}<span class="num">${r.national_rank || ""}</span>${rLink(r.name, r.prospect_key)}</div></td><td>${esc(r.position)}</td><td>${stars(r.stars)}</td>
       <td>${esc([r.hometown, r.state].filter(Boolean).join(", "))}</td><td>${esc(classLabel(r.class))}</td><td>${stageTag(r)}</td>
       <td>${r.school ? schoolLink(r.school) : r.top_schools?.[0] ? tLink(r.top_schools[0].name, keyFromTeamId(r.top_schools[0].team_id)) : "—"}</td></tr>`).join("")}
     </tbody></table></div>${pager}`
-    : '<div class="empty">No recruits match these filters.</div>';
+    : `<div class="empty">${rbState.mine ? (starSet().size ? "None of your starred recruits match these filters." : "Your board is empty. Tap ☆ next to any recruit to add him.") : "No recruits match these filters."}</div>`;
 }
 function mountRecruitBoard() {
   const host = $("#rboard"); if (!host) return;
@@ -1491,6 +1511,8 @@ function mountRecruitBoard() {
       document.querySelectorAll("[data-pg]").forEach((b) => b.onclick = () => { rbState.page += +b.dataset.pg; draw(); $("#rboard").scrollIntoView({ block: "start" }); });
     };
     const bind = (id, k) => { const el = $("#" + id); el.addEventListener(el.tagName === "INPUT" ? "input" : "change", () => { rbState[k] = el.value; rbState.page = 0; draw(); }); };
+    rbState._redraw = draw;
+    $("#rb-mine").onclick = (ev) => { rbState.mine = !rbState.mine; rbState.page = 0; ev.currentTarget.setAttribute("aria-pressed", rbState.mine); draw(); };
     bind("rb-q", "q"); bind("rb-pos", "pos"); bind("rb-stars", "stars"); bind("rb-state", "state"); bind("rb-cls", "cls"); bind("rb-status", "status");
     draw();
   });
