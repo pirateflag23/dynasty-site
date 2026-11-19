@@ -1,7 +1,7 @@
-ONLINE DYNASTY
-RULES & GUIDELINES
+# ONLINE DYNASTY
+# RULES & GUIDELINES
 
-1. **bold**GAME SETUP**bold**
+## 1. GAME SETUP
 - Quarter Length: 7 Min w/Accel
 - Difficulty: Heisman
 - Offense / Defense: Custom Playbooks allowed
@@ -9,17 +9,15 @@ RULES & GUIDELINES
 - Advance Schedule: Saturday 10pm/Wednesday 12pm (EST)
   (Can advance early via league vote)
 
-
-2.**bold**KICKOFFS**bold**
+## 2. KICKOFFS
 - Onside kicks are allowed while trailing in the 4th quarter.
 - Standard kicks (normal/squib/sky) should not be kicked in a way that exploits the ability to recover the kick.
   - No scum kicking.
 
-
-3. **bold**OFFENSIVE PLAYCALLING**bold**
+## 3. OFFENSIVE PLAYCALLING
 Mix up your plays, concepts and formations.
 
-**bold**BANNED PLAYS AND FORMATIONS**bold**
+### BANNED PLAYS AND FORMATIONS
 - Formation – Shotgun Wide Stack
 - Formation – Shotgun Ninja
 - Formation – Shotgun Monster
@@ -27,18 +25,16 @@ Mix up your plays, concepts and formations.
 - IForm - Power I Tight
 - Any variation of a pass where the ball changes hands before being thrown (double-pass, HB pass, etc.).
 
-**bold**Play Action: **bold**
+### Play Action:
 Allowed on 3rd and 4th down and 6 or less yards.
 You may not hot route the HB out of the play-action animation or cancel the PA
 
-
-**bold**NO HUDDLE**bold**
+### NO HUDDLE
 - Not a base offense.
 - Not after any clock stoppage (out of bounds, incompletion).
 - Use anytime when trailing by more than 24 points at any time or trailing at all in 4Q
 
-
-**bold**JUMBO FORMATIONS (0 WRs)**bold**
+### JUMBO FORMATIONS (0 WRs)
 Only used for short-yardage situations.
 
 Allowed:
@@ -48,8 +44,7 @@ Allowed:
 Exceptions:
 If your primary offense is an option offense that rarely has more than 2 WR on the field, you may use this at any time.
 
-
-**bold**OFFENSE PRE-SNAP **bold**
+### OFFENSE PRE-SNAP
 "RULE OF 3"
 
 You can make 3 pre-snap adjustments. This includes failed attempts to make an adjustment; if it fails, it counts.
@@ -59,32 +54,25 @@ You can make 3 pre-snap adjustments. This includes failed attempts to make an ad
 4. Hot Routes (successful or failed)
 5. Stemming Routes
 
-
-4.**bold** QB PLAY**bold**
+## 4. QB PLAY
 QB Play is a defining part of your offense. We do not expect to see video game Mike Vick, nor are you expected to stand in the pocket like a statue.
 
 React to the defense, use moderation, and exercise good judgment. Don't insta-rollout to the sidelines and wait for a receiver to clear a zone
 
+### 4th Down Rules
 
-**bold**4th Down Rules**bold**
+![4th down rules chart](rules-img/4th-down.png)
 
-<a href='https://postimages.org/' target='_blank'><img src='https://i.postimg.cc/0j1FzPdp/image.png' border='0' alt='image'></a>
-
-
-
-
-
-**bold**Goal line formations follow Jumbo Formation guidelines.**bold**
+**Goal line formations follow Jumbo Formation guidelines.**
 Allowed:
 - Inside of your own & opponents 10.
 - On 3rd/4th and 3 or less.
 - When matching an offense with 1 WR or less on the field.
 
-
-**bold**DEFENSE PRE-SNAP**bold**
+### DEFENSE PRE-SNAP
 - Unlimited number of adjustments allowed.
 
-8. PRE-SNAP DEFENSE MOVEMENT
+## 8. PRE-SNAP DEFENSE MOVEMENT
 - You can manually move 1 player pre-snap outside of the player you user at the snap. (No more than 2 users should manually move)
 - LB/DB may not *MANUALLY* enter the DL box, which is outside shoulder of each down defender. DB may not *MANUALLY* enter the LB box. 
 - Never move a player to take advantage of AI flaws; 
@@ -94,11 +82,9 @@ EXCEPTIONS:
 
 YOU MUST ALWAYS RUSH AT LEAST 3 PLAYERS. If you are stuck switching players and on the edge of the 3rd rusher, switch off with d-pad or rush.
 
-
-**bold**35 POINT RULE**bold**
+### 35 POINT RULE
 Do not have a lead by a margin greater than 35 points at any point during a game.
 
-
-**bold**DISCONNECTS**bold**
+### DISCONNECTS
 In the event of a game disconnect, the two coaches will collaborate to determine the best resolution.
 If they want to play a shortened game to mimic what was left or play an entirely new game, that is their decision.
