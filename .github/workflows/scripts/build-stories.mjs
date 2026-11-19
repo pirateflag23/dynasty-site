@@ -42,6 +42,8 @@ const pick = (seed, arr) => arr[hash(seed) % arr.length];
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const T = (k, n) => `[[t:${k}|${n}]]`, R = (k, n) => `[[r:${k}|${n}]]`, P = (k, n) => `[[p:${k}|${n}]]`, G = (k, s) => `[[g:${k}|${s}]]`;
 const STARS = ["", "one-star", "two-star", "three-star", "four-star", "five-star"];
+// NIL amounts come in thousands: 520 -> "520K", 1250 -> "1.25 million"
+const money = (k) => { const n = Number(k) || 0; return Math.abs(n) >= 1000 ? `${+(n / 1000).toFixed(2)} million` : `${n}K`; };
 const num = (n) => ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"][n] ?? String(n);
 const ord = (n) => { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
 const list = (a) => (a.length <= 1 ? a.join("") : a.length === 2 ? `${a[0]} and ${a[1]}` : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`);
@@ -184,7 +186,7 @@ async function main() {
     if (ranked(tk) && winPct(tk) >= 0.75) out.push({ k: "winning", w: 3, line: `${tName(tk)} is ${recOf(tk)} and ranked No. ${ranked(tk)}. Winning recruits itself.`, quote: `They win. I want to win. Easy.` });
     // NIL
     const nr = nilRank.get(tk);
-    if (nr && nr <= 15 && r?.desired_nil) out.push({ k: "nil", w: r.desired_nil >= 250 ? 5 : 2, line: `Money talks: ${tName(tk)} ranks ${ord(nr)} in NIL spending, and ${nm}'s asking price was a reported $${r.desired_nil}K.`, quote: pick(seed + "nq", [`I'm taking care of my family. They understood that.`, `It's a business too. They made it make sense.`]) });
+    if (nr && nr <= 15 && r?.desired_nil) out.push({ k: "nil", w: r.desired_nil >= 250 ? 5 : 2, line: `Money talks: ${tName(tk)} ranks ${ord(nr)} in NIL spending, and ${nm}'s asking price was a reported $${money(r.desired_nil)}.`, quote: pick(seed + "nq", [`I'm taking care of my family. They understood that.`, `It's a business too. They made it make sense.`]) });
     // league coach relationship
     if (userTeams.has(tk)) out.push({ k: "coach", w: 3, line: `${coachTok(tk)} closed this one personally.`, quote: `${coachSays(tk)} was in my living room. He wanted me more than anybody.` });
     return out.sort((a, b) => b.w - a.w);
@@ -296,7 +298,7 @@ async function main() {
     if (x.class_year === "SR" || !x.team_key) continue;
     const tk = x.team_key, PT = P(x.player_key, x.name), TT = tTok(tk), seed = x.player_key + "pw", st = statOf.get(x.player_key) || {};
     const pos = POS_WORD[x.position] || x.position, mkt = market(x), nil = x.nil_compensation ?? 0, gp = teamGames(tk);
-    const ov = `${an(x.overall)} ${x.overall}-overall`, archPos = x.archetype ? `${x.archetype.toLowerCase()} ${({ LEDG: "edge", REDG: "edge", HB: "back", FB: "fullback", WR: "receiver", TE: "tight end", CB: "corner", FS: "safety", SS: "safety", MIKE: "linebacker", WILL: "linebacker", SAM: "linebacker" })[x.position] || x.position}` : pos, pay = nil ? `making ${nil}K` : "making nothing in NIL";
+    const ov = `${an(x.overall)} ${x.overall}-overall`, archPos = x.archetype ? `${x.archetype.toLowerCase()} ${({ LEDG: "edge", REDG: "edge", HB: "back", FB: "fullback", WR: "receiver", TE: "tight end", CB: "corner", FS: "safety", SS: "safety", MIKE: "linebacker", WILL: "linebacker", SAM: "linebacker" })[x.position] || x.position}` : pos, pay = nil ? `making ${money(nil)}` : "making nothing in NIL";
     const rank = (depth.get(`${tk}|${x.position}`) || []).findIndex((y) => y.player_key === x.player_key) + 1, starter = rank > 0 && rank <= (STARTERS[x.position] || 1);
     const boost = (userTeams.has(tk) ? 25 : 0) + (ranked(tk) ? 5 : 0) + (x.overall - 80);
     const nilR = nilRank.get(tk) || 99;
@@ -307,11 +309,11 @@ async function main() {
     const jump = prev != null ? { d: x.overall - prev, when: "last week" } : start ? { d: x.overall - start.ovr, when: start.when } : null;
     if (jump && jump.d >= 3 && x.overall >= 75) add({ kind: "breakout", kick: "Price tag rising", score: 50 + jump.d * 6 + boost,
       h: mkt && nil < mkt * 0.75 ? pick(seed + "b", [`${PT} is up to ${x.overall} overall. Can ${TT} still afford him next year?`, `${PT}'s stock is soaring, and so is his price: will ${TT} pay up?`]) : `${PT} jumps to ${x.overall} overall, and ${TT} has a raise to budget for`,
-      d: `The ${yr[x.class_year] || ""} ${pos} is up ${jump.d} point${jump.d === 1 ? "" : "s"} since ${jump.when}${x.dev_trait && x.dev_trait !== "Normal" ? ` (${x.dev_trait} dev)` : ""}. He's ${nil ? `earning ${nil}K in NIL` : "earning nothing in NIL"}${mkt ? `; ${pos}s rated around ${x.overall} draw a median of ${mkt}K across FBS` : ""}. ${afford || pick(seed + "b2", ["Expect collectives around the country to take notice.", "Keeping him could get expensive."])}` });
+      d: `The ${yr[x.class_year] || ""} ${pos} is up ${jump.d} point${jump.d === 1 ? "" : "s"} since ${jump.when}${x.dev_trait && x.dev_trait !== "Normal" ? ` (${x.dev_trait} dev)` : ""}. He's ${nil ? `earning ${money(nil)} in NIL` : "earning nothing in NIL"}${mkt ? `; ${pos}s rated around ${x.overall} draw a median of ${money(mkt)} across FBS` : ""}. ${afford || pick(seed + "b2", ["Expect collectives around the country to take notice.", "Keeping him could get expensive."])}` });
     // 2) underpaid star
     else if (mkt && x.overall >= 84 && nil <= mkt * 0.5 && mkt - nil >= 40) add({ kind: "underpaid", kick: "Underpaid", score: 40 + (mkt - nil) / 4 + boost,
       h: ([`${PT} is one of the best bargains in college football. How long can ${TT} keep it that way?`, `Rival collectives are circling ${TT}'s ${PT}`, `${PT} is playing like a star and getting paid like a backup`, `Somebody is going to back up the truck for ${PT}. Will it be ${TT}?`]),
-      d: `${cap(ov)} ${pos} ${pay}, while players at his position and rating command around ${mkt}K. ${afford || "That gap tends to close in the portal."}` });
+      d: `${cap(ov)} ${pos} ${pay}, while players at his position and rating command around ${money(mkt)}. ${afford || "That gap tends to close in the portal."}` });
     // 3) scheme mismatch
     const sr = styleRank(x);
     if (sr && x.overall >= 80 && sr.rank > sr.of * 0.75 && starter && !["K", "P"].includes(x.position)) add({ kind: "fit", kick: "Bad fit?", score: 35 + (sr.rank / sr.of) * 20 + boost,
@@ -386,7 +388,7 @@ async function main() {
         kick: level === "high" ? "Against the odds" : "Staying put", score: 60 + risk * 8 + (user ? 30 : 0) + (raise ? 10 : 0),
         h: capH(level === "high" ? pick(seed, [`Against the odds, ${TT} keeps ${PT}`, `${PT} was a flight risk. ${TT} talked him into staying`, `Nobody gave ${TT} much of a chance to keep ${PT}. He's staying`])
           : pick(seed, [`${PT} is staying at ${TT}`, `${TT} keeps ${PT} out of the portal`, `Portal Watch had ${PT} on the list. He isn't going anywhere`])),
-        d: `${PT} spent ${wk} on TD Wire's Portal Watch, ${why}${level === "high" ? ", and our read had him as one of the likelier names to leave" : ""}. The portal is open and he's still on the ${TT} roster.${raise ? ` The money helped: his NIL went from ${nilWas}K to ${nilNow}K.` : ""}`,
+        d: `${PT} spent ${wk} on TD Wire's Portal Watch, ${why}${level === "high" ? ", and our read had him as one of the likelier names to leave" : ""}. The portal is open and he's still on the ${TT} roster.${raise ? ` The money helped: his NIL went from ${money(nilWas)} to ${money(nilNow)}.` : ""}`,
         quote: { text: pick(seed + "q", level === "high" ? ["Honestly, I thought he was gone. The staff went to work on him.", "That one was closer than people think.", "They had to sell him on the plan, and they did."] : ["He likes it there. It was never as close as the outside noise made it.", "The staff kept him in the loop the whole way.", "He wants to finish what he started."]), by: user ? `a source close to ${tName(tk)}` : "a source familiar with the decision" } });
       else retention.push({ id: `${pk}:gone:${cur.season}`, cat: "portal", kind: "gone", player: +pk, team: tk, user, risk: level, kick: "Portal Watch called it",
         score: 55 + risk * 6 + (user ? 30 : 0),
@@ -486,7 +488,7 @@ async function main() {
   for (const x of allRos) { if (!rosterCache.has(x.team_key)) rosterCache.set(x.team_key, Promise.resolve(allRos.filter((y) => y.team_key === x.team_key))); }
   const outlook = await buildOutlook({ api, readJson, DIR, LID, cur, prevIdx, games, standings, teamStats, team, ts, userTeams, tName, tTok, keyOfSchool, reasonsFor, board, events,
     style, allRos, depth, STARTERS, POS, POS_WORD, nilRank, ranked, recOf, coachTok,
-    h: { pick, hash, ord, T, P, R, capH, an, cap, num, list, STARS, lastName, STATE_NAME, TEAM_STATE } });
+    h: { pick, hash, ord, T, P, R, capH, an, cap, num, money, list, STARS, lastName, STATE_NAME, TEAM_STATE } });
   if (process.env.OUTLOOK_TEST === "1") { await writeFile(`${DIR}/offseason-test.json`, JSON.stringify(outlook.offseason, null, 1)); outlook.offseason = prevIdx.offseason || null; }
 
   /* ===================== GAMES ===================== */

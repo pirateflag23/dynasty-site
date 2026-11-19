@@ -650,6 +650,7 @@ function tourCard() {
 
 /* ---------- helpers ---------- */
 const $ = (s) => document.querySelector(s);
+const money = (k) => { const n = Number(k) || 0; return Math.abs(n) >= 1000 ? `${+(n / 1000).toFixed(2)}M` : `${n}K`; }; // NIL is in thousands
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 const initials = (n = "") => { const w = n.replace(/[^A-Za-z ]/g, "").split(/\s+/).filter(Boolean); return (w.length > 1 ? w.map((x) => x[0]).join("") : (w[0] || "?").slice(0, 3)).slice(0, 3).toUpperCase(); };
 const hue = (n = "") => { let h = 2166136261; for (const c of n) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h % 360; };
@@ -1457,7 +1458,7 @@ function renderRecruit(key) {
           <div class="facts">
             ${fact("Position", esc(r.position))}${fact("Archetype", esc(r.archetype || "—"))}${fact("Star rating", stars(r.stars) || "—")}
             ${fact("Hometown", esc([r.hometown, r.state].filter(Boolean).join(", ") || "—"))}${fact("Height / weight", `${htFmt(r.height)} · ${r.weight || "—"} lbs`)}
-            ${fact("Class", esc(r.class === "HS" ? "High school (HS)" : classLabel(r.class)))}${fact("Desired NIL", r.desired_nil != null ? r.desired_nil.toLocaleString() : "—")}
+            ${fact("Class", esc(r.class === "HS" ? "High school (HS)" : classLabel(r.class)))}${fact("Desired NIL", r.desired_nil != null ? "$" + money(r.desired_nil) : "—")}
             ${fact("Stage", stageTag(r))}${r.dev_trait ? fact("Dev trait", esc(r.dev_trait)) : ""}${r.transfer ? fact("Transferring from", esc(r.transfer_from || "—")) : ""}
           </div>
           <div class="deal"><span>Dealbreaker</span><b>${esc(r.dealbreaker || "None")}</b></div>
@@ -1927,7 +1928,7 @@ function renderPlayer(key) {
           <div><div class="pc-first">${esc(p.first_name || "")}</div>
             <h1 class="pc-last">${esc(p.last_name || p.name)}<small>#${p.jersey ?? ""}</small>${p.dev_trait && p.dev_trait !== "Normal" ? `<span class="chip ${esc(p.dev_trait)}">${esc(p.dev_trait)}</span>` : ""}</h1>
             <div class="pc-sub">${esc(p.position)} · ${tLink(team.name, team.team_key)} · ${esc(p.archetype || "")}</div>
-            <div class="pc-meta"><span>${esc(cls)}</span><span>${htFmt(p.height)}</span><span>${p.weight || "—"} lbs</span>${p.hometown ? `<span>${esc(p.hometown)}</span>` : ""}${p.nil_compensation != null ? `<span>NIL ${p.nil_compensation.toLocaleString()}</span>` : ""}</div></div>
+            <div class="pc-meta"><span>${esc(cls)}</span><span>${htFmt(p.height)}</span><span>${p.weight || "—"} lbs</span>${p.hometown ? `<span>${esc(p.hometown)}</span>` : ""}${p.nil_compensation != null ? `<span>NIL $${money(p.nil_compensation)}</span>` : ""}</div></div>
           ${logoUrl(team.name) ? `<img src="${esc(logoUrl(team.name))}" alt="${esc(team.name)}" style="width:96px;height:96px;object-fit:contain;margin-left:auto">` : ""}
           <div class="pc-ovr" ${logoUrl(team.name) ? 'style="margin-left:0"' : ""}><span>OVERALL</span><b>${p.overall ?? "—"}</b></div></div>
       </section>
@@ -2478,7 +2479,7 @@ function renderCrystalBall(nav) {
   const card = (c) => `<article class="cb${c.user ? " mine" : ""}" data-f="${[c.user ? "user" : "", c.confidence === "Low" ? "low" : "", c.upset ? "upset" : "", c.confidence === "High" ? "high" : ""].join(" ")}">
     <div class="cb-top"><div><div class="cb-nm"><a href="#recruit/${c.recruit}">${esc(c.name)}</a></div>
       <div class="cb-meta">${"★".repeat(c.stars || 0)} ${esc(c.position)}${c.archetype ? ` · ${esc(c.archetype)}` : ""}${c.rank ? ` · No. ${c.rank} overall` : ""}${c.hometown ? ` · ${esc(c.hometown)}, ${esc(c.state || "")}` : ""}</div></div></div>
-    <div>${c.dealbreaker ? `<span class="cb-chip">Dealbreaker: ${esc(c.dealbreaker)}</span>` : ""}${c.stage ? `<span class="cb-chip">${esc(c.stage)}</span>` : ""}${c.desired_nil ? `<span class="cb-chip">Asking $${c.desired_nil}K</span>` : ""}</div>
+    <div>${c.dealbreaker ? `<span class="cb-chip">Dealbreaker: ${esc(c.dealbreaker)}</span>` : ""}${c.stage ? `<span class="cb-chip">${esc(c.stage)}</span>` : ""}${c.desired_nil ? `<span class="cb-chip">Asking $${money(c.desired_nil)}</span>` : ""}</div>
     <div class="cb-rows">${c.schools.map((s) => row(s, c.pick)).join("")}</div>
     <div class="cb-pick">${CB_ICON}Crystal Ball: <a class="tl" href="#team/${c.pick}">${esc(c.pick_name)}</a> <span class="conf ${c.confidence}">${c.pct}% · ${c.confidence}</span>${c.upset ? '<span class="cb-chip" style="margin:0">Upset pick</span>' : ""}</div>
     <p>${wireHtml(c.d)} <span class="call">${esc(c.call)}</span></p></article>`;
@@ -2571,7 +2572,7 @@ function renderFeature(id) {
   if (id === "nil") {
     const items = o.nil.list.map((n) => `<div class="ni${n.user ? " mine" : ""}"><div class="rk">${n.rank}</div><div>${wireTeamTok(n.team)}</div><div>
       <h3><a href="#player/${n.player}">${esc(n.name)}</a> <span style="color:var(--dim);font-weight:700">${esc(n.position)} · ${esc(wireTeamName(n.team))}</span></h3>
-      <div class="money">${n.before}K → ${n.now}K <span class="up">+${n.raise}K${n.pct != null ? ` (+${n.pct}%)` : ""}</span></div><p>${wireHtml(n.d)}</p></div></div>`).join("");
+      <div class="money">${money(n.before)} → ${money(n.now)} <span class="up">+${money(n.raise)}${n.pct != null ? ` (+${n.pct}%)` : ""}</span></div><p>${wireHtml(n.d)}</p></div></div>`).join("");
     $("#view").innerHTML = `<article class="card"><div class="art-h"><div class="kick" style="font:800 11px var(--head);color:var(--red);text-transform:uppercase">Offseason report · Payday</div><h1>${esc(o.nil.h)}</h1><p>${wireHtml(o.nil.d)}</p></div>${items}</article>`;
   } else {
     const items = o.breakouts.list.map((b) => `<div class="ni${b.user ? " mine" : ""}"><div class="rk">${b.rank}</div><div>${wireTeamTok(b.team)}</div><div>

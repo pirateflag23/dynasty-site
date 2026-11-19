@@ -42,7 +42,7 @@ const KEYS = {
 export async function buildOutlook(c) {
   const { api, readJson, DIR, cur, prevIdx, games, standings, teamStats, team, ts, userTeams, tName, tTok, keyOfSchool, reasonsFor, board, events,
     style, allRos, depth, STARTERS, POS, POS_WORD, nilRank, ranked, recOf, coachTok, h } = c;
-  const { pick, hash, ord, T, P, R, capH, an, cap, num, list, STARS, lastName, STATE_NAME, TEAM_STATE } = h;
+  const { pick, hash, ord, T, P, R, capH, an, cap, num, money, list, STARS, lastName, STATE_NAME, TEAM_STATE } = h;
   const log = (...a) => console.log(...a);
   const text = cur.season_text || "";
   const wkM = /^\d{4} Wk (\d+)$/.exec(text), wkNum = wkM ? +wkM[1] : null;
@@ -119,7 +119,7 @@ export async function buildOutlook(c) {
     if (pk.tk === leader.tk && second && second.mom > leader.mom && second.mom > 0) lines.push(`${second.name} closed ground this week (+${second.mom}), so this isn't over.`);
     const why = await predPhrase(r, pk.tk, pk.reasons.find((x) => x.k !== "far"), seed);
     if (why) lines.push(why);
-    if (r.desired_nil && !pk.reasons.some((x) => x.k === "nil")) { const nr = nilRank.get(pk.tk); if (nr && r.desired_nil >= 250) lines.push(nr <= 25 ? `His asking price (a reported $${r.desired_nil}K) shouldn't scare ${pk.name}, which ranks ${ord(nr)} in NIL spending.` : `The catch: he wants a reported $${r.desired_nil}K, and ${pk.name} ranks ${ord(nr)} in NIL spending.`); }
+    if (r.desired_nil && !pk.reasons.some((x) => x.k === "nil")) { const nr = nilRank.get(pk.tk); if (nr && r.desired_nil >= 250) lines.push(nr <= 25 ? `His asking price (a reported $${money(r.desired_nil)}) shouldn't scare ${pk.name}, which ranks ${ord(nr)} in NIL spending.` : `The catch: he wants a reported $${money(r.desired_nil)}, and ${pk.name} ranks ${ord(nr)} in NIL spending.`); }
     const conf = pct >= 75 ? "High" : pct >= 50 ? "Medium" : "Low";
     const closer = conf === "High" ? pick(seed + "c", [`Book it.`, `We'd be stunned if he ends up anywhere else.`, `Barring a late swing, this one's done.`])
       : conf === "Medium" ? `${pk.name} is the pick, but ${alt ? alt.name : "the field"} isn't done.` : pick(seed + "d", [`Coin flip. We'll lean ${pk.name}, barely.`, `Gut call: ${pk.name}. Nobody should be comfortable.`]);
@@ -345,7 +345,7 @@ export async function buildOutlook(c) {
     });
     offseason = (nil.length || bo.length) ? { season: cur.season, from_season: baseline.season, season_text: text, test: TEST || undefined,
       nil: { h: pick(String(cur.season) + "n", ["Show him the money: the 10 biggest NIL raises of the offseason", "Payday: who cashed in this offseason", "Pay raise season: the 10 biggest NIL jumps"]),
-        d: nil.length ? `$${total}K in new money across the top 10${movedN ? `, and ${num(movedN)} of them changed schools to get it` : ""}. ${nil[0] ? `Nobody got a bigger bump than ${P(nil[0].player, nil[0].name)}: ${nil[0].before}K to ${nil[0].now}K.` : ""}` : "", list: nil },
+        d: nil.length ? `$${money(total)} in new money across the top 10${movedN ? (movedN === nil.length ? `, and all ${num(movedN)} changed schools to get it` : `, and ${num(movedN)} of them changed schools to get it`) : ""}. ${nil[0] ? `Nobody got a bigger bump than ${P(nil[0].player, nil[0].name)}: ${money(nil[0].before)} to ${money(nil[0].now)}.` : ""}` : "", list: nil },
       breakouts: { h: pick(String(cur.season) + "b", ["Breakout watch: 12 players ready to make the leap", "Next up: the breakout candidates for the new season", "Coming for your Saturdays: this year's breakout candidates"]),
         d: "Rating jumps from offseason training, new starting jobs, scheme fits and what they did with limited snaps last year. These are the names to know before kickoff.", list: bo } } : null;
   } else if (wkNum === 0 && prevIdx.offseason) offseason = prevIdx.offseason; // keep the articles up through Week 0
