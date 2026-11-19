@@ -1,0 +1,27 @@
+name: Apply form test post
+
+# Sends a pretend application through the live /apply endpoint so it shows up in #commish-chat.
+# Run it from the Actions tab any time you want to check the pipe end to end.
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/apply-test.yml"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Wait for odl-dispatch to serve /apply (the deploy may still be running)
+        run: |
+          for i in $(seq 1 40); do
+            if curl -fsS https://odl-dispatch.jw1388954.workers.dev/apply | grep -q '"channel"'; then echo ready; exit 0; fi
+            sleep 10
+          done
+          echo "::error::/apply never came up"; exit 1
+      - name: Post a test application
+        run: |
+          curl -fsS -X POST https://odl-dispatch.jw1388954.workers.dev/apply \
+            -H 'content-type: application/json' -H 'origin: https://thedynastycfb.com' \
+            -d '{"test":true,"discord":"TestCoach#0001","why":"Pretend applicant from the new Apply tab. Plays every Saturday, never quits on a dynasty, and has strong opinions about 4th-and-short.","tz":"Eastern","teams":"East Carolina, Appalachian State","rules":"yes","stream":"yes"}'

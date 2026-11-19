@@ -8,6 +8,7 @@
 import { runNSD } from "./nsd.js";
 import { runGreeter, inspectGreeter } from "./greeter.js";
 import { runReporters, quotes, reporterStatus } from "./reporters.js";
+import { handleApply } from "./apply.js";
 
 const PROXY = "https://dynasty-proxy.jw1388954.workers.dev/v1";
 const PAGES = "https://pirateflag23.github.io/dynasty-site/data/stories";
@@ -84,6 +85,7 @@ export default {
   // GET / shows what the next cron would do (never dispatches). Handy for checking from a browser.
   async fetch(req, env) {
     const path = new URL(req.url).pathname;
+    if (path === "/apply") return handleApply(req, env);
     if (path === "/quotes") return Response.json(await quotes(env), { headers: { "access-control-allow-origin": "*" } });
     if (path === "/reporters") { try { return Response.json(await reporterStatus(env)); } catch (e) { return new Response(String(e), { status: 502 }); } }
     if (path === "/greeter") {
