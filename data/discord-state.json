@@ -7327,7 +7327,8 @@
   "portal-in:561122814": "2026-11-19",
   "rec:dyn:game:rushYards:557721248:831914516": "2026-11-19",
   "rec:dyn:game:receivingYards:557716416:831914295": "2026-11-19",
-  "rec:dyn:game:receiveReceptions:557717669:831914646": "2026-11-19"
+  "rec:dyn:game:receiveReceptions:557717669:831914646": "2026-11-19",
+  "rec:dyn:game:passYards:557724939:831914545": "2026-11-19"
  },
  "chats": {
   "831914054": {
@@ -7530,11 +7531,11 @@
  "recBook": {
   "_games": true,
   "game:passYards": {
-   "k": 557722329,
-   "n": "B.Underwood",
-   "v": 492,
-   "season": 2027,
-   "game": 831914710
+   "k": 557724939,
+   "n": "T.Jarrard",
+   "v": 531,
+   "season": 2028,
+   "game": 831914545
   },
   "game:passTD": {
    "k": 557723190,
