@@ -26,7 +26,12 @@ const SKIP = new Set(["welcome", "announcements", "announcement", "annoucement",
   "big-performances", "national-potw", "acc", "big-12", "big-ten", "sec", "schedule", "on-deck", "logos", "join-log", "game-streams", "rules", "potential-members"]);
 
 const kvJ = async (env, k, d = null) => { try { return (await env.GREETER.get(k, "json")) ?? d; } catch { return d; } };
-const kvPut = (env, k, v, ttl) => env.GREETER.put(k, JSON.stringify(v), ttl ? { expirationTtl: ttl } : undefined);
+// KV writes are capped account-wide (1,000/day on the free plan) and this runs every 2 minutes: only write when the value changed.
+const kvPut = async (env, k, v, ttl) => {
+  const s = JSON.stringify(v);
+  try { if ((await env.GREETER.get(k)) === s) return; } catch { /* write anyway */ }
+  return env.GREETER.put(k, s, ttl ? { expirationTtl: ttl } : undefined).catch((e) => console.error("kv put", k, String(e)));
+};
 
 async function dc(env, method, path, body) {
   for (let i = 0; i < 4; i++) {

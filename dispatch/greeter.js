@@ -95,7 +95,8 @@ async function farewell(env, id, name, s) {
 export async function runGreeter(env, scheduledTime = Date.now(), windowMs = 120000) {
   let res;
   try { res = await greeterOnce(env, scheduledTime, windowMs); } catch (e) { res = { ok: false, error: String(e).slice(0, 400) }; }
-  if (env.GREETER) await env.GREETER.put("last_run", JSON.stringify({ at: new Date(scheduledTime).toISOString(), ...res })).catch(() => {});
+  // status for debugging: once an hour, plus whenever something happened (KV writes are capped at 1,000/day account-wide)
+  if (env.GREETER && (new Date(scheduledTime).getUTCMinutes() < 2 || !res.ok)) await env.GREETER.put("last_run", JSON.stringify({ at: new Date(scheduledTime).toISOString(), ...res })).catch(() => {});
   if (res.joined?.length || res.left?.length || !res.ok) await env.GREETER?.put("last_event", JSON.stringify({ at: new Date(scheduledTime).toISOString(), ...res })).catch(() => {});
   return res;
 }
@@ -107,8 +108,9 @@ async function greeterOnce(env, scheduledTime, windowMs) {
   const now = new Map(members.map((m) => [m.user.id, m]));
   let joined, left = [];
   if (env.GREETER) {
-    const prev = await env.GREETER.get("members", "json");
-    await env.GREETER.put("members", JSON.stringify(Object.fromEntries(members.map((m) => [m.user.id, display(m)]))));
+    const prevRaw = await env.GREETER.get("members"), prev = prevRaw ? JSON.parse(prevRaw) : null;
+    const nowRaw = JSON.stringify(Object.fromEntries(members.map((m) => [m.user.id, display(m)])));
+    if (nowRaw !== prevRaw) await env.GREETER.put("members", nowRaw); // only when someone joined, left or changed names
     if (!prev) return { ok: true, first_run: true, members: members.length }; // first run: remember everyone, greet no one
     joined = members.filter((m) => !(m.user.id in prev));
     left = Object.entries(prev).filter(([id]) => !now.has(id));
