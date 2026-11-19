@@ -71,8 +71,10 @@ function gameLog(tk) {
       myRank: me.rank_at_game, us: me.score, them: op.score, win: me.score > op.score, oppUser: op.user_id > 0 };
   });
 }
+const lastWeek = Math.max(0, ...sched.data.filter((g) => g.played).map((g) => g.week));
+const pollRank = (t) => (t?.rank && t.rank <= 25 ? t.rank : null); // the API ranks every team; only the Top 25 counts
 function compute(tk) {
-  const t = byKey.get(tk), gl = gameLog(tk), last = gl.at(-1), factors = [];
+  const t = byKey.get(tk), gl = gameLog(tk), last = gl.at(-1), factors = [], rank = pollRank(t);
   const stars = t.prestige_stars ?? 2.5, E = 0.25 + 0.12 * stars, gp = t.wins + t.losses;
   let x = 45;
   if (gp) {
@@ -87,16 +89,20 @@ function compute(tk) {
     else { x += Math.min(28, 7 * s); factors.push(s >= 2 ? `Lost ${s} straight` : `Lost to ${last.opp}`); }
     const m = Math.abs(last.us - last.them);
     if (!last.win && m >= 21) { x += 8; factors.push(`Blown out by ${m}`); }
-    if (!last.win && last.myRank && !last.oppRank) { x += 8; factors.push("Upset by an unranked team"); }
-    if (last.win && last.oppRank) { x -= 8; factors.push(`Beat No. ${last.oppRank} ${last.opp}`); }
+    const myR = last.myRank <= 25 ? last.myRank : null, opR = last.oppRank <= 25 ? last.oppRank : null;
+    if (!last.win && myR && !opR) { x += 8; factors.push("Upset by an unranked team"); }
+    if (last.win && opR) { x -= 8; factors.push(`Beat No. ${opR} ${last.opp}`); }
     if (last.win && m >= 28) x -= 3;
   }
-  if (t.rank && t.rank <= 10) { x -= 8; factors.push(`Ranked No. ${t.rank}`); } else if (t.rank) { x -= 3; factors.push(`Ranked No. ${t.rank}`); }
+  // won the last game of the whole season (the title game): champions
+  if (last?.win && last.week === lastWeek && (off || last.week >= 19)) { x -= 18; factors.unshift("National champions"); }
+  if (rank && rank <= 10) { x -= 8; factors.push(`Ranked No. ${rank}`); } else if (rank) { x -= 3; factors.push(`Ranked No. ${rank}`); }
   const was = prev.teams?.[tk];
-  if (was?.rank && !t.rank && !off) { x += 8; factors.push("Fell out of the Top 25"); }
+  if (was?.rank && !rank && !off) { x += 8; factors.push("Fell out of the Top 25"); }
   // storylines
   const mine = (latest.portal || []).filter((p) => p.team === tk);
-  if (mine.some((p) => p.kind === "gone" && !p.player)) { x += 8; factors.push("Portal exodus"); }
+  const ex = mine.find((p) => p.kind === "gone" && !p.player), exN = ex ? +(/(\d+)/.exec(untok(ex.h))?.[1] || 0) : 0;
+  if (exN >= 8) { x += Math.min(12, exN); factors.push(`${exN} lost to the portal`); } else if (exN >= 4) { x += 3; factors.push(`${exN} lost to the portal`); }
   const strug = mine.filter((p) => p.kind === "struggling").length; if (strug) { x += 3 * strug; factors.push(`${strug} starter${strug > 1 ? "s" : ""} under fire`); }
   const cr = classRank(tk);
   if (off || pre) { if (cr && cr <= 10) { x -= 8; factors.push(`No. ${cr} recruiting class`); } else if (cr && cr > 50) { x += 5; factors.push(`Recruiting class ranks No. ${cr}`); } }
@@ -124,11 +130,11 @@ Return JSON only:
 Write 12 posts: mix all four platforms, 2-3 snapgram posts with an image (a half-empty stadium when attendance would plausibly drop, a concessions receipt when people complain about cost, a fan sign, a scoreboard photo), 2-3 board threads. Include a clipping about half the time. Engagement numbers should fit the post (angry hot takes get the most). Keep chirps under 280 characters.`;
 
 function facts(tk, c) {
-  const t = c.t, recent = c.gl.slice(-4).map((g) => `${g.wk}: ${g.win ? "W" : "L"} ${g.us}-${g.them} ${g.home ? "vs" : "at"} ${g.oppRank ? `No. ${g.oppRank} ` : ""}${g.opp}${g.oppUser ? " (league coach)" : ""}`);
+  const t = c.t, recent = c.gl.slice(-4).map((g) => `${g.wk}: ${g.win ? "W" : "L"} ${g.us}-${g.them} ${g.home ? "vs" : "at"} ${g.oppRank && g.oppRank <= 25 ? `No. ${g.oppRank} ` : ""}${g.opp}${g.oppUser ? " (league coach)" : ""}`);
   const stories = [...(latest.games || []), ...(latest.portal || []), ...(latest.recruiting || [])].filter((s) => s.team === tk || (s.teams || []).includes?.(tk)).slice(0, 8).map((s) => `${untok(s.h)}${s.d ? `: ${untok(s.d)}` : ""}`.slice(0, 260));
   const b = band(c.temp);
   return { school: t.name, nickname: t.nickname, conference: t.conference, coach_gamertag: coachOf(t.name, tk), phase, stage: cur.season_text, record: t.record, conference_record: t.conference_record,
-    rank: t.rank || null, prestige_stars: t.prestige_stars, team_overall: t.overall, streak: c.streak, recent_games: recent, recruiting_class_rank: c.cr,
+    rank: pollRank(t), prestige_stars: t.prestige_stars, team_overall: t.overall, streak: c.streak, recent_games: recent, recruiting_class_rank: c.cr,
     storylines: stories, temperature: `${c.temp}° (${b[1]}: ${b[2]})`, why: c.factors };
 }
 
@@ -167,7 +173,7 @@ for (const tk of userTeams) {
   feed ||= was?.sig === sig ? was.feed : templateFeed(tk, c);
   const b = band(c.temp);
   const history = [...(was?.history || []).filter((h) => h.p !== cur.id), { p: cur.id, label: cur.season_text, temp: c.temp }].slice(-40);
-  out.teams[tk] = { name: c.t.name, nickname: c.t.nickname, coach: coachOf(c.t.name, tk), record: c.t.record, rank: c.t.rank || null, temp: c.temp, raw: c.raw, period: cur.id,
+  out.teams[tk] = { name: c.t.name, nickname: c.t.nickname, coach: coachOf(c.t.name, tk), record: c.t.record, rank: pollRank(c.t), temp: c.temp, raw: c.raw, period: cur.id,
     band: b[1], mood: b[2], factors: c.factors, prevTemp: history.length > 1 ? history.at(-2).temp : null, history, sig, feed, updated: was?.sig === sig ? was.updated : new Date().toISOString() };
 }
 await writeFile(FILE, JSON.stringify(out));
