@@ -9216,7 +9216,12 @@
   "rec:dyn:season:defenseSacks:557716726:2029": "2026-11-19",
   "rec:dyn:career:defenseInterceptions:557727474": "2026-11-19",
   "rec:dyn:game:defenseSacks:557727426:831914066": "2026-11-19",
-  "rec:dyn:career:rushYards:557717775": "2026-11-19"
+  "rec:dyn:career:rushYards:557717775": "2026-11-19",
+  "rec:dyn:season:passYards:557716254:2029": "2026-11-19",
+  "rec:dyn:season:rushTD:557727542:2029": "2026-11-19",
+  "rec:dyn:season:receivingYards:557727604:2029": "2026-11-19",
+  "rec:dyn:season:receiveReceptions:557717429:2029": "2026-11-19",
+  "rec:dyn:season:kickFieldGoalsMade:557716471:2029": "2026-11-19"
  },
  "chats": {
   "831914913": {
@@ -9510,11 +9515,11 @@
    "game": 831914175
   },
   "season:passYards": {
-   "k": 557721477,
-   "n": "T.St. Clair",
-   "v": 4093,
-   "y": 2027,
-   "tn": "Ohio State"
+   "k": 557716254,
+   "n": "T.Niang",
+   "v": 4177,
+   "y": 2029,
+   "tn": "Boise State"
   },
   "season:passTD": {
    "k": 557721477,
@@ -9531,25 +9536,25 @@
    "tn": "Ohio State"
   },
   "season:rushTD": {
-   "k": 557717086,
-   "n": "S.Jones",
-   "v": 17,
-   "y": 2028,
-   "tn": "East Carolina"
+   "k": 557727542,
+   "n": "W.Griffin",
+   "v": 19,
+   "y": 2029,
+   "tn": "Georgia Tech"
   },
   "season:receivingYards": {
-   "k": 557714640,
-   "n": "B.Eskildsen",
-   "v": 1555,
-   "y": 2027,
-   "tn": "Penn State"
+   "k": 557727604,
+   "n": "M.Harris",
+   "v": 1649,
+   "y": 2029,
+   "tn": "Boise State"
   },
   "season:receiveReceptions": {
-   "k": 557725211,
-   "n": "J.Legree",
-   "v": 93,
-   "y": 2028,
-   "tn": "Ohio State"
+   "k": 557717429,
+   "n": "G.Kontosis",
+   "v": 101,
+   "y": 2029,
+   "tn": "Kennesaw State"
   },
   "season:receiveTouchdowns": {
    "k": 557714640,
@@ -9568,7 +9573,7 @@
   "season:defenseSacks": {
    "k": 557716726,
    "n": "J.Slayton",
-   "v": 15,
+   "v": 17,
    "y": 2029,
    "tn": "Wyoming"
   },
@@ -9580,11 +9585,11 @@
    "tn": "Ohio State"
   },
   "season:kickFieldGoalsMade": {
-   "k": 557725159,
-   "n": "P.LaForge",
-   "v": 22,
-   "y": 2027,
-   "tn": "Memphis"
+   "k": 557716471,
+   "n": "C.Castellanos",
+   "v": 23,
+   "y": 2029,
+   "tn": "Temple"
   },
   "career:passYards": {
    "k": 557713883,
@@ -9601,7 +9606,7 @@
   "career:rushYards": {
    "k": 557717775,
    "n": "J.Lindsey",
-   "v": 2227,
+   "v": 2275,
    "tn": "Memphis"
   },
   "career:rushTD": {
