@@ -787,9 +787,9 @@ async function main() {
       const k = `portal-mv:${m.prospect_key}:${m.kind}:${m.school?.team_id || ""}`;
       if (seen(k) && !REPLAY.has("portal")) continue;
       mark(k); if (seeding && !REPLAY.has("portal")) continue;
+      if (m.kind !== "sign") continue; // signings only: commits/flips/decommits doubled an already long list
       const user = userTeams.has(byTeamId.get(m.school?.team_id));
-      const icon = m.kind === "decommit" ? "❌ Decommitted" : m.kind === "sign" ? "✍️ Signed with" : m.previous_school ? "🔄 Flipped to" : "✅ Committed to";
-      lines.push(`${icon} ${user ? "**🎮 " : ""}${m.school?.name || ""}${user ? "**" : ""}: ${stars(m.stars)} ${m.position} ${m.name}${m.previous_school ? ` (was ${m.previous_school.name})` : ""}`);
+      lines.push(`✍️ Signed with ${user ? "**🎮 " : ""}${m.school?.name || ""}${user ? "**" : ""}: ${stars(m.stars)} ${m.position} ${m.name}${m.previous_school ? ` (was ${m.previous_school.name})` : ""}`);
     }
     if (REPLAY.has("portal") && lines.length > 25) lines.length = 25;
     if (lines.length) await send(cfg.channels.portal, { embeds: pages(lines).map((d, i) => ({ title: i ? undefined : `🔁 Transfer portal · ${cur.season} ${nowWeek()}`, description: d, color: BLUE })) });
