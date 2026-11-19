@@ -352,7 +352,9 @@ export async function recordDesk(x) {
   const firstRun = !x.state.recBook; const book = (x.state.recBook ??= {});
   const keyOf = (name) => [...x.teams.values()].find((t) => t.name === name)?.team_key;
   const events = [];
-  const ev = (key, o) => { if (x.seen(key)) return; if (firstRun || x.seeding) { x.mark(key); return; } events.push({ key, ...o }); };
+  // Real-life (NCAA FBS) records only by default; dynasty marks are still tracked quietly. Set record_desk.dynasty: true to post them too.
+  const dynOn = !!x.cfg.record_desk?.dynasty;
+  const ev = (key, o) => { if (x.seen(key)) return; if (firstRun || x.seeding || (o.kind === "dynasty" && !dynOn)) { x.mark(key); return; } events.push({ key, ...o }); };
 
   // NCAA season / career marks (build-history keeps the list; first_seen sticks)
   for (const b of broken?.broken || []) {
