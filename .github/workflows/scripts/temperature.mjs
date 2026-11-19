@@ -189,7 +189,7 @@ const out = { season: cur.season, period: cur.id, stage: cur.season_text, update
 let wrote = 0;
 for (const tk of userTeams) {
   const c = compute(tk), was = prev.teams?.[tk];
-  const sig = hash(JSON.stringify(["v2", cur.id, c.t.record, c.last?.key, band(c.temp)[1], (latest.portal || []).filter((p) => p.team === tk).map((p) => p.id).sort()])).toString(36);
+  const sig = hash(JSON.stringify(["v3", cur.id, c.t.record, c.last?.key, band(c.temp)[1], (latest.portal || []).filter((p) => p.team === tk).map((p) => p.id).sort()])).toString(36);
   let feed = was?.sig === sig ? was.feed : null;
   if (!feed && AKEY) {
     try {
