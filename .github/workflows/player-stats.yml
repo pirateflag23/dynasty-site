@@ -58,6 +58,11 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node .github/workflows/scripts/ai-writer.mjs
+      - name: Temperature (fan-base thermometer + mock social feeds)
+        env:
+          DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node .github/workflows/scripts/temperature.mjs || echo "temperature step failed, continuing"
       - name: News archive (keep every story for the News tab)
         run: node .github/workflows/scripts/build-news-archive.mjs
       - name: Register slash commands (only when they change)

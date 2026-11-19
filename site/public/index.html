@@ -582,6 +582,29 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
 .pw .kick{font:800 11px/1 var(--head);color:var(--red);font-style:italic;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
 .pw .meta{font-size:11px;color:var(--dim);margin-top:6px}.pw .lg{width:40px;height:40px;display:grid;place-items:center}
 .pw.mine{background:color-mix(in srgb,var(--red) 6%,transparent)}
+.tp-strip{display:flex;gap:6px;overflow-x:auto;padding:0 14px 10px}.tp-chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line-2);background:transparent;border-radius:999px;padding:4px 10px 4px 4px;cursor:pointer;font:800 14px var(--head);color:inherit;flex:none}.tp-chip.on{border-color:currentColor;box-shadow:0 0 0 1px currentColor inset}.tp-chip img,.tp-chip .badge{width:24px;height:24px}
+.tp-bar{padding:0 14px 12px}.tp-bar select{font:700 14px var(--body);padding:7px 10px;border-radius:6px;border:1px solid var(--line-2);background:transparent;color:inherit;max-width:100%}
+.tp-main{display:grid;grid-template-columns:300px 1fr;gap:18px;padding:0 14px 14px}@media(max-width:820px){.tp-main{grid-template-columns:1fr}}
+.tp-gauge{border:1px solid var(--line-2);border-radius:10px;padding:14px;align-self:start;position:sticky;top:70px;border-top:5px solid var(--tc)}
+.tp-team{display:flex;gap:10px;align-items:center;margin-bottom:10px}.tp-team small{display:block;color:var(--dim);font-size:12px}.tp-team b{font:800 18px var(--head)}
+.tp-th{display:flex;gap:14px;align-items:center}.tp-deg{font:900 54px/1 var(--head);color:var(--tc)}.tp-band{font:800 18px var(--head);text-transform:uppercase;letter-spacing:.5px}.tp-mood{color:var(--dim);font-size:13px}
+.tp-delta{font:800 13px var(--head);margin-top:6px}.tp-delta.up{color:#d32f2f}.tp-delta.down{color:#1f6fd1}
+.tp-why{margin:12px 0 0;padding-left:18px;font-size:13px;line-height:1.5}.tp-spark{display:flex;align-items:flex-end;gap:3px;height:46px;margin-top:12px;border-bottom:1px solid var(--line-2)}.tp-spark i{flex:1;border-radius:2px 2px 0 0;min-width:4px}
+.tp-feed{columns:2 320px;column-gap:14px}.tp-feed>*{break-inside:avoid;margin:0 0 14px;display:block}
+.tp-post{border:1px solid var(--line-2);border-radius:12px;padding:12px 14px;background:var(--card,#fff);font-size:15px;line-height:1.45}.tp-post p{margin:6px 0}
+.tp-head{display:flex;gap:10px;align-items:center}.tp-head small{color:var(--dim);font-size:12px;font-weight:500}.tp-head b{font-weight:800}.tp-head>div{flex:1;min-width:0}
+.tp-av{width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font:800 16px var(--head);flex:none}.tp-av.ring{box-shadow:0 0 0 2px #fff,0 0 0 4px #e1306c}
+.tp-brand{font:900 12px var(--head);letter-spacing:.5px;color:var(--dim)}.tp-brand.ch{color:#111;background:#e7e7e7;border-radius:4px;padding:1px 6px}.tp-brand.sg{background:linear-gradient(45deg,#f9a825,#e1306c,#7b1fa2);color:#fff;border-radius:4px;padding:1px 6px}
+.tp-fs .tp-brand{color:#1877f2;font:900 20px Arial,sans-serif;letter-spacing:-.5px;margin-bottom:6px}.tp-fs .tp-brand span{font-size:15px}
+.tp-acts{display:flex;gap:18px;color:var(--dim);font-size:13px;margin-top:6px}
+.tp-boardp{background:#f3f4f6;color:#1f2937;border-color:#d1d5db}.tp-boardp .tp-brand{color:#6b7280}.tp-thread{display:block;color:#1d4ed8;font-weight:800;margin:4px 0;text-decoration:underline}.tp-bmeta{font-size:12px;color:#6b7280}
+.tp-clip{background:#f4ecd8;color:#222;border:1px solid #d8ccb0;border-radius:4px;padding:14px 16px;font-family:Georgia,'Times New Roman',serif;transform:rotate(-.6deg);box-shadow:0 3px 10px rgba(0,0,0,.12)}
+.tp-paper{font:900 22px 'Old English Text MT',Georgia,serif;text-align:center;border-bottom:2px solid #222;padding-bottom:4px;margin-bottom:8px}.tp-clip h3{font:900 24px/1.15 Georgia,serif;margin:6px 0}.tp-clip p{font-size:15px;margin:0}
+.tp-img{position:relative;margin:8px -14px 4px;overflow:hidden}.tp-img svg{display:block;width:100%;height:auto}.tp-cap{position:absolute;left:10px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 8px;border-radius:999px}
+.tp-receiptwrap{background:#5d4037;padding:18px 0;display:flex;justify-content:center}.tp-receipt{background:#fffdf7;color:#222;font:13px/1.45 'Courier New',monospace;width:230px;padding:12px 14px;transform:rotate(1.5deg);box-shadow:0 4px 12px rgba(0,0,0,.35)}.tp-receipt b{display:block;text-align:center}.rl{text-align:center;overflow:hidden;white-space:nowrap;color:#777}.ri{display:flex;justify-content:space-between}.ri.tot{font-weight:800}
+.tp-signwrap{background:linear-gradient(#3a3f4a,#1c1f26);padding:22px 16px;display:flex;justify-content:center}.tp-sign{background:#fff;color:#111;font:700 26px/1.1 'Marker Felt','Comic Sans MS','Segoe Print',cursive;padding:16px 18px;transform:rotate(-2deg);text-align:center;text-transform:uppercase;box-shadow:0 6px 14px rgba(0,0,0,.4);max-width:90%}
+.tp-board{background:#111;color:#ffb300;display:flex;justify-content:space-around;align-items:center;padding:18px 10px;font:900 18px 'Courier New',monospace}.tp-board b{display:block;font-size:44px;text-align:center}.tp-board .fin{color:#ff5252;font-size:14px}
+.tp-foot{font-size:12px;color:var(--dim);padding:0 14px 10px}
 .rstar{background:none;border:0;cursor:pointer;font-size:18px;line-height:1;color:#c9a227;padding:2px 6px 2px 0;flex:none}.rstar[aria-pressed="false"]{color:var(--dim)}.rstar:hover{color:#e0b52c}
 .rstar.big{font-size:28px;vertical-align:4px;padding-left:4px}.rb-mine[aria-pressed="true"]{background:#c9a227;color:#111;border-color:#c9a227}.rb-mine span{font-weight:800;margin-left:2px}
 .rb-note{font-size:12px;color:var(--dim);padding:0 14px 8px}
@@ -2603,7 +2626,7 @@ async function renderNews(q = {}) {
   const seasons = await newsSeasons();
   const curSeason = +(D.league?.data?.current_period?.season || seasons[0] || new Date().getFullYear());
   const season = +(q.season || (seasons.includes(curSeason) ? curSeason : seasons[0] || curSeason));
-  view.innerHTML = `<section class="card"><h2 class="card-h">News <small>TD Wire · every story, all season</small></h2><div class="empty">Loading…</div></section>`;
+  view.innerHTML = newsNav("") + `<section class="card"><h2 class="card-h">News <small>TD Wire · every story, all season</small></h2><div class="empty">Loading…</div></section>`;
   const arc = await newsLoad(season);
   const all = (arc?.stories || []).slice().sort((a, b) => String(b.first_seen).localeCompare(String(a.first_seen)));
   // school list: league teams first, then every other school that has a story
@@ -2613,7 +2636,7 @@ async function renderNews(q = {}) {
   try { const saved = JSON.parse(localStorage.getItem("td-news-team") || "0"); if (!q.team && saved && counts.has(saved)) st.team = saved; } catch { /* storage off */ }
   const filtered = () => all.filter((x) => (!st.cat || x.cat === st.cat) && (!st.team || (x.teams || [x.team]).includes(st.team)));
   const have = new Set(all.map((x) => x.cat));
-  view.innerHTML = `<section class="card"><h2 class="card-h">News <small>TD Wire · every story of the ${season} season</small></h2>
+  view.innerHTML = newsNav("") + `<section class="card"><h2 class="card-h">News <small>TD Wire · every story of the ${season} season</small></h2>
     <div class="nw-bar">
       <select id="nw-team" aria-label="School"><option value="0">All schools</option>${opts.filter((o) => o.u).length ? `<optgroup label="League teams">${opts.filter((o) => o.u).map((o) => `<option value="${o.k}">${esc(o.n)}${coachOf(o.n) ? ` (${esc(coachOf(o.n))})` : ""}</option>`).join("")}</optgroup>` : ""}<optgroup label="All schools">${opts.filter((o) => !o.u).map((o) => `<option value="${o.k}">${esc(o.n)}</option>`).join("")}</optgroup></select>
       ${seasons.length > 1 ? `<select id="nw-season" aria-label="Season">${seasons.map((y) => `<option value="${y}"${y === season ? " selected" : ""}>${y}</option>`).join("")}</select>` : ""}
@@ -2692,6 +2715,82 @@ function renderApply() {
   };
 }
 
+const newsNav = (sub) => `<nav class="subnav" aria-label="News"><h1>News</h1><a href="#news" ${sub === "" ? 'aria-current="page"' : ""}>Stories</a><a href="#news/temperature" ${sub === "temperature" ? 'aria-current="page"' : ""}>🌡️ Temperature</a></nav>`;
+
+/* =========================================================
+   TEMPERATURE: how hot each league fan base is running + a mock social feed
+   (data/stories/<league>/temperature.json, written by temperature.mjs each sync)
+   ========================================================= */
+let TEMP = null;
+const tempLoad = () => { const lid = D.league?.league_id ?? D.league?.data?.league_id; if (!lid) return Promise.resolve(null);
+  return (TEMP ??= fetch(`${WIRE_BASE}/${lid}/temperature.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null)); };
+const tempColor = (t) => t >= 90 ? "#b3001b" : t >= 75 ? "#e0262f" : t >= 60 ? "#f07c22" : t >= 40 ? "#e3b23c" : t >= 20 ? "#3d9be0" : "#1f5fbf";
+function thermoSvg(t, big) {
+  const h = big ? 230 : 70, w = big ? 70 : 24, tube = big ? 22 : 8, bulb = big ? 30 : 10, top = big ? 12 : 4, bottom = h - bulb * 2 - 2, fill = Math.max(4, (bottom - top) * t / 100), c = tempColor(t);
+  const cx = w / 2, ticks = big ? [0, 25, 50, 75, 100].map((v) => { const y = bottom - (bottom - top) * v / 100; return `<line x1="${cx + tube / 2 + 3}" x2="${cx + tube / 2 + 11}" y1="${y}" y2="${y}" stroke="currentColor" stroke-opacity=".35" stroke-width="2"/>`; }).join("") : "";
+  return `<svg class="thermo" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">
+    <rect x="${cx - tube / 2}" y="${top}" width="${tube}" height="${bottom - top + bulb}" rx="${tube / 2}" fill="#e8e8ec" stroke="#c9c9d1" stroke-width="2"/>
+    <rect x="${cx - tube / 2 + 3}" y="${bottom - fill}" width="${tube - 6}" height="${fill + bulb}" rx="${(tube - 6) / 2}" fill="${c}"/>
+    <circle cx="${cx}" cy="${h - bulb - 1}" r="${bulb}" fill="${c}" stroke="#c9c9d1" stroke-width="2"/>${ticks}</svg>`;
+}
+const tAgo = (i) => ["just now", "4m", "12m", "27m", "41m", "1h", "1h", "2h", "3h", "4h", "6h", "8h", "11h", "14h", "18h", "22h"][i] || "1d";
+const fmtN = (n) => { n = +n || 0; return n >= 10000 ? (n / 1000).toFixed(0) + "K" : n >= 1000 ? (n / 1000).toFixed(1) + "K" : String(n); };
+const avatarFor = (name, plat) => { const cols = ["#7a3db8", "#c2410c", "#0f766e", "#1d4ed8", "#be123c", "#4d7c0f", "#a16207", "#334155"]; let h = 0; for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return `<span class="tp-av${plat === "snapgram" ? " ring" : ""}" style="background:${cols[h % cols.length]}">${esc(String(name).replace(/[^A-Za-z0-9]/g, "").slice(0, 1).toUpperCase() || "?")}</span>`; };
+function tempImage(im, seed) {
+  if (!im) return "";
+  if (im.type === "stadium") {
+    const fill = Math.max(0.05, Math.min(1, +im.fill || 0.5)); let h = 7, dots = "";
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 34; c++) { h = (h * 1103515245 + 12345 + seed) >>> 0; const x = 8 + c * 9.2 + (r % 2) * 4, y = 20 + r * 11 + Math.abs(c - 16.5) * 1.1;
+      const filled = ((h >>> 8) % 1000) / 1000 < fill * (1.15 - r * 0.06); dots += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="6" height="7" rx="1.5" fill="${filled ? ["#c62828", "#f5f5f5", "#1e3a8a", "#212121", "#f9a825"][(h >>> 3) % 5] : "#9aa4b2"}" opacity="${filled ? 1 : .55}"/>`; }
+    return `<div class="tp-img"><svg viewBox="0 0 330 150" preserveAspectRatio="xMidYMid slice"><rect width="330" height="150" fill="#5b8fd6"/><rect y="0" width="330" height="22" fill="#9cc3ef"/>${dots}<rect y="128" width="330" height="22" fill="#2e7d32"/><rect y="128" width="330" height="3" fill="#fff" opacity=".7"/></svg>${im.caption ? `<span class="tp-cap">${esc(im.caption)}</span>` : ""}</div>`;
+  }
+  if (im.type === "receipt") { const items = (im.items || []).slice(0, 8), tot = items.reduce((a, [, p]) => a + (+p || 0), 0);
+    return `<div class="tp-img tp-receiptwrap"><div class="tp-receipt"><b>${esc(im.place || "Stadium Concessions")}</b><div class="rl">********************************</div>${items.map(([n, pr]) => `<div class="ri"><span>${esc(n)}</span><span>$${(+pr || 0).toFixed(2)}</span></div>`).join("")}<div class="rl">--------------------------------</div><div class="ri tot"><span>TOTAL</span><span>$${tot.toFixed(2)}</span></div><div class="rl">THANK YOU · GO TEAM</div></div></div>`; }
+  if (im.type === "sign") return `<div class="tp-img tp-signwrap"><div class="tp-sign">${esc(im.text || "")}</div></div>`;
+  if (im.type === "scoreboard") return `<div class="tp-img tp-board"><div><span>${esc(im.away || "AWAY")}</span><b>${esc(im.as ?? 0)}</b></div><div class="fin">FINAL</div><div><span>${esc(im.home || "HOME")}</span><b>${esc(im.hs ?? 0)}</b></div></div>`;
+  return "";
+}
+function tempPost(p, i, seed) {
+  const plat = ["chirp", "facespace", "snapgram", "board"].includes(p.platform) ? p.platform : "chirp";
+  const name = p.name || p.handle || "Fan", txt = esc(p.text || "").replace(/\n/g, "<br>");
+  if (plat === "board") return `<article class="tp-post tp-boardp"><div class="tp-brand">📋 The Board</div><a class="tp-thread">${esc(p.thread || "Thread")}</a><div class="tp-bmeta"><b>${esc(p.handle || name)}</b> · ${tAgo(i)} · ${fmtN(p.replies)} replies</div><p>${txt}</p></article>`;
+  if (plat === "facespace") return `<article class="tp-post tp-fs"><div class="tp-brand">f<span>acespace</span></div><div class="tp-head">${avatarFor(name, plat)}<div><b>${esc(name)}</b><small>${tAgo(i)} · 🌎</small></div></div><p>${txt}</p>${tempImage(p.image, seed + i)}<div class="tp-acts"><span>👍 ${fmtN(p.likes)}</span><span>${fmtN(p.replies)} comments</span><span>${fmtN(p.reposts)} shares</span></div></article>`;
+  if (plat === "snapgram") return `<article class="tp-post tp-sg"><div class="tp-head">${avatarFor(name, plat)}<div><b>${esc((p.handle || name).replace(/^@/, ""))}</b><small>${tAgo(i)}</small></div><span class="tp-brand sg">Snapgram</span></div>${tempImage(p.image, seed + i) || ""}<div class="tp-acts">♡ ${fmtN(p.likes)} likes</div><p><b>${esc((p.handle || name).replace(/^@/, ""))}</b> ${txt}</p></article>`;
+  return `<article class="tp-post tp-ch"><div class="tp-head">${avatarFor(name, plat)}<div><b>${esc(name)}</b> <small>${esc(p.handle || "")} · ${tAgo(i)}</small></div><span class="tp-brand ch">Chirp</span></div><p>${txt}</p>${tempImage(p.image, seed + i)}<div class="tp-acts"><span>💬 ${fmtN(p.replies)}</span><span>🔁 ${fmtN(p.reposts)}</span><span>♡ ${fmtN(p.likes)}</span></div></article>`;
+}
+async function renderTemperature(q = {}) {
+  const view = $("#view");
+  view.innerHTML = newsNav("temperature") + `<section class="card"><div class="empty">Taking the temperature…</div></section>`;
+  const T = await tempLoad();
+  const teams = Object.entries(T?.teams || {}).map(([k, t]) => ({ k: +k, ...t })).sort((a, b) => b.temp - a.temp);
+  if (!teams.length) { view.innerHTML = newsNav("temperature") + `<section class="card"><h2 class="card-h">Temperature</h2><div class="empty">The fan bases check in after the next sync.</div></section>`; return; }
+  let sel = +q.team || 0; try { if (!sel) sel = +JSON.parse(localStorage.getItem("td-temp-team") || "0"); } catch { /* storage off */ }
+  if (!teams.some((t) => t.k === sel)) sel = teams[0].k;
+  const t = teams.find((x) => x.k === sel), tn = t.name, delta = t.prevTemp != null ? t.temp - t.prevTemp : null;
+  const strip = teams.map((x) => `<button type="button" class="tp-chip${x.k === sel ? " on" : ""}" data-k="${x.k}" title="${esc(x.name)}: ${x.temp}° (${esc(x.band)})">${badge(x.name)}<span style="color:${tempColor(x.temp)}">${x.temp}°</span></button>`).join("");
+  const feed = t.feed || { posts: [] }, seed = t.k % 997;
+  const clip = feed.clip ? `<article class="tp-clip"><div class="tp-paper">${esc(feed.clip.paper || "The Daily")}</div><h3>${esc(feed.clip.headline || "")}</h3>${feed.clip.dek ? `<p>${esc(feed.clip.dek)}</p>` : ""}</article>` : "";
+  view.innerHTML = newsNav("temperature") + `<section class="card tp-wrap">
+    <h2 class="card-h">Temperature <small>How hot each fan base is running · updated ${esc(T.stage ? (T.stage.replace(/^\d{4}\s*/, "").replace(/\bWk\b/, "Week").replace(/OFF Stg/, "Offseason Stage").replace(/PRE/, "Preseason")) : "")}</small></h2>
+    <div class="tp-strip">${strip}</div>
+    <div class="tp-bar"><select id="tp-team" aria-label="Team">${teams.map((x) => `<option value="${x.k}"${x.k === sel ? " selected" : ""}>${esc(x.name)}${x.coach ? ` (${esc(x.coach)})` : ""}: ${x.temp}°</option>`).join("")}</select></div>
+    <div class="tp-main">
+      <aside class="tp-gauge" style="--tc:${tempColor(t.temp)}">
+        <div class="tp-team">${badge(tn)}<div><b><a class="tl" href="#team/${t.k}">${esc(tn)}</a></b><small>${esc(t.record || "")}${t.rank ? ` · No. ${t.rank}` : ""} · ${esc(t.coach || "")}</small></div></div>
+        <div class="tp-th">${thermoSvg(t.temp, true)}<div><div class="tp-deg">${t.temp}°</div><div class="tp-band">${esc(t.band)}</div><div class="tp-mood">${esc(t.mood)}</div>
+          ${delta != null && delta !== 0 ? `<div class="tp-delta ${delta > 0 ? "up" : "down"}">${delta > 0 ? "▲" : "▼"} ${Math.abs(delta)}° since last time</div>` : ""}</div></div>
+        <ul class="tp-why">${(t.factors || []).map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
+        ${t.history?.length > 1 ? `<div class="tp-spark" title="Temperature over time">${t.history.slice(-16).map((h) => `<i style="height:${Math.max(6, h.temp)}%;background:${tempColor(h.temp)}" title="${esc(h.label)}: ${h.temp}°"></i>`).join("")}</div>` : ""}
+      </aside>
+      <div class="tp-feed">${clip}${feed.posts.map((p, i) => tempPost(p, i, seed)).join("")}</div>
+    </div>
+    <p class="tp-foot">Parody posts written by the TD Wire AI from what actually happened in the dynasty. Fans are fans: language warning.</p></section>`;
+  const go = (k) => { try { localStorage.setItem("td-temp-team", JSON.stringify(+k)); } catch { /* storage off */ } renderTemperature({ team: k }); };
+  $("#tp-team").onchange = (e) => go(e.target.value);
+  view.querySelectorAll(".tp-chip").forEach((b) => (b.onclick = () => go(b.dataset.k)));
+}
+
 const ROUTES = { home: renderHome, scores: renderScores, standings: renderStandings, recruiting: renderRecruiting, news: () => { document.title = `News · ${CONFIG.SITE_NAME}`; renderNews(); }, rules: renderRules, apply: renderApply };
 function route() {
   if (!WIRE && D.league) wireLoad().then(() => { if (WIRE && /^#?(recruiting(\/(portal|crystal))?\/?|home|standings\/cfp|feature\/\w+)?$/.test(location.hash)) route(); });
@@ -2702,6 +2801,7 @@ function route() {
   if (hs || cm) { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#history" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); if (cm) renderCoach(decodeURIComponent(cm[1])); else { document.title = `History · ${CONFIG.SITE_NAME}`; renderHistory(hs[1] || "coaches"); } window.scrollTo(0, 0); return; }
   const sc2 = name === "standings/cfp", ft = name.match(/^feature\/(\w+)$/);
   if (sc2 || ft) { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === (sc2 ? "#standings" : "#home") ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `${sc2 ? "Playoff odds" : "Offseason report"} · ${CONFIG.SITE_NAME}`; sc2 ? renderCfp() : renderFeature(ft[1]); window.scrollTo(0, 0); return; }
+  if (name === "news/temperature") { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#news" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `Temperature · ${CONFIG.SITE_NAME}`; renderTemperature(); window.scrollTo(0, 0); return; }
   if (name === "logos") { document.querySelectorAll(".tabs a").forEach((a) => a.removeAttribute("aria-current")); document.title = `League admin · ${CONFIG.SITE_NAME}`; renderLogos(); window.scrollTo(0, 0); return; }
   const key = tm || gm || rm || pm ? "" : rs ? "recruiting" : ss ? "stats" : ROUTES[name] ? name : "home";
   document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#" + key ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
