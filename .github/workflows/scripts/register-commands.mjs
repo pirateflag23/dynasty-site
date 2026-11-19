@@ -23,6 +23,10 @@ const commands = [
     { type: S, name: "category", description: "Stat", required: true, choices: choices(["passing", "rushing", "receiving", "tackles", "sacks", "interceptions"]) },
     { type: S, name: "scope", description: "All FBS (default) or league teams only", required: false, choices: [{ name: "All FBS", value: "all" }, { name: "League teams", value: "league" }] }] },
   { name: "rta", description: "Who's ready to advance and which games are unplayed" },
+  { name: "carousel", description: "Commish: log a coaching move the game made (posts the breaking news)", default_member_permissions: "32", options: [
+    { type: S, name: "coach", description: "Coach's gamertag or Discord name", required: true },
+    { type: S, name: "school", description: "The school he's taking over", required: true },
+    { type: S, name: "action", description: "hired (default) or clear a mistaken entry", required: false, choices: [{ name: "Hired", value: "hired" }, { name: "Clear entry", value: "clear" }] }] },
 ];
 
 // Only call Discord when the command list changed since the last registration.

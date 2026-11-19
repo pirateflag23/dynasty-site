@@ -592,8 +592,27 @@ async function main() {
     }
     for (const [u, [gt, tk]] of Object.entries(was)) if (!now[u]) car.moves.push({ kind: "leave", gt, from: tk, from_name: tName(tk), period: cur.id, season_text: cur.season_text, at });
   }
-  const carOut = { members: nowMem, moves: (car?.moves || []).slice(-80) };
+  // hires the commish logged with /carousel before the API shows them (bot KV); dropped once the move is official
+  let pending = [];
+  if (cfg.bot_url) try {
+    const r = await fetch(`${cfg.bot_url.replace(/\/$/, "")}/carousel`); const ents = r.ok ? (await r.json()).entries || [] : [];
+    const lc = (x) => String(x || "").toLowerCase();
+    for (const e of ents) {
+      if (e.action !== "hired") continue;
+      const nowAt = Object.entries(nowMem).find(([u]) => lc(u) === lc(e.gamertag))?.[1];
+      if (nowAt != null && String(nowAt) === String(e.to)) continue; // official now
+      if (Date.now() - Date.parse(e.at) > 60 * 86400e3) continue;
+      pending.push(e);
+    }
+  } catch (err) { log(`Carousel pending skipped: ${err.message}`); }
+  const carOut = { members: nowMem, moves: (car?.moves || []).slice(-80), pending };
   await writeFile(carFile, JSON.stringify(carOut));
+  for (const e of pending) {
+    const who = `[[c:${e.gamertag}|${e.coach}]]`, toT = team.get(e.to), frT = e.from ? team.get(e.from) : null;
+    gamesOut.push({ id: `carousel:${e.gamertag}:pending:${e.to}`, cat: "game", kind: "carousel", team: e.from || e.to, user: true, kick: "Breaking", score: 140,
+      h: e.from ? `${who} is leaving ${T(e.from, e.from_name)} for ${T(e.to, e.to_name)}` : `${T(e.to, e.to_name)} lands ${who}`,
+      d: `${e.coach} has accepted the head coaching job at ${e.to_name}${toT ? ` (${toT.record})` : ""}.${frT ? ` He leaves ${e.from_name} at ${frT.record}${frT.rank > 0 && frT.rank <= 25 ? `, ranked No. ${frT.rank}` : ""}.` : ""} It becomes official when the dynasty finalizes the move.` });
+  }
   const recentMoves = carOut.moves.filter((m) => Date.now() - Date.parse(m.at) < 7 * 86400e3);
   for (const m of recentMoves) {
     const ch = coachHist.find((c) => c.gamertag.toLowerCase() === m.gt.toLowerCase());

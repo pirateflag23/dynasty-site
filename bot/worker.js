@@ -15,6 +15,7 @@ const RED = 0xc8102e, GOLD = 0xf2b134, BLUE = 0x2b6cb0, GREEN = 0x2f9e44;
 export default {
   async fetch(req, env, ctx) {
     if (req.method === "GET" && new URL(req.url).pathname === "/pickem") return pickemDump(env, new URL(req.url).searchParams.get("round"));
+    if (req.method === "GET" && new URL(req.url).pathname === "/carousel") return carouselDump(env);
     if (req.method !== "POST") return new Response("The Dynasty bot is running.");
     const body = await req.text();
     if (!(await verify(req, body, env.DISCORD_PUBLIC_KEY))) return new Response("bad signature", { status: 401 });
@@ -135,6 +136,7 @@ async function handle(i, env) {
     case "top25": return top25(d);
     case "leaders": return leaders(d, opt(i, "category") || "passing", opt(i, "scope") || "all");
     case "rta": return rta(d);
+    case "carousel": return carousel(i, d, env);
     default: return { content: "Unknown command." };
   }
 }
@@ -275,4 +277,33 @@ async function rta(d) {
   const lines = [...m.data].sort((a, b) => a.ready_to_advance - b.ready_to_advance || a.team_name.localeCompare(b.team_name))
     .map((x) => `${x.ready_to_advance ? "🟢" : "🔴"} **${x.team_name}** · ${x.user_name} · ${x.game_result === "---" ? `⏳ vs ${x.opponent}` : `✅ ${x.game_result}`}${x.auto_pilot !== "Off" ? " · 🤖" : ""}`);
   return { embeds: [{ title: `Ready to advance: ${ready}/${m.data.length} · ${m.period?.season_text || ""}`, color: ready === m.data.length ? GREEN : RED, description: lines.join("\n").slice(0, 4000) }] };
+}
+
+
+/* ---------------- Coaching carousel (commish only: the command needs Manage Server) ----------------
+   The game assigns coaching jobs without the API showing it until the move is final, so Badmin logs it here:
+   /carousel action:hired coach:<gamertag> school:<school>. The sync turns it into a "leaving" story and Temperature
+   reacts; once the API shows the coach at the new school, the official move story takes over. KV: car:<coach>. */
+async function carousel(i, d, env) {
+  if (!env.PICKS) return { content: "Carousel storage isn't set up yet." };
+  const action = opt(i, "action") || "hired", coachQ = String(opt(i, "coach") || "").trim(), schoolQ = String(opt(i, "school") || "").trim();
+  const k = `car:${norm(coachQ).replace(/ /g, "")}`;
+  if (action === "clear") { await env.PICKS.delete(k); return { content: `🧹 Cleared the carousel entry for **${coachQ}**.` }; }
+  const [st, mem] = await Promise.all([d.api("/standings"), d.api("/members")]);
+  const to = findTeam(st, schoolQ); if (!to) return { content: `Couldn't find a school called "${schoolQ}".` };
+  const cfg = await fetch("https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/discord.config.json", { cf: { cacheTtl: 300 } }).then((r) => r.json()).catch(() => ({}));
+  const dn = Object.entries(cfg.coaches || {}).find(([, g]) => norm(g) === norm(coachQ)); // Discord name -> school
+  const m = mem.data.find((x) => norm(x.user_name) === norm(coachQ)) || (dn ? mem.data.find((x) => x.team_name === dn[0]) : null);
+  const from = m ? st.data.find((t) => t.team_key === m.team_key) : null;
+  if (from && from.team_key === to.team_key) return { content: `${coachQ} already coaches ${to.name}.` };
+  const by = i.member?.nick || i.member?.user?.global_name || i.member?.user?.username || "commish";
+  const entry = { coach: coachQ, gamertag: m?.user_name || coachQ, action, to: to.team_key, to_name: to.name, from: from?.team_key || null, from_name: from?.name || null, at: new Date().toISOString(), by };
+  await env.PICKS.put(k, JSON.stringify(entry), { expirationTtl: 120 * 86400 });
+  const rec = (t) => (t ? `${rk(t.rank)}${t.name} (${t.record})` : "");
+  return { content: `🚨 **BREAKING:** **${coachQ}** is leaving ${from ? rec(from) : "his program"} to take the head coaching job at **${rec(to)}**.\nIt becomes official on the site once the dynasty finalizes the move.`, allowed_mentions: { parse: [] } };
+}
+async function carouselDump(env) {
+  const out = [];
+  if (env.PICKS) { let cursor; do { const l = await env.PICKS.list({ prefix: "car:", cursor }); for (const k of l.keys) { const v = await env.PICKS.get(k.name, "json"); if (v) out.push(v); } cursor = l.list_complete ? null : l.cursor; } while (cursor); }
+  return new Response(JSON.stringify({ entries: out }), { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
 }

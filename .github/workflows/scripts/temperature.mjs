@@ -52,6 +52,7 @@ await mkdir(DIR, { recursive: true });
 const prev = await readJson(FILE, { teams: {} });
 const latest = await readJson(`${DIR}/latest.json`, {});
 const classes = await api("/recruits/classes").catch(() => ({ data: [] }));
+const car = await readJson(`${DIR}/carousel.json`, { moves: [], pending: [] });
 const byKey = new Map(standings.data.map((t) => [t.team_key, t]));
 const coachOf = (name, tk) => cfg.coaches?.[name] || members.data.find((m) => m.team_key === tk)?.user_name || "the coach";
 const userTeams = [...new Set(members.data.map((m) => m.team_key))].filter((k) => byKey.has(k));
@@ -104,6 +105,11 @@ function compute(tk) {
   const ex = mine.find((p) => p.kind === "gone" && !p.player), exN = ex ? +(/(\d+)/.exec(untok(ex.h))?.[1] || 0) : 0;
   if (exN >= 8) { x += Math.min(12, exN); factors.push(`${exN} lost to the portal`); } else if (exN >= 4) { x += 3; factors.push(`${exN} lost to the portal`); }
   const strug = mine.filter((p) => p.kind === "struggling").length; if (strug) { x += 3 * strug; factors.push(`${strug} starter${strug > 1 ? "s" : ""} under fire`); }
+  // coaching carousel: the coach is leaving (logged with /carousel, or a move the API already shows)
+  const leaving = (car.pending || []).find((e) => String(e.from) === String(tk));
+  const arrived = (car.moves || []).find((m) => m.kind === "move" || m.kind === "join" ? String(m.to) === String(tk) && Date.now() - Date.parse(m.at) < 45 * 86400e3 : false);
+  if (leaving) { x += t.wins > t.losses ? 40 : 18; factors.unshift(`${leaving.coach} is leaving for ${leaving.to_name}`); }
+  else if (arrived) { x -= 15; factors.unshift(`New coach: ${arrived.gt} (from ${arrived.from_name || "outside the league"})`); }
   const cr = classRank(tk);
   if (off || pre) { if (cr && cr <= 10) { x -= 8; factors.push(`No. ${cr} recruiting class`); } else if (cr && cr > 50) { x += 5; factors.push(`Recruiting class ranks No. ${cr}`); } }
   x = Math.max(2, Math.min(99, Math.round(x)));
@@ -137,6 +143,8 @@ function facts(tk, c) {
   const b = band(c.temp);
   return { school: t.name, nickname: t.nickname, conference: t.conference, coach_gamertag: coachOf(t.name, tk), phase, stage: cur.season_text, record: t.record, conference_record: t.conference_record,
     rank: pollRank(t), prestige_stars: t.prestige_stars, team_overall: t.overall, streak: c.streak, recent_games: recent, recruiting_class_rank: c.cr,
+    coaching_news: (car.pending || []).filter((e) => String(e.from) === String(tk)).map((e) => `${e.coach} has accepted the ${e.to_name} job and is leaving ${t.name}. Fans feel betrayed or relieved depending on the season; this dominates the feed.`)
+      .concat((car.moves || []).filter((m) => String(m.to) === String(tk) && Date.now() - Date.parse(m.at) < 45 * 86400e3).map((m) => `${m.gt} was just hired as head coach${m.from_name ? ` from ${m.from_name}` : ""}. New-coach honeymoon, but some skeptics.`)),
     storylines: stories, temperature: `${c.temp}° (${b[1]}: ${b[2]})`, why: c.factors };
 }
 
@@ -194,7 +202,8 @@ const out = { season: cur.season, period: cur.id, stage: cur.season_text, update
 let wrote = 0;
 for (const tk of userTeams) {
   const c = compute(tk), was = prev.teams?.[tk];
-  const sig = hash(JSON.stringify(["v4", cur.id, c.t.record, c.last?.key, band(c.temp)[1], (latest.portal || []).filter((p) => p.team === tk).map((p) => p.id).sort()])).toString(36);
+  const sig = hash(JSON.stringify(["v4", cur.id, c.t.record, c.last?.key, band(c.temp)[1], (latest.portal || []).filter((p) => p.team === tk).map((p) => p.id).sort(),
+    (car.pending || []).filter((e) => String(e.from) === String(tk)).map((e) => e.to)])).toString(36);
   let feed = was?.sig === sig || (PAUSED && was?.feed) ? was.feed : null;
   if (!feed && AKEY && !PAUSED) {
     try {
