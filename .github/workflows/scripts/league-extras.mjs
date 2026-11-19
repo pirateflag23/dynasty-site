@@ -433,7 +433,7 @@ export async function positionRules(x) {
   if (!rules.length || !x.userTeams.size) return;
   const snap = x.state.posSnap || {}, next = {};
   let base = null; // first run: compare with the end-of-season roster the draft desk saved
-  if (!Object.keys(snap).length) { const r = await readJ(`data/draft/${x.lid}/roster-${x.cur.season}.json`); base = r?.p || {}; }
+  if (!Object.keys(snap).length) { const r = (await readJ(`data/draft/${x.lid}/roster-${x.cur.season}.json`)) ?? (await readJ(`data/draft/${x.lid}/roster-${x.cur.season - 1}.json`)); base = r?.p || {}; }
   const breaks = [];
   for (const tk of x.userTeams) {
     const ros = (await x.api(`/rosters?team=${tk}`).catch(() => null))?.data || [];

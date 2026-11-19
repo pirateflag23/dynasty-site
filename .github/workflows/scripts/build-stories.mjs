@@ -364,7 +364,7 @@ async function main() {
       const f = flags.get(st.player) || flags.set(st.player, { kinds: new Set(), periods: new Set(), team: st.team }).get(st.player);
       f.kinds.add(st.kind); f.periods.add(st.first_period ?? st.period); f.team ??= st.team;
     }
-    const endRos = (await readJson(`data/draft/${LID}/roster-${cur.season}.json`, {}))?.p || {};
+    const endRos = ((await readJson(`data/draft/${LID}/roster-${cur.season}.json`, null)) ?? (await readJson(`data/draft/${LID}/roster-${cur.season - 1}.json`, {})))?.p || {}; // offseason: the roster was saved under last season
     const now = new Map(allRos.map((x) => [x.player_key, x]));
     const W = { underpaid: 3, sinking: 3, buried: 3, fit: 2, breakout: 2, struggling: 1 };
     const WHY = { underpaid: "underpaid for his rating", sinking: "stuck on a losing team", buried: "buried on the depth chart", fit: "a bad fit for the scheme", breakout: "about to get expensive after a rating jump", struggling: "under fire for his numbers" };
@@ -419,7 +419,7 @@ async function main() {
   // Compared with the end-of-season roster the draft desk saves. Same-family swaps (OL to OL, DT to edge,
   // FS to SS, LB to LB, HB to FB) aren't news; real moves are, especially when the new spot gets him on the field.
   if (/OFF/i.test(cur.season_text || "") && allRos.length) try {
-    const endRos = (await readJson(`data/draft/${LID}/roster-${cur.season}.json`, {}))?.p || {};
+    const endRos = ((await readJson(`data/draft/${LID}/roster-${cur.season}.json`, null)) ?? (await readJson(`data/draft/${LID}/roster-${cur.season - 1}.json`, {})))?.p || {}; // offseason: the roster was saved under last season
     const FAM = { LT: "OL", LG: "OL", C: "OL", RG: "OL", RT: "OL", DT: "DL", LEDG: "DL", REDG: "DL", MIKE: "LB", WILL: "LB", SAM: "LB", FS: "S", SS: "S", HB: "RB", FB: "RB", K: "ST", P: "ST" };
     const fam = (p) => FAM[p] || p;
     // depth rank by overall at a position on a team: then (season-end roster) and now (current roster)
@@ -429,14 +429,18 @@ async function main() {
     for (const x of allRos) {
       const was = endRos[x.player_key]; if (!was || was[0] !== x.team_key) continue;
       const from = was[3], to = x.position; if (!from || from === to || fam(from) === fam(to)) continue;
-      const user = userTeams.has(x.team_key); if (x.overall < (user ? 72 : 80)) continue;
+      const user = userTeams.has(x.team_key), best = Math.max(x.overall, was[1] || 0); // a switch re-rates him, so judge by his better rating
       const r0 = rankThen(x.team_key, from, x.player_key, was[1]), r1 = rankNow(x.team_key, to, x.player_key, x.overall);
       const s0 = STARTERS[from] || 1, s1 = STARTERS[to] || 1, pt = r0 > s0 && r1 <= s1; // was a backup, now projects to start
+      // league-team moves that get him on the field: any rating. Every other move: 85+ only, capped below.
+      if (!(user && pt) && best < 85) continue;
       moves.push({ x, from, to, r0, r1, pt, user, score: x.overall + (user ? 25 : 0) + (pt ? 15 : 0) });
     }
     moves.sort((a, b) => b.score - a.score);
+    const fieldMoves = moves.filter((m) => m.user && m.pt), bigMoves = moves.filter((m) => !(m.user && m.pt)).slice(0, 5);
+    const posts = [...fieldMoves, ...bigMoves];
     const POSN = (p) => POS_WORD[p] || p, nth = (n) => `No. ${n}`;
-    for (const m of moves.slice(0, 8)) {
+    for (const m of posts) {
       const { x } = m, PT = P(x.player_key, x.name), TT = tTok(x.team_key), seed = x.player_key + "pos" + cur.season;
       const coachN = m.user ? members.data.find((q) => q.team_key === x.team_key)?.user_name : null;
       portalStories.push({ id: `${x.player_key}:position:${cur.season}`, cat: "portal", kind: "position", player: x.player_key, team: x.team_key, user: m.user,
@@ -445,7 +449,7 @@ async function main() {
           : pick(seed, [`${TT} moves ${x.overall}-rated ${PT} from ${POSN(m.from)} to ${POSN(m.to)}`, `${PT} is a ${POSN(m.to)} now at ${TT}`, `Position switch: ${PT} goes from ${POSN(m.from)} to ${POSN(m.to)}`])),
         d: `${PT} (${x.overall} OVR, ${x.class_year}) was ${nth(m.r0)} on the ${POSN(m.from)} depth chart at the end of the season. At ${POSN(m.to)} he ranks ${nth(m.r1)}${m.pt ? `, which puts him in line to start` : ""}.${coachN ? ` ${coachN}'s call, and it'll be one to watch in camp.` : ""}` });
     }
-    if (moves.length) log(`Position moves: ${moves.length} notable (${moves.filter((m) => m.pt).length} for playing time), posted ${Math.min(8, moves.length)}.`);
+    if (moves.length) log(`Position moves: ${moves.length} notable (${moves.filter((m) => m.pt).length} for playing time), posted ${posts.length} (${fieldMoves.length} league playing-time, ${bigMoves.length} at 85+).`);
   } catch (e) { log(`Position-move stories skipped: ${e.message}`); }
 
   /* ===================== ENCOURAGED TRANSFERS: who a staff showed the door ===================== */
