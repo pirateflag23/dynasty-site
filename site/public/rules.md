@@ -68,7 +68,7 @@ React to the defense, use moderation, and exercise good judgment. Don't insta-ro
 
 4th Down Rules
 
-https://i.postimg.cc/0j1FzPdp/image.png
+<a href='https://postimages.org/' target='_blank'><img src='https://i.postimg.cc/0j1FzPdp/image.png' border='0' alt='image'></a>
 
 
 
