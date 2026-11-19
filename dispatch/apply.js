@@ -38,8 +38,10 @@ const yn = (v) => (v === "yes" ? "✅ Yes" : v === "no" ? "❌ No" : null);
 
 export async function postApplication(env, a, { test = false } = {}) {
   const channels = await dc(env, "GET", `/guilds/${GUILD}/channels`);
-  const ch = channels.find((c) => c.type === 0 && c.name === CHANNEL);
-  if (!ch) throw new Error(`#${CHANNEL} not found (or TD can't see it)`);
+  const norm = (n) => String(n || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const text = channels.filter((c) => c.type === 0);
+  const ch = text.find((c) => c.name === CHANNEL) || text.find((c) => norm(c.name).includes(norm(CHANNEL)));
+  if (!ch) throw new Error(`#${CHANNEL} not found. Text channels TD sees: ${text.map((c) => c.name).join(", ")}`);
   const flags = a.rules === "no" || a.stream === "no";
   await dc(env, "POST", `/channels/${ch.id}/messages`, {
     allowed_mentions: { parse: [] },
@@ -83,5 +85,5 @@ export async function handleApply(req, env) {
     await env.GREETER.put(k, "1", { expirationTtl: 600 });
   }
   try { await postApplication(env, a, { test }); return reply(req, 200, { ok: true }); }
-  catch (e) { console.error("apply", String(e)); return reply(req, 502, { error: "Couldn't send your application. Try again in a minute." }); }
+  catch (e) { console.error("apply", String(e)); return reply(req, 502, { error: "Couldn't send your application. Try again in a minute.", ...(test ? { detail: String(e).slice(0, 1500) } : {}) }); }
 }

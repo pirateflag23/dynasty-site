@@ -5,7 +5,7 @@ name: Apply form test post
 on:
   push:
     branches: [main]
-    paths: [".github/workflows/apply-test.yml"]
+    paths: [".github/workflows/apply-test.yml", "dispatch/apply.js"]
   workflow_dispatch:
 
 jobs:
@@ -22,6 +22,8 @@ jobs:
           echo "::error::/apply never came up"; exit 1
       - name: Post a test application
         run: |
-          curl -fsS -X POST https://odl-dispatch.jw1388954.workers.dev/apply \
+          code=$(curl -sS -o out.json -w '%{http_code}' -X POST https://odl-dispatch.jw1388954.workers.dev/apply \
             -H 'content-type: application/json' -H 'origin: https://thedynastycfb.com' \
-            -d '{"test":true,"discord":"TestCoach#0001","why":"Pretend applicant from the new Apply tab. Plays every Saturday, never quits on a dynasty, and has strong opinions about 4th-and-short.","tz":"Eastern","teams":"East Carolina, Appalachian State","rules":"yes","stream":"yes"}'
+            -d '{"test":true,"discord":"TestCoach#0001","why":"Pretend applicant from the new Apply tab. Plays every Saturday, never quits on a dynasty, and has strong opinions about 4th-and-short.","tz":"Eastern","teams":"East Carolina, Appalachian State","rules":"yes","stream":"yes"}')
+          cat out.json; echo
+          [ "$code" = "200" ] || { echo "::error::HTTP $code $(cat out.json)"; exit 1; }
