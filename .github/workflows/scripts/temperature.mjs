@@ -127,7 +127,7 @@ Return JSON only:
 {"clip": null or {"paper": "invented paper name", "headline": "...", "dek": "one sentence"},
  "posts": [ {"platform": "chirp|facespace|snapgram|board", "name": "display name", "handle": "@handle (chirp/snapgram) or board username", "thread": "thread title (board only)", "text": "...", "likes": number, "replies": number, "reposts": number,
    "image": null or {"type": "stadium", "fill": 0-1, "caption": "..."} or {"type": "receipt", "place": "...", "items": [["item", 12.5], ...]} or {"type": "sign", "text": "handwritten sign text"} or {"type": "scoreboard", "home": "ABBR", "away": "ABBR", "hs": n, "as": n},
-   "photo": only on posts with an image: one or two sentences describing what a real fan's phone photo of that moment looks like (the scene, crowd size, light, weather, time of day, team colors). No text, signs, logos, mascots, jersey numbers or recognizable real people. For a receipt post describe the food and drinks on a tray instead; for a sign post describe the fan crowd around a blank poster board. } ] }
+   "photo": only on posts with an image: one or two sentences describing what a real fan's phone photo of that moment looks like (the scene, crowd size, light, weather, time of day, team colors). No text, signs, logos, mascots, jersey numbers or recognizable real people. For a receipt post describe the food and drinks on a tray instead; for a sign post describe the fans holding the sign up (the sign's words are added separately). } ] }
 Write 12 posts: mix all four platforms, 2-3 snapgram posts with an image (a half-empty stadium when attendance would plausibly drop, a concessions receipt when people complain about cost, a fan sign, a scoreboard photo), 2-3 board threads. Include a clipping about half the time. Engagement numbers should fit the post (angry hot takes get the most). Keep chirps under 280 characters. If a post's text mentions what the receipt cost, it must match the receipt items' total.`;
 
 function facts(tk, c) {
@@ -162,12 +162,15 @@ const PH = { per_team: 3, monthly_budget: 20, model: "gpt-image-2", quality: "lo
 const OKEY = process.env.OPENAI_API_KEY, PHOTO_DIR = "photos-out";
 const month = new Date().toISOString().slice(0, 7);
 const spend = prev.spend?.month === month ? { ...prev.spend } : { month, usd: 0, count: 0 };
-const STYLE = "Candid smartphone photo taken by a fan at an American college football game, photorealistic, natural light, slight grain and motion blur, ordinary framing. No text, no signs with words, no logos, no mascots, no jersey numbers, no watermark, no recognizable real people.";
-async function photo(desc, quality, name) {
+const STYLE = "Candid smartphone photo taken by a fan at an American college football game, photorealistic, natural light, slight grain and motion blur, ordinary framing. No logos, no mascots, no jersey numbers, no watermark, no recognizable real people.";
+// the only words allowed in a picture: a fan sign's text or a scoreboard's score, spelled out exactly
+const textFor = (im) => im?.type === "sign" && im.text ? `The handmade poster board sign they hold up reads exactly "${String(im.text).slice(0, 60)}" in thick black marker, clearly readable. No other text anywhere.`
+  : im?.type === "scoreboard" ? `The scoreboard clearly shows only "${im.away} ${im.as}" and "${im.home} ${im.hs}" and "FINAL". No other text anywhere.` : "No text or writing anywhere in the picture.";
+async function photo(desc, quality, name, im) {
   const usd = PH.cost[quality] ?? 0.04;
   if (!OKEY || spend.usd + usd > PH.monthly_budget) return null;
   const r = await fetch("https://api.openai.com/v1/images/generations", { method: "POST", headers: { Authorization: `Bearer ${OKEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: PH.model, prompt: `${STYLE}\n\n${desc}`, size: PH.size, quality, n: 1, output_format: "jpeg", output_compression: 82 }) });
+    body: JSON.stringify({ model: PH.model, prompt: `${STYLE}\n\n${desc}\n\n${textFor(im)}`, size: PH.size, quality, n: 1, output_format: "jpeg", output_compression: 82 }) });
   if (!r.ok) { log(`photo failed (${r.status}): ${(await r.text()).slice(0, 200)}`); return null; }
   const b64 = (await r.json()).data?.[0]?.b64_json; if (!b64) return null;
   await mkdir(PHOTO_DIR, { recursive: true }); await writeFile(`${PHOTO_DIR}/${name}.jpg`, Buffer.from(b64, "base64"));
@@ -179,7 +182,7 @@ async function addPhotos(tk, feed, sig) {
   const cands = feed.posts.map((p, i) => ({ p, i })).filter(({ p }) => p.image && p.photo).sort((a, b) => (b.p.likes || 0) - (a.p.likes || 0)).slice(0, PH.per_team);
   let n = 0;
   for (const [j, { p }] of cands.entries()) {
-    try { const f = await photo(p.photo, j === 0 ? PH.hero_quality : PH.quality, `${tk}-${sig}-${n}`); if (f) { p.photo_file = f; n++; } else break; }
+    try { const f = await photo(p.photo, j === 0 || p.image?.type === "sign" ? PH.hero_quality : PH.quality, `${tk}-${sig}-${n}`, p.image); if (f) { p.photo_file = f; n++; } else break; }
     catch (e) { log(`photo error: ${e.message}`); break; }
   }
   return n;
@@ -189,7 +192,7 @@ const out = { season: cur.season, period: cur.id, stage: cur.season_text, update
 let wrote = 0;
 for (const tk of userTeams) {
   const c = compute(tk), was = prev.teams?.[tk];
-  const sig = hash(JSON.stringify(["v3", cur.id, c.t.record, c.last?.key, band(c.temp)[1], (latest.portal || []).filter((p) => p.team === tk).map((p) => p.id).sort()])).toString(36);
+  const sig = hash(JSON.stringify(["v4", cur.id, c.t.record, c.last?.key, band(c.temp)[1], (latest.portal || []).filter((p) => p.team === tk).map((p) => p.id).sort()])).toString(36);
   let feed = was?.sig === sig ? was.feed : null;
   if (!feed && AKEY) {
     try {
