@@ -6,7 +6,7 @@ RULES & GUIDELINES
 - Difficulty: Heisman
 - Offense / Defense: Custom Playbooks allowed
 - Both coaches are required to stream via Twitch/YouTube.
-- Advance Schedule: Sunday 10pm/Wednesday 12pm (EST)
+- Advance Schedule: Saturday 10pm/Wednesday 12pm (EST)
   (Can advance early via league vote)
 
 
