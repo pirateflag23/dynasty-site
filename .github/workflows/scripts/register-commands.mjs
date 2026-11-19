@@ -7,12 +7,12 @@ const cfg = JSON.parse(await readFile("discord.config.json", "utf8"));
 const TOKEN = process.env.DISCORD_BOT_TOKEN, APP = process.env.DISCORD_APP_ID || cfg.app_id;
 if (!TOKEN || !APP) { console.log("DISCORD_BOT_TOKEN or app_id not set — skipping command registration."); process.exit(0); }
 
-const S = 3, team = (desc = "Team name, e.g. Penn State") => ({ type: S, name: "team", description: desc, required: true });
+const S = 3, team = (desc = "Team name, e.g. Penn State") => ({ type: S, name: "team", description: desc, required: true, autocomplete: true });
 const choices = (a) => a.map((v) => ({ name: v, value: v }));
 const commands = [
   { name: "player", description: "Player card: season stats, ratings, dev trait", options: [
     { type: S, name: "name", description: "Player name, e.g. Gio Lopez or Lopez", required: true },
-    { type: S, name: "team", description: "Team, if the name matches several players", required: false }] },
+    { type: S, name: "team", description: "Team, if the name matches several players", required: false, autocomplete: true }] },
   { name: "team", description: "Team snapshot: record, rank, team stats, leaders", options: [{ ...team(), name: "name" }] },
   { name: "box", description: "Latest box score for a team", options: [team()] },
   { name: "schedule", description: "A team's season schedule and results", options: [team()] },
@@ -24,8 +24,8 @@ const commands = [
     { type: S, name: "scope", description: "All FBS (default) or league teams only", required: false, choices: [{ name: "All FBS", value: "all" }, { name: "League teams", value: "league" }] }] },
   { name: "rta", description: "Who's ready to advance and which games are unplayed" },
   { name: "carousel", description: "Commish: log a coaching move the game made (posts the breaking news)", default_member_permissions: "32", options: [
-    { type: S, name: "coach", description: "Coach's gamertag or Discord name", required: true },
-    { type: S, name: "school", description: "The school he's taking over", required: true },
+    { type: S, name: "coach", description: "Coach's gamertag or Discord name", required: true, autocomplete: true },
+    { type: S, name: "school", description: "The school he's taking over", required: true, autocomplete: true },
     { type: S, name: "action", description: "hired (default) or clear a mistaken entry", required: false, choices: [{ name: "Hired", value: "hired" }, { name: "Clear entry", value: "clear" }] }] },
 ];
 

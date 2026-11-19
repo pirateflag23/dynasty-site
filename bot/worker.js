@@ -26,6 +26,7 @@ export default {
       ctx.waitUntil(handle(i, env).catch((e) => ({ content: `⚠️ ${e.message}` })).then((msg) => edit(env, i.token, msg)));
       return json({ type: 5 });
     }
+    if (i.type === 4) return json({ type: 8, data: { choices: await autocomplete(i, env).catch(() => []) } }); // autocomplete: suggestions while typing
     if (i.type === 3 && String(i.data?.custom_id || "").startsWith("pk|")) {
       // Pick'em button: answer privately once the pick is saved.
       ctx.waitUntil(pick(i, env).catch((e) => ({ content: `⚠️ ${e.message}` })).then((msg) => edit(env, i.token, msg)));
@@ -306,4 +307,27 @@ async function carouselDump(env) {
   const out = [];
   if (env.PICKS) { let cursor; do { const l = await env.PICKS.list({ prefix: "car:", cursor }); for (const k of l.keys) { const v = await env.PICKS.get(k.name, "json"); if (v) out.push(v); } cursor = l.list_complete ? null : l.cursor; } while (cursor); }
   return new Response(JSON.stringify({ entries: out }), { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+}
+
+
+/* ---------------- autocomplete (school / coach / team options) ----------------
+   Discord asks while the user types and needs an answer within 3 s, so the lists come from Cloudflare's edge cache (1 h). */
+async function cachedJson(url, init, ttl = 3600) {
+  const cache = caches.default, key = new Request("https://cache.td/" + encodeURIComponent(url));
+  const hit = await cache.match(key); if (hit) return hit.json();
+  const r = await fetch(url, init); if (!r.ok) throw new Error(String(r.status));
+  const j = await r.json();
+  await cache.put(key, new Response(JSON.stringify(j), { headers: { "Content-Type": "application/json", "Cache-Control": `max-age=${ttl}` } }));
+  return j;
+}
+async function autocomplete(i, env) {
+  const focused = (i.data.options || []).find((o) => o.focused); if (!focused) return [];
+  const q = norm(focused.value || ""), auth = { headers: { Authorization: `Bearer ${env.DYNASTY_API_KEY}` } };
+  const rank = (list) => list.filter((n) => !q || norm(n).includes(q)).sort((a, b) => (norm(b).startsWith(q) - norm(a).startsWith(q)) || a.localeCompare(b)).slice(0, 25).map((n) => ({ name: n, value: n }));
+  if (focused.name === "coach") {
+    const [mem, cfg] = await Promise.all([cachedJson(`${API}/members`, auth, 600), cachedJson("https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/discord.config.json", {}, 600).catch(() => ({}))]);
+    return rank([...new Set([...Object.values(cfg.coaches || {}), ...mem.data.map((m) => m.user_name).filter((n) => n && n !== "CPU")])]);
+  }
+  const st = await cachedJson(`${API}/standings`, auth);
+  return rank(st.data.map((t) => t.name));
 }
