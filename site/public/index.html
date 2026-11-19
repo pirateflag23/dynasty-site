@@ -2744,7 +2744,7 @@ function tempMedia(p, seed) {
   const drawn = tempImage(im, seed);
   if (!p.photo_file) return drawn;
   const tot = im.type === "receipt" ? (im.items || []).reduce((a, [, pr]) => a + (+pr || 0), 0) : 0;
-  const chip = im.type === "stadium" ? im.caption : im.type === "receipt" ? `🧾 ${im.place ? im.place + " · " : ""}$${tot.toFixed(2)}` : im.type === "sign" ? `🪧 “${im.text}”` : im.type === "scoreboard" ? `${im.away} ${im.as} · ${im.home} ${im.hs} · FINAL` : "";
+  const chip = im.type === "stadium" ? im.caption : im.type === "receipt" ? `🧾 ${im.place ? im.place + " · " : ""}$${tot.toFixed(2)}` : ""; // signs and scoreboards carry their own text in the photo
   return `<div class="fz-img fz-photo"><img src="${PHOTO_BASE}${esc(p.photo_file)}" alt="${esc(p.photo || "Fan photo")}" loading="lazy" onerror="this.parentNode.outerHTML=this.parentNode.nextElementSibling.innerHTML">${chip ? `<span class="fz-cap">${esc(chip)}</span>` : ""}</div><template>${drawn}</template>`;
 }
 function tempImage(im, seed) {
