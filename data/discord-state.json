@@ -9217,11 +9217,17 @@
   "rec:dyn:career:defenseInterceptions:557727474": "2026-11-19",
   "rec:dyn:game:defenseSacks:557727426:831914066": "2026-11-19",
   "rec:dyn:career:rushYards:557717775": "2026-11-19",
-  "rec:dyn:season:passYards:557716254:2029": "2026-11-19",
-  "rec:dyn:season:rushTD:557727542:2029": "2026-11-19",
+  "rec:dyn:game:receiveReceptions:557715190:831914716": "2026-11-19",
+  "rec:dyn:season:passYards:557719497:2029": "2026-11-19",
+  "rec:dyn:season:passTD:557719497:2029": "2026-11-19",
+  "rec:dyn:season:rushTD:557721041:2029": "2026-11-19",
   "rec:dyn:season:receivingYards:557727604:2029": "2026-11-19",
   "rec:dyn:season:receiveReceptions:557717429:2029": "2026-11-19",
-  "rec:dyn:season:kickFieldGoalsMade:557716471:2029": "2026-11-19"
+  "rec:dyn:season:defenseTotalTackles:557726704:2029": "2026-11-19",
+  "rec:dyn:season:defenseInterceptions:557713192:2029": "2026-11-19",
+  "rec:dyn:season:kickFieldGoalsMade:557723880:2029": "2026-11-19",
+  "rec:dyn:career:rushTD:557727400": "2026-11-19",
+  "rec:dyn:career:receivingYards:557719519": "2026-11-19"
  },
  "chats": {
   "831914913": {
@@ -9473,11 +9479,11 @@
    "game": 831914295
   },
   "game:receiveReceptions": {
-   "k": 557717669,
-   "n": "O.Slay",
-   "v": 15,
-   "season": 2028,
-   "game": 831914646
+   "k": 557715190,
+   "n": "N.Wilkes",
+   "v": 17,
+   "season": 2029,
+   "game": 831914716
   },
   "game:receiveTouchdowns": {
    "k": 557720398,
@@ -9515,18 +9521,18 @@
    "game": 831914175
   },
   "season:passYards": {
-   "k": 557716254,
-   "n": "T.Niang",
-   "v": 4177,
+   "k": 557719497,
+   "n": "K.Osborne",
+   "v": 4689,
    "y": 2029,
-   "tn": "Boise State"
+   "tn": "Washington"
   },
   "season:passTD": {
-   "k": 557721477,
-   "n": "T.St. Clair",
-   "v": 42,
-   "y": 2027,
-   "tn": "Ohio State"
+   "k": 557719497,
+   "n": "K.Osborne",
+   "v": 44,
+   "y": 2029,
+   "tn": "Washington"
   },
   "season:rushYards": {
    "k": 557716657,
@@ -9536,23 +9542,23 @@
    "tn": "Ohio State"
   },
   "season:rushTD": {
-   "k": 557727542,
-   "n": "W.Griffin",
-   "v": 19,
+   "k": 557721041,
+   "n": "E.Branham",
+   "v": 21,
    "y": 2029,
-   "tn": "Georgia Tech"
+   "tn": "Missouri"
   },
   "season:receivingYards": {
    "k": 557727604,
    "n": "M.Harris",
-   "v": 1649,
+   "v": 1797,
    "y": 2029,
    "tn": "Boise State"
   },
   "season:receiveReceptions": {
    "k": 557717429,
    "n": "G.Kontosis",
-   "v": 101,
+   "v": 112,
    "y": 2029,
    "tn": "Kennesaw State"
   },
@@ -9564,32 +9570,32 @@
    "tn": "Penn State"
   },
   "season:defenseTotalTackles": {
-   "k": 557719846,
-   "n": "P.Pierce",
-   "v": 118,
-   "y": 2027,
-   "tn": "Ohio State"
+   "k": 557726704,
+   "n": "D.Williams",
+   "v": 120,
+   "y": 2029,
+   "tn": "North Texas"
   },
   "season:defenseSacks": {
    "k": 557716726,
    "n": "J.Slayton",
-   "v": 17,
+   "v": 19,
    "y": 2029,
    "tn": "Wyoming"
   },
   "season:defenseInterceptions": {
-   "k": 557724533,
-   "n": "K.Gebhardt",
-   "v": 8,
-   "y": 2028,
-   "tn": "Ohio State"
+   "k": 557713192,
+   "n": "D.Carey",
+   "v": 9,
+   "y": 2029,
+   "tn": "Wake Forest"
   },
   "season:kickFieldGoalsMade": {
-   "k": 557716471,
-   "n": "C.Castellanos",
-   "v": 23,
+   "k": 557723880,
+   "n": "D.Boudreaux",
+   "v": 27,
    "y": 2029,
-   "tn": "Temple"
+   "tn": "Iowa State"
   },
   "career:passYards": {
    "k": 557713883,
@@ -9610,16 +9616,16 @@
    "tn": "Memphis"
   },
   "career:rushTD": {
-   "k": 557717760,
-   "n": "S.Blunt",
-   "v": 25,
-   "tn": "Ohio State"
+   "k": 557727400,
+   "n": "D.Ferguson Jr.",
+   "v": 28,
+   "tn": "Pittsburgh / Wake Forest"
   },
   "career:receivingYards": {
-   "k": 557725211,
-   "n": "J.Legree",
-   "v": 2307,
-   "tn": "Ohio State"
+   "k": 557719519,
+   "n": "M.Outten",
+   "v": 2351,
+   "tn": "Syracuse"
   },
   "career:receiveReceptions": {
    "k": 557725211,
