@@ -9214,7 +9214,9 @@
   "potw:2029:17:SEC": "2026-11-19",
   "recruit:692": "2026-11-19",
   "rec:dyn:season:defenseSacks:557716726:2029": "2026-11-19",
-  "rec:dyn:career:defenseInterceptions:557727474": "2026-11-19"
+  "rec:dyn:career:defenseInterceptions:557727474": "2026-11-19",
+  "rec:dyn:game:defenseSacks:557727426:831914066": "2026-11-19",
+  "rec:dyn:career:rushYards:557717775": "2026-11-19"
  },
  "chats": {
   "831914913": {
@@ -9487,11 +9489,11 @@
    "game": 831914473
   },
   "game:defenseSacks": {
-   "k": 557711553,
-   "n": "J.Allen",
-   "v": 4,
-   "season": 2027,
-   "game": 831913999
+   "k": 557727426,
+   "n": "K.Ford",
+   "v": 4.5,
+   "season": 2029,
+   "game": 831914066
   },
   "game:defenseInterceptions": {
    "k": 557715327,
@@ -9597,10 +9599,10 @@
    "tn": "Ohio State"
   },
   "career:rushYards": {
-   "k": 557717760,
-   "n": "S.Blunt",
-   "v": 2114,
-   "tn": "Ohio State"
+   "k": 557717775,
+   "n": "J.Lindsey",
+   "v": 2227,
+   "tn": "Memphis"
   },
   "career:rushTD": {
    "k": 557717760,
