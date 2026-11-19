@@ -364,7 +364,7 @@ async function main() {
       const f = flags.get(st.player) || flags.set(st.player, { kinds: new Set(), periods: new Set(), team: st.team }).get(st.player);
       f.kinds.add(st.kind); f.periods.add(st.first_period ?? st.period); f.team ??= st.team;
     }
-    const endRos = (await readJson(`data/draft/${LID}/roster-${cur.season}.json`, {}))?.p || {};
+    const endRos = ((await readJson(`data/draft/${LID}/roster-${cur.season}.json`, null)) ?? (await readJson(`data/draft/${LID}/roster-${cur.season - 1}.json`, {})))?.p || {}; // offseason: the roster was saved under last season
     const now = new Map(allRos.map((x) => [x.player_key, x]));
     const W = { underpaid: 3, sinking: 3, buried: 3, fit: 2, breakout: 2, struggling: 1 };
     const WHY = { underpaid: "underpaid for his rating", sinking: "stuck on a losing team", buried: "buried on the depth chart", fit: "a bad fit for the scheme", breakout: "about to get expensive after a rating jump", struggling: "under fire for his numbers" };
@@ -419,7 +419,7 @@ async function main() {
   // Compared with the end-of-season roster the draft desk saves. Same-family swaps (OL to OL, DT to edge,
   // FS to SS, LB to LB, HB to FB) aren't news; real moves are, especially when the new spot gets him on the field.
   if (/OFF/i.test(cur.season_text || "") && allRos.length) try {
-    const endRos = (await readJson(`data/draft/${LID}/roster-${cur.season}.json`, {}))?.p || {};
+    const endRos = ((await readJson(`data/draft/${LID}/roster-${cur.season}.json`, null)) ?? (await readJson(`data/draft/${LID}/roster-${cur.season - 1}.json`, {})))?.p || {}; // offseason: the roster was saved under last season
     const FAM = { LT: "OL", LG: "OL", C: "OL", RG: "OL", RT: "OL", DT: "DL", LEDG: "DL", REDG: "DL", MIKE: "LB", WILL: "LB", SAM: "LB", FS: "S", SS: "S", HB: "RB", FB: "RB", K: "ST", P: "ST" };
     const fam = (p) => FAM[p] || p;
     // depth rank by overall at a position on a team: then (season-end roster) and now (current roster)
@@ -429,7 +429,7 @@ async function main() {
     for (const x of allRos) {
       const was = endRos[x.player_key]; if (!was || was[0] !== x.team_key) continue;
       const from = was[3], to = x.position; if (!from || from === to || fam(from) === fam(to)) continue;
-      const user = userTeams.has(x.team_key); if (x.overall < (user ? 72 : 80)) continue;
+      const user = userTeams.has(x.team_key); if (Math.max(x.overall, was[1] || 0) < (user ? 72 : 80)) continue; // a switch re-rates him, so judge by his better rating
       const r0 = rankThen(x.team_key, from, x.player_key, was[1]), r1 = rankNow(x.team_key, to, x.player_key, x.overall);
       const s0 = STARTERS[from] || 1, s1 = STARTERS[to] || 1, pt = r0 > s0 && r1 <= s1; // was a backup, now projects to start
       moves.push({ x, from, to, r0, r1, pt, user, score: x.overall + (user ? 25 : 0) + (pt ? 15 : 0) });
