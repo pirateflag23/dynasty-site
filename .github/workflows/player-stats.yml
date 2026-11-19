@@ -62,7 +62,25 @@ jobs:
         env:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: node .github/workflows/scripts/temperature.mjs || echo "temperature step failed, continuing"
+      - name: Temperature photos (kept on the photos branch, only the ones still in use)
+        if: ${{ hashFiles('photos-out/*.jpg') != '' }}
+        continue-on-error: true
+        run: |
+          set -e
+          LID=$(ls data/stories | grep -E '^[0-9]+$' | head -1)
+          KEEP=$(node -e 'const t=require("./data/stories/'"$LID"'/temperature.json");console.log((t.photos||[]).join("\n"))')
+          mkdir -p /tmp/ph && cd /tmp/ph && git init -q && git checkout -q -b photos
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git fetch -q --depth 1 origin photos && git reset -q --hard origin/photos || true
+          cp "$GITHUB_WORKSPACE"/photos-out/*.jpg . 
+          for f in *.jpg; do echo "$KEEP" | grep -qx "$f" || rm -f "$f"; done
+          git config user.name "td-photos" && git config user.email "actions@users.noreply.github.com"
+          git add -A && git commit -qm "photos $(date -u +%FT%TZ)" --allow-empty
+          # one commit, no history: the branch never grows past the current photos
+          git checkout -q --orphan fresh && git commit -qm "current temperature photos" && git push -qf origin fresh:photos
+          rm -rf "$GITHUB_WORKSPACE/photos-out"
       - name: News archive (keep every story for the News tab)
         run: node .github/workflows/scripts/build-news-archive.mjs
       - name: Register slash commands (only when they change)

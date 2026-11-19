@@ -126,8 +126,9 @@ Hard rules:
 Return JSON only:
 {"clip": null or {"paper": "invented paper name", "headline": "...", "dek": "one sentence"},
  "posts": [ {"platform": "chirp|facespace|snapgram|board", "name": "display name", "handle": "@handle (chirp/snapgram) or board username", "thread": "thread title (board only)", "text": "...", "likes": number, "replies": number, "reposts": number,
-   "image": null or {"type": "stadium", "fill": 0-1, "caption": "..."} or {"type": "receipt", "place": "...", "items": [["item", 12.5], ...]} or {"type": "sign", "text": "handwritten sign text"} or {"type": "scoreboard", "home": "ABBR", "away": "ABBR", "hs": n, "as": n} } ] }
-Write 12 posts: mix all four platforms, 2-3 snapgram posts with an image (a half-empty stadium when attendance would plausibly drop, a concessions receipt when people complain about cost, a fan sign, a scoreboard photo), 2-3 board threads. Include a clipping about half the time. Engagement numbers should fit the post (angry hot takes get the most). Keep chirps under 280 characters.`;
+   "image": null or {"type": "stadium", "fill": 0-1, "caption": "..."} or {"type": "receipt", "place": "...", "items": [["item", 12.5], ...]} or {"type": "sign", "text": "handwritten sign text"} or {"type": "scoreboard", "home": "ABBR", "away": "ABBR", "hs": n, "as": n},
+   "photo": only on posts with an image: one or two sentences describing what a real fan's phone photo of that moment looks like (the scene, crowd size, light, weather, time of day, team colors). No text, signs, logos, mascots, jersey numbers or recognizable real people. For a receipt post describe the food and drinks on a tray instead; for a sign post describe the fan crowd around a blank poster board. } ] }
+Write 12 posts: mix all four platforms, 2-3 snapgram posts with an image (a half-empty stadium when attendance would plausibly drop, a concessions receipt when people complain about cost, a fan sign, a scoreboard photo), 2-3 board threads. Include a clipping about half the time. Engagement numbers should fit the post (angry hot takes get the most). Keep chirps under 280 characters. If a post's text mentions what the receipt cost, it must match the receipt items' total.`;
 
 function facts(tk, c) {
   const t = c.t, recent = c.gl.slice(-4).map((g) => `${g.wk}: ${g.win ? "W" : "L"} ${g.us}-${g.them} ${g.home ? "vs" : "at"} ${g.oppRank && g.oppRank <= 25 ? `No. ${g.oppRank} ` : ""}${g.opp}${g.oppUser ? " (league coach)" : ""}`);
@@ -156,6 +157,34 @@ function templateFeed(tk, c) {
   return { clip: hot ? { paper: `The ${t.name} Courier`, headline: `AD backs ${coach} amid ${c.streak?.startsWith("L") ? "skid" : "rocky stretch"}`, dek: `The athletic director says the program is "headed in the right direction." Fans aren't so sure.` } : null, posts, template: true };
 }
 
+// ---------- photorealistic pictures (OpenAI Images), capped per team per advance and per month ----------
+const PH = { per_team: 3, monthly_budget: 20, model: "gpt-image-2", quality: "low", hero_quality: "medium", size: "1024x1024", cost: { low: 0.01, medium: 0.04, high: 0.17 }, ...(cfg.temperature?.photos || {}) };
+const OKEY = process.env.OPENAI_API_KEY, PHOTO_DIR = "photos-out";
+const month = new Date().toISOString().slice(0, 7);
+const spend = prev.spend?.month === month ? { ...prev.spend } : { month, usd: 0, count: 0 };
+const STYLE = "Candid smartphone photo taken by a fan at an American college football game, photorealistic, natural light, slight grain and motion blur, ordinary framing. No text, no signs with words, no logos, no mascots, no jersey numbers, no watermark, no recognizable real people.";
+async function photo(desc, quality, name) {
+  const usd = PH.cost[quality] ?? 0.04;
+  if (!OKEY || spend.usd + usd > PH.monthly_budget) return null;
+  const r = await fetch("https://api.openai.com/v1/images/generations", { method: "POST", headers: { Authorization: `Bearer ${OKEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: PH.model, prompt: `${STYLE}\n\n${desc}`, size: PH.size, quality, n: 1, output_format: "jpeg", output_compression: 82 }) });
+  if (!r.ok) { log(`photo failed (${r.status}): ${(await r.text()).slice(0, 200)}`); return null; }
+  const b64 = (await r.json()).data?.[0]?.b64_json; if (!b64) return null;
+  await mkdir(PHOTO_DIR, { recursive: true }); await writeFile(`${PHOTO_DIR}/${name}.jpg`, Buffer.from(b64, "base64"));
+  spend.usd = +(spend.usd + usd).toFixed(3); spend.count++;
+  return `${name}.jpg`;
+}
+async function addPhotos(tk, feed, sig) {
+  if (!OKEY) return 0;
+  const cands = feed.posts.map((p, i) => ({ p, i })).filter(({ p }) => p.image && p.photo).sort((a, b) => (b.p.likes || 0) - (a.p.likes || 0)).slice(0, PH.per_team);
+  let n = 0;
+  for (const [j, { p }] of cands.entries()) {
+    try { const f = await photo(p.photo, j === 0 ? PH.hero_quality : PH.quality, `${tk}-${sig}-${n}`); if (f) { p.photo_file = f; n++; } else break; }
+    catch (e) { log(`photo error: ${e.message}`); break; }
+  }
+  return n;
+}
+
 const out = { season: cur.season, period: cur.id, stage: cur.season_text, updated: new Date().toISOString(), teams: {} };
 let wrote = 0;
 for (const tk of userTeams) {
@@ -168,6 +197,7 @@ for (const tk of userTeams) {
       const j = JSON.parse(raw.match(/\{[\s\S]*\}/)[0]);
       if (!Array.isArray(j.posts) || j.posts.length < 4) throw new Error("too few posts");
       feed = { clip: j.clip || null, posts: j.posts.slice(0, 16) }; wrote++;
+      const np = await addPhotos(tk, feed, sig); if (np) log(`${c.t.name}: ${np} photo(s)`);
     } catch (e) { log(`${c.t.name}: AI feed failed (${e.message}), using templates`); }
   }
   feed ||= was?.sig === sig ? was.feed : templateFeed(tk, c);
@@ -176,5 +206,8 @@ for (const tk of userTeams) {
   out.teams[tk] = { name: c.t.name, nickname: c.t.nickname, coach: coachOf(c.t.name, tk), record: c.t.record, rank: pollRank(c.t), temp: c.temp, raw: c.raw, period: cur.id,
     band: b[1], mood: b[2], factors: c.factors, prevTemp: history.length > 1 ? history.at(-2).temp : null, history, sig, feed, updated: was?.sig === sig ? was.updated : new Date().toISOString() };
 }
+out.spend = spend;
+out.photos = Object.values(out.teams).flatMap((t) => (t.feed?.posts || []).map((p) => p.photo_file).filter(Boolean)); // files still in use (the photos branch keeps only these)
 await writeFile(FILE, JSON.stringify(out));
+log(`photos this month: ${spend.count} ($${spend.usd.toFixed(2)} of $${PH.monthly_budget})`);
 log(`${userTeams.length} teams, ${wrote} new AI feeds: ${Object.values(out.teams).map((t) => `${t.name} ${t.temp}°`).join(", ")}`);
