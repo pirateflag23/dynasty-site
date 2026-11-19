@@ -9212,7 +9212,9 @@
   "potw:2029:17:Big 12": "2026-11-19",
   "potw:2029:17:Big Ten": "2026-11-19",
   "potw:2029:17:SEC": "2026-11-19",
-  "recruit:692": "2026-11-19"
+  "recruit:692": "2026-11-19",
+  "rec:dyn:season:defenseSacks:557716726:2029": "2026-11-19",
+  "rec:dyn:career:defenseInterceptions:557727474": "2026-11-19"
  },
  "chats": {
   "831914913": {
@@ -9562,11 +9564,11 @@
    "tn": "Ohio State"
   },
   "season:defenseSacks": {
-   "k": 557715476,
-   "n": "Z.Grady",
-   "v": 12,
-   "y": 2028,
-   "tn": "Ohio State"
+   "k": 557716726,
+   "n": "J.Slayton",
+   "v": 12.5,
+   "y": 2029,
+   "tn": "Wyoming"
   },
   "season:defenseInterceptions": {
    "k": 557724533,
@@ -9637,10 +9639,10 @@
    "tn": "Ohio State"
   },
   "career:defenseInterceptions": {
-   "k": 557724533,
-   "n": "K.Gebhardt",
-   "v": 8,
-   "tn": "Ohio State"
+   "k": 557727474,
+   "n": "J.Gates",
+   "v": 10,
+   "tn": "Missouri / Arizona State"
   },
   "career:kickFieldGoalsMade": {
    "k": 557725275,
