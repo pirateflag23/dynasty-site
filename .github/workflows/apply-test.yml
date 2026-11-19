@@ -16,7 +16,7 @@ jobs:
       - name: Wait for odl-dispatch to serve /apply (the deploy may still be running)
         run: |
           for i in $(seq 1 40); do
-            if curl -fsS https://odl-dispatch.jw1388954.workers.dev/apply | grep -q '"v":3'; then echo ready; exit 0; fi
+            if curl -fsS https://odl-dispatch.jw1388954.workers.dev/apply | grep -q '"v":4'; then echo ready; exit 0; fi
             sleep 10
           done
           echo "::error::/apply never came up"; exit 1

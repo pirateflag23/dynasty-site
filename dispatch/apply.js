@@ -64,8 +64,13 @@ export async function postApplication(env, a, { test = false } = {}) {
 }
 
 export async function handleApply(req, env) {
+  try { return await applyInner(req, env); }
+  catch (e) { console.error("apply crash", String(e)); return reply(req, 500, { error: "Something went wrong. Try again in a minute.", detail: String(e).slice(0, 500) }); }
+}
+
+async function applyInner(req, env) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(req) });
-  if (req.method === "GET") return reply(req, 200, { ready: !!env.DISCORD_BOT_TOKEN, channel: CHANNEL, v: 3 });
+  if (req.method === "GET") return reply(req, 200, { ready: !!env.DISCORD_BOT_TOKEN, channel: CHANNEL, v: 4 });
   if (req.method !== "POST") return reply(req, 405, { error: "POST only" });
   let b;
   try { b = await req.json(); } catch { return reply(req, 400, { error: "Bad request" }); }
@@ -81,8 +86,10 @@ export async function handleApply(req, env) {
   const ip = req.headers.get("cf-connecting-ip") || "?";
   if (env.GREETER) {
     const k = `apply:${ip}`;
-    if (await env.GREETER.get(k)) return reply(req, 429, { error: "Application already received. Give the commish a bit to review it." });
-    await env.GREETER.put(k, "1", { expirationTtl: 600 });
+    let seen = null;
+    try { seen = await env.GREETER.get(k); } catch (e) { console.error("apply kv get", String(e)); }
+    if (seen && !test) return reply(req, 429, { error: "Application already received. Give the commish a bit to review it." });
+    try { await env.GREETER.put(k, "1", { expirationTtl: 600 }); } catch (e) { console.error("apply kv put", String(e)); } // KV is best effort
   }
   try { await postApplication(env, a, { test }); return reply(req, 200, { ok: true }); }
   catch (e) { console.error("apply", String(e)); return reply(req, 502, { error: "Couldn't send your application. Try again in a minute.", ...(test ? { detail: String(e).slice(0, 1500) } : {}) }); }
