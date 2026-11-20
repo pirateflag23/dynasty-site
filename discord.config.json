@@ -3,6 +3,7 @@
   "app_id": "1571901059352502403",
   "site_url": "https://thedynastycfb.com",
   "bot_name": "TD",
+  "heisman_trophy": "https://thedynastycfb.com/heisman.png",
   "logo_base": "https://dynasty-proxy.jw1388954.workers.dev",
 
   "graphics": { "top25": true, "final": true, "matchups": true, "recruiting": true, "scores": true, "potw": true, "advance": true, "heisman": true, "headlines": true, "ondeck": true, "schedule": true, "gotw": true, "pickem": true, "power_rankings": true, "series": true },
