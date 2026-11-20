@@ -69,18 +69,26 @@ async function run(env, force = false) {
     if (prDue) await env.GREETER.put("pr_dispatched", String(c.period));
   }
   if (!c.stale && !onDeckDue && !prDue && !force) return { ok: true, dispatched: false, ...c };
+  // Checked every 2 min now: don't re-dispatch the same data while a run is still going (a run takes ~2-5 min
+  // and only re-stamps latest.json when it finishes). Retry after 8 min in case a run failed.
+  const want = `${c.period}:${c.dv}`;
+  if (c.stale && !onDeckDue && !prDue && !force && env.GREETER) {
+    const last = JSON.parse((await env.GREETER.get("sync_dispatched")) || "{}");
+    if (last.want === want && Date.now() - last.at < 8 * 60e3) return { ok: true, dispatched: false, waiting: true, ...c };
+  }
   await dispatch(env);
+  if (env.GREETER) await env.GREETER.put("sync_dispatched", JSON.stringify({ want, at: Date.now() }));
   return { ok: true, dispatched: true, onDeckDue, prDue, ...c };
 }
 
 export default {
-  // Cron runs every 2 minutes: the Discord greeter every time, the sync check every 10 minutes.
+  // Cron runs every 2 minutes: the Discord greeter and the sync check every time.
   async scheduled(event, env, ctx) {
     ctx.waitUntil(runGreeter(env, event.scheduledTime).then((x) => console.log("greeter", JSON.stringify(x))).catch((e) => console.error("greeter", String(e))));
     ctx.waitUntil(runNSD(env, event.scheduledTime).then((x) => x.posted?.length && console.log("nsd", JSON.stringify(x))).catch((e) => console.error("nsd", String(e))));
     ctx.waitUntil(runReporters(env, event.scheduledTime).then((x) => console.log("reporters", JSON.stringify(x))).catch((e) => console.error("reporters", String(e))));
-    if (new Date(event.scheduledTime).getUTCMinutes() % 10 === 0)
-      ctx.waitUntil(run(env).then((x) => console.log(JSON.stringify(x))).catch((e) => console.error(String(e))));
+    // sync check every run (2 min); run() skips while a dispatched sync is still in progress
+    ctx.waitUntil(run(env).then((x) => console.log(JSON.stringify(x))).catch((e) => console.error(String(e))));
   },
   // GET / shows what the next cron would do (never dispatches). Handy for checking from a browser.
   async fetch(req, env) {
