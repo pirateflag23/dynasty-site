@@ -10680,7 +10680,9 @@
   "portal-in:561124999": "2026-11-20",
   "portal-in:561122345": "2026-11-20",
   "portal-in:561125583": "2026-11-20",
-  "portal-in:561123934": "2026-11-20"
+  "portal-in:561123934": "2026-11-20",
+  "rec:dyn:career:passYards:557716254": "2026-11-20",
+  "rec:dyn:career:receiveTouchdowns:557718417": "2026-11-20"
  },
  "chats": {
   "831914913": {
@@ -11113,10 +11115,10 @@
    "tn": "Iowa State"
   },
   "career:passYards": {
-   "k": 557726353,
-   "n": "J.Taylor",
-   "v": 8234,
-   "tn": "California"
+   "k": 557716254,
+   "n": "T.Niang",
+   "v": 8711,
+   "tn": "Boise State"
   },
   "career:passTD": {
    "k": 557713883,
@@ -11149,10 +11151,10 @@
    "tn": "Penn State"
   },
   "career:receiveTouchdowns": {
-   "k": 557716955,
-   "n": "C.Woods",
-   "v": 26,
-   "tn": "Ohio State"
+   "k": 557718417,
+   "n": "K.Barry",
+   "v": 27,
+   "tn": "East Carolina"
   },
   "career:defenseTotalTackles": {
    "k": 557713201,
@@ -11163,7 +11165,7 @@
   "career:defenseSacks": {
    "k": 557721689,
    "n": "M.Slaughter",
-   "v": 23.5,
+   "v": 24,
    "tn": "Penn State / USC"
   },
   "career:defenseInterceptions": {
