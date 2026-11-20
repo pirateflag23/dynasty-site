@@ -27,3 +27,21 @@ for (const c of rows) {
   const f = view ? [has(P.SEND) ? "SEND" : "no-send", has(P.REACT) ? "react" : "no-react", has(P.HIST) ? "history" : "no-history", (has(P.THREAD_PUB) || has(P.SEND_THREAD)) ? "threads" : ""].filter(Boolean).join(" ") : "hidden";
   console.log(`#${c.name} [${c.type}]: ${f}`);
 }
+
+// FIX_THREADS=1: in the read-only news/awards categories (and #final), stop @everyone/Coach from creating threads
+// or posting in them. Reactions, history and the pick'em buttons are untouched.
+if (process.env.FIX_THREADS === "1") {
+  const NO = P.THREAD_PUB | P.THREAD_PRIV | P.SEND_THREAD;
+  const catIds = [...cats.values()].filter((c) => /dynasty news|weekly awards/i.test(c.name)).map((c) => c.id);
+  const targets = chans.filter((c) => catIds.includes(c.id) || catIds.includes(c.parent_id) || c.name === "final");
+  for (const c of targets) {
+    for (const id of [G, coach?.id].filter(Boolean)) {
+      const o = (c.permission_overwrites || []).find((x) => x.id === id);
+      if (!o && id !== G) continue;
+      const allow = (o ? BigInt(o.allow) : 0n) & ~NO, deny = (o ? BigInt(o.deny) : 0n) | NO;
+      const r = await fetch(`https://discord.com/api/v10/channels/${c.id}/permissions/${id}`, { method: "PUT", headers: { Authorization: `Bot ${T}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: 0, allow: String(allow), deny: String(deny) }) });
+      console.log(`${r.ok ? "fixed" : "FAILED " + r.status} threads: ${c.type === 4 ? "category " : "#"}${c.name} (${id === G ? "@everyone" : "Coach"})`);
+      await new Promise((s) => setTimeout(s, 400));
+    }
+  }
+}

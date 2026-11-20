@@ -1,5 +1,8 @@
 name: Discord permissions audit (read-only)
-on: { workflow_dispatch: {} }
+on:
+  workflow_dispatch:
+    inputs:
+      fix_threads: { description: "1 = block threads in read-only channels", required: false, default: "" }
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -8,4 +11,4 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: node .github/workflows/scripts/discord-audit.mjs
-        env: { DISCORD_BOT_TOKEN: "${{ secrets.DISCORD_BOT_TOKEN }}" }
+        env: { DISCORD_BOT_TOKEN: "${{ secrets.DISCORD_BOT_TOKEN }}", FIX_THREADS: "${{ inputs.fix_threads }}" }
