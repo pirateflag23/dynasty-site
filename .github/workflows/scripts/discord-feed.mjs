@@ -825,8 +825,9 @@ async function main() {
       if (seen(k) && !REPLAY.has("portal")) continue;
       mark(k); if (seeding && !REPLAY.has("portal")) continue;
       if (m.kind !== "sign") continue; // signings only: commits/flips/decommits doubled an already long list
-      const user = userTeams.has(byTeamId.get(m.school?.team_id));
-      lines.push(`✍️ Signed with ${user ? "**🎮 " : ""}${m.school?.name || ""}${user ? "**" : ""}: ${stars(m.stars)} ${m.position} ${m.name}${m.previous_school ? ` (was ${m.previous_school.name})` : ""}`);
+      // User-team signings only: all-FBS signings ran ~2k lines and nobody read them.
+      if (!userTeams.has(byTeamId.get(m.school?.team_id))) continue;
+      lines.push(`✍️ Signed with **🎮 ${m.school?.name || ""}**: ${stars(m.stars)} ${m.position} ${m.name}${m.previous_school ? ` (was ${m.previous_school.name})` : ""}`);
     }
     if (REPLAY.has("portal") && lines.length > 25) lines.length = 25;
     if (lines.length) await send(cfg.channels.portal, { embeds: pages(lines).map((d, i) => ({ title: i ? undefined : `🔁 Transfer portal · ${cur.season} ${nowWeek()}`, description: d, color: BLUE })) });
