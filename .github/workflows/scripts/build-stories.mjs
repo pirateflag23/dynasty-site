@@ -80,7 +80,7 @@ async function main() {
   const schedule = await api("/schedule");
   const games = currentGames(schedule.data, cur.season);
   const playedCount = games.filter((g) => g.played).length;
-  const STORY_V = 5; // bump when the story code changes so the next sync rebuilds without forcing every box score
+  const STORY_V = 6; // bump when the story code changes so the next sync rebuilds without forcing every box score
   const sig = `${cur.id}:${leagueRes.data_version}:${playedCount}:v${STORY_V}`; // data_version sits on the response, not league.data
   if (prevIdx.sig === sig && !process.env.FORCE) { log("Stories up to date."); return; }
   await mkdir(DIR, { recursive: true });
@@ -614,7 +614,11 @@ async function main() {
       h: e.from ? `${who} is leaving ${T(e.from, e.from_name)} for ${T(e.to, e.to_name)}` : `${T(e.to, e.to_name)} lands ${who}`,
       d: `${e.coach} has accepted the head coaching job at ${e.to_name}${toT ? ` (${toT.record})` : ""}.${frT ? ` He leaves ${e.from_name} at ${frT.record}${frT.rank > 0 && frT.rank <= 25 ? `, ranked No. ${frT.rank}` : ""}.` : ""} It becomes official when the dynasty finalizes the move.` });
   }
-  const recentMoves = carOut.moves.filter((m) => Date.now() - Date.parse(m.at) < 7 * 86400e3);
+  // A move stays a story for the advance it happened in plus the next one (and never more than 7 real days),
+  // so offseason moves don't linger into the season when the league sims several weeks in a day.
+  const pids = ((await api("/periods").catch(() => ({ data: [] }))).data || []).map((p) => p.id).sort((a, b) => b - a);
+  const freshMove = (m) => { const i = pids.indexOf(m.period); return i >= 0 ? i <= 1 : m.period === cur.id; };
+  const recentMoves = carOut.moves.filter((m) => Date.now() - Date.parse(m.at) < 7 * 86400e3 && freshMove(m));
   for (const m of recentMoves) {
     const ch = coachHist.find((c) => c.gamertag.toLowerCase() === m.gt.toLowerCase());
     const nm = coachName(m.gt), who = `[[c:${m.gt}|${nm ? `Coach ${lastName(nm)}` : m.gt}]]`;
