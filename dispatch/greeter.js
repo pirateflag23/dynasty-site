@@ -121,7 +121,16 @@ async function greeterOnce(env, scheduledTime, windowMs) {
   if (!joined.length && !left.length) return { ok: true, joined: 0, left: 0 };
   const s = await setup(env);
   const errors = [];
-  for (const m of joined) await greet(env, m, s).catch((e) => errors.push(`greet: ${e.message}`.slice(0, 300)));
+  const failed = [];
+  for (const m of joined) await greet(env, m, s).catch((e) => { failed.push(m.user.id); errors.push(`greet: ${e.message}`.slice(0, 300)); });
+  // A welcome that failed (e.g. a permission change on #welcome) is retried next run instead of being lost:
+  // drop that member from the remembered list so they still count as new. Gives up after ~1 hour.
+  if (failed.length && env.GREETER) {
+    const snap = JSON.parse((await env.GREETER.get("members")) || "{}");
+    const fresh = failed.filter((id) => scheduledTime - Date.parse(now.get(id)?.joined_at || 0) < 3600e3);
+    for (const id of fresh) delete snap[id];
+    if (fresh.length) await env.GREETER.put("members", JSON.stringify(snap)).catch(() => {});
+  }
   for (const [id, name] of left) await farewell(env, id, name, s).catch((e) => errors.push(`farewell: ${e.message}`.slice(0, 300)));
   return { ok: !errors.length, joined: joined.map(display), left: left.map(([, n]) => n), errors };
 }
