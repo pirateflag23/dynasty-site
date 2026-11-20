@@ -4,7 +4,12 @@ on:
     inputs:
       channels:
         description: Comma-separated channel names to empty
-        required: true
+        required: false
+        default: ""
+      delete_checked:
+        description: Comma-separated base names of ✅ channels to DELETE entirely
+        required: false
+        default: ""
 jobs:
   purge:
     runs-on: ubuntu-latest
@@ -16,3 +21,4 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           CHANNELS: ${{ inputs.channels }}
+          DELETE_CHECKED: ${{ inputs.delete_checked }}

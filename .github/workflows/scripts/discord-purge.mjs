@@ -29,3 +29,16 @@ for (const name of NAMES) {
   }
   console.log(`#${name}: deleted ${n}`);
 }
+
+// DELETE_CHECKED: delete whole channels whose name carries ✅ and whose base name (✅ and trailing dashes removed)
+// is in the list. Any other ✅ channel is only reported.
+const DEL = (process.env.DELETE_CHECKED || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+if (DEL.length) {
+  const base = (n) => n.replace(/✅/g, "").replace(/[-_\s]+$/, "").toLowerCase();
+  const all = await dc("GET", `/guilds/${cfg.guild_id}/channels`);
+  for (const c of all.filter((x) => x.name.includes("✅"))) {
+    if (!DEL.includes(base(c.name))) { console.log(`kept #${c.name} (not in the list)`); continue; }
+    await dc("DELETE", `/channels/${c.id}`); console.log(`deleted channel #${c.name}`);
+  }
+  for (const d of DEL) if (!all.some((x) => x.name.includes("✅") && base(x.name) === d)) console.log(`no ✅ channel found for "${d}"`);
+}
