@@ -11,6 +11,9 @@ const ROOT = "data/stories";
 const readJson = async (p, d = null) => { try { return JSON.parse(await readFile(p, "utf8")); } catch { return d; } };
 const teamsIn = (...txt) => [...new Set(txt.filter(Boolean).flatMap((t) => [...String(t).matchAll(/\[\[t:(\d+)\|/g)].map((m) => +m[1])))];
 
+// carousel:<gamertag>:<pending|move|…>:<team>[:period] → "<gamertag>:<team>"
+const carouselKey = (s) => { if (s.kind !== "carousel") return null; const p = String(s.id || "").split(":"); return p[0] === "carousel" && p[1] && p[3] ? `${p[1]}:${p[3]}` : null; };
+
 // Flatten one latest.json / p<period>.json into article rows.
 function articles(snap) {
   const per = snap.period || {}, out = [];
@@ -61,6 +64,13 @@ async function archiveLeague(lid) {
     const idx = new Map(arc.stories.map((s, i) => [s.uid, i]));
     for (const a of articles(snap)) {
       // same storyline + same headline = same article (refresh it); new headline in a new period = new article
+      // Coaching moves are one event: one article per coach + destination (pending → official, and later
+      // rewrites of the headline, update that article instead of adding another).
+      const ck = carouselKey(a);
+      if (ck) {
+        const prev = arc.stories.find((s) => carouselKey(s) === ck);
+        if (prev) { Object.assign(prev, { ...a, uid: prev.uid, first_seen: prev.first_seen, first_period: prev.first_period, last_seen: a.at }); continue; }
+      }
       const sameId = arc.stories.filter((s) => s.id === a.id);
       const hit = sameId.find((s) => s.h === a.h) || sameId.find((s) => s.period === a.period);
       if (hit) {
