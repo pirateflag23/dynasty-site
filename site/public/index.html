@@ -2272,8 +2272,8 @@ const H = { cache: {} };
 const hLeague = () => D.league?.league_id ?? D.league?.data?.league_id;
 const hGet = (path) => (H.cache[path] ??= fetch(`${HISTORY_BASE}/${hLeague()}/${path}`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null));
 const coachLabel = (c, link = true) => {
-  const nm = COACH_NAMES[c.gamertag] ? dn(c.gamertag) : c.name;
-  const txt = nm ? `${esc(nm)} <span class="h-gt">(${esc(c.gamertag)})</span>` : esc(c.gamertag);
+  // in-game coach name first, Discord server name in brackets (gamertag when the bot doesn't know it)
+  const txt = c.name ? `${esc(c.name)} <span class="h-gt">(${esc(dn(c.gamertag))})</span>` : esc(dn(c.gamertag));
   return link ? `<a class="tl" href="#coach/${encodeURIComponent(c.gamertag)}">${txt}</a>` : txt;
 };
 const hWl = (w, l, t) => `${w}-${l}${t ? "-" + t : ""}`;
@@ -2471,7 +2471,7 @@ async function renderHof() {
     <section class="hof-wing"><h3>Players<small>The best to ever suit up in The Dynasty</small></h3>
       ${players.map((p) => `<div class="hof-plaque"><div class="cls">${esc(p.class || "")}</div><div><b>${esc(p.name)}</b><small>${esc([p.pos, p.team, p.years].filter(Boolean).join(" · "))}</small>${p.line ? `<div>${esc(p.line)}</div>` : ""}</div></div>`).join("") || empty("players")}</section>
     <section class="hof-wing"><h3>Coaches<small>The ones who built programs</small></h3>
-      ${coaches.map((c) => `<div class="hof-plaque"><div class="cls">${esc(c.class || "")}</div><div><b>${c.gamertag ? `<a href="#coach/${encodeURIComponent(c.gamertag)}">${esc(COACH_NAMES[c.gamertag] ? dn(c.gamertag) : c.name || c.gamertag)}</a>` : esc(c.name)}</b><small>${esc([c.teams, c.years].filter(Boolean).join(" · "))}</small>${c.line ? `<div>${esc(c.line)}</div>` : ""}</div></div>`).join("") || empty("coaches")}</section>
+      ${coaches.map((c) => `<div class="hof-plaque"><div class="cls">${esc(c.class || "")}</div><div><b>${c.gamertag ? `<a href="#coach/${encodeURIComponent(c.gamertag)}">${esc(c.name || dn(c.gamertag))}</a>` : esc(c.name)}</b><small>${esc([c.teams, c.years].filter(Boolean).join(" · "))}</small>${c.line ? `<div>${esc(c.line)}</div>` : ""}</div></div>`).join("") || empty("coaches")}</section>
   </div>
   <div class="h-note">No one has been enshrined yet. The first class goes in once The Dynasty has some seasons behind it.</div>`;
 }
@@ -2481,15 +2481,14 @@ async function renderCoach(tag) {
   const d = await hGet("coaches.json");
   const c = d?.coaches?.find((x) => x.gamertag === tag);
   if (!c) { $("#view").innerHTML = `<div class="card"><div class="empty">No history for ${esc(tag)} yet. <a href="#history/coaches">All coaches</a></div></div>`; return; }
-  const cnm = COACH_NAMES[c.gamertag] ? dn(c.gamertag) : c.name;
-  document.title = `${cnm || c.gamertag} · ${CONFIG.SITE_NAME}`;
+  document.title = `${c.name || dn(c.gamertag)} · ${CONFIG.SITE_NAME}`;
   const tiles = [["Record", hWl(c.w, c.l, c.t)], ["Win %", hPct(c.pct)], ["Conference", hWl(c.conf_w, c.conf_l)], ["vs Top 25", hWl(c.ranked_w, c.ranked_l)],
     ["Rivalry", hWl(c.rival_w, c.rival_l)], ["Bowls", hWl(c.bowl_w, c.bowl_l)], ["Conf titles", `${c.cc_wins}/${c.cc_apps}`], ["CFP apps", c.cfp_apps], ["CFP", hWl(c.cfp_w, c.cfp_l)], ["Natl titles", c.natty_wins]];
   const yrs = Object.keys(c.seasons).sort((a, b) => b - a);
   const h2h = Object.entries(c.h2h).sort((a, b) => b[1].w + b[1].l - (a[1].w + a[1].l));
   const coachBy = new Map((d.coaches || []).map((x) => [x.gamertag, x]));
   $("#view").innerHTML = `
-    <section class="card h-head"><h1>${cnm ? esc(cnm) + ` <span class="gt">(${esc(c.gamertag)})</span>` : esc(c.gamertag)}</h1>
+    <section class="card h-head"><h1>${c.name ? esc(c.name) + ` <span class="gt">(${esc(dn(c.gamertag))})</span>` : esc(dn(c.gamertag))}</h1>
       <div class="cur">${c.current_team ? `Current: ${tLink(c.current_team, c.stints[c.stints.length - 1].team_key)} · ` : ""}${c.n_seasons} season${c.n_seasons === 1 ? "" : "s"} · ${c.first}${c.last !== c.first ? "–" + c.last : ""}</div></section>
     <div class="tp-grid"><div>
       <section class="card"><h2 class="card-h">Career</h2><div class="h-tiles">${tiles.map(([l, v]) => `<div><b>${v}</b><span>${l}</span></div>`).join("")}</div>
