@@ -10312,7 +10312,10 @@
   "potw:2030:18:Big 12": "2026-11-20",
   "potw:2030:18:Big Ten": "2026-11-20",
   "potw:2030:18:SEC": "2026-11-20",
-  "recruit:801": "2026-11-20"
+  "recruit:801": "2026-11-20",
+  "advance:2030:Offseason Stage 3": "2026-11-20",
+  "rec:dyn:career:passYards:557726353": "2026-11-20",
+  "headlines:802": "2026-11-20"
  },
  "chats": {
   "831914913": {
@@ -10745,10 +10748,10 @@
    "tn": "Iowa State"
   },
   "career:passYards": {
-   "k": 557713883,
-   "n": "S.Wisne",
-   "v": 7807,
-   "tn": "Ohio State"
+   "k": 557726353,
+   "n": "J.Taylor",
+   "v": 7922,
+   "tn": "California"
   },
   "career:passTD": {
    "k": 557713883,
