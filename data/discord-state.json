@@ -10684,6 +10684,7 @@
   "rec:dyn:career:passYards:557716254": "2026-11-20",
   "rec:dyn:career:receiveTouchdowns:557718417": "2026-11-20",
   "advance:2030:Offseason Stage 7": "2026-11-20",
+  "rec:dyn:career:passTD:557716254": "2026-11-20",
   "headlines:803": "2026-11-20",
   "recruit:803": "2026-11-20",
   "portal-mv:561123290:commit:1176": "2026-11-20",
@@ -12715,8 +12716,8 @@
    "n": 43
   },
   "2030": {
-   "built": "2026-11-20T19:54:23.432Z",
-   "start": "2026-11-20T20:04:23.431Z",
+   "built": "2026-11-20T19:56:51.086Z",
+   "start": "2026-11-20T20:06:51.085Z",
    "n": 3
   }
  },
@@ -12879,14 +12880,14 @@
   "career:passYards": {
    "k": 557716254,
    "n": "T.Niang",
-   "v": 9022,
+   "v": 9961,
    "tn": "Boise State"
   },
   "career:passTD": {
-   "k": 557713883,
-   "n": "S.Wisne",
-   "v": 80,
-   "tn": "Ohio State"
+   "k": 557716254,
+   "n": "T.Niang",
+   "v": 88,
+   "tn": "Boise State"
   },
   "career:rushYards": {
    "k": 557717760,
