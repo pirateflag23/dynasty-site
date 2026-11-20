@@ -122,7 +122,7 @@ img.tb{background:none!important;box-shadow:none!important;border-radius:0;objec
 .lst{list-style:none;margin:0;padding:0}
 .heis-win{background:radial-gradient(ellipse at 0% 0%,color-mix(in srgb,#f2b134 20%,transparent),transparent 60%)}
 .hw-top{display:flex;align-items:center;gap:12px;padding:14px 14px 6px}.hw-top>div:nth-child(2){flex:1;min-width:0}
-.hw-tro{font-size:44px;line-height:1;filter:drop-shadow(0 0 10px rgba(242,177,52,.55))}
+.hw-tro{width:84px;height:auto;flex:none;filter:drop-shadow(0 0 10px rgba(242,177,52,.45))}
 .hw-nm{font:800 22px/1.1 var(--head);text-transform:uppercase}.hw-top .b{font-size:12px;color:var(--dim);margin-top:3px}
 .hw-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:6px;padding:6px 14px 4px}
 .hw-stats>div:not(.hw-line){border:1px solid var(--line);border-top:3px solid #f2b134;border-radius:6px;padding:7px 4px;text-align:center}
@@ -1231,7 +1231,7 @@ function heismanWinnerCard(w) {
     if (p && el) el.innerHTML = heismanTiles(w.position, p.stats).map(([l, v]) => `<div><b>${esc(v)}</b><small>${esc(l)}</small></div>`).join("");
   }), 0);
   return `<section class="card heis-win"><h2 class="card-h">Heisman Trophy <small>${esc(w.season)} winner</small></h2>
-    <div class="hw-top"><div class="hw-tro" aria-hidden="true">🏆</div>
+    <div class="hw-top"><img class="hw-tro" src="heisman.png" alt="" aria-hidden="true">
       <div><div class="hw-nm">${plLink(w.name, wl?.player_key)}</div>
       <div class="b">${esc([w.position, wl?.class_year].filter(Boolean).join(" · "))} · ${st?.rank > 0 && st.rank <= 25 ? "No. " + st.rank + " " : ""}${tLink(team, tk)}${st?.user_controlled ? " 🎮" : ""}${st?.record ? ` (${esc(st.record)})` : ""}</div></div>
       ${team ? badge(team, true) : ""}</div>
