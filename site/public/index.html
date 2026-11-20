@@ -947,8 +947,31 @@ function renderStrip() {
 // Hero ("Final") card: Spotlight style. Uses the site's own helpers:
 // winnerLoser, headline, badge, rk, tLink, coach, teamRec, teamColor, teamAccent, esc, loadGame, initials.
 
+// Big-game context: CFP round, bowl / conference title game, rivalry name (rivalries.json).
+const NY6 = new Set(["Peach Bowl", "Rose Bowl", "Fiesta Bowl", "Cotton Bowl", "Orange Bowl", "Sugar Bowl"]);
+let RIVALS = [];
+function gameContext(g) {
+  const out = { event: "", cfp: "", rivalry: "" };
+  const b = g.bowl_name || "";
+  if (/National Championship/i.test(b)) { out.event = "National Championship"; out.cfp = "College Football Playoff"; }
+  else if (/^CFP/i.test(b)) { out.cfp = "CFP First Round"; }
+  else if (NY6.has(b)) {
+    const ny6Weeks = [...new Set(games().filter((x) => NY6.has(x.bowl_name)).map((x) => x.week))].sort((a, c) => a - c);
+    const inWeek = games().filter((x) => x.week === g.week && NY6.has(x.bowl_name)).length;
+    out.event = b; out.cfp = ny6Weeks.length > 1 ? (g.week === ny6Weeks[0] ? "CFP Quarterfinal" : "CFP Semifinal") : inWeek >= 3 ? "CFP Quarterfinal" : "CFP Semifinal";
+  } else if (/Championship$/i.test(b)) out.event = b;
+  else if (b) out.event = b;
+  const pair = [g.home.team, g.away.team];
+  const rv = RIVALS.find((x) => pair.includes(x[0]) && pair.includes(x[1]) && x[0] !== x[1]);
+  if (rv) out.rivalry = rv[2] || "Rivalry game";
+  return out;
+}
+
 function heroBadges(g, h, b) {
   const out = [];
+  const cx = gameContext(g);
+  if (cx.cfp) out.push(["gold", cx.cfp]);
+  if (cx.rivalry) out.push(["gold", `⚔️ ${cx.rivalry}`]);
   const ra = g.away.rank_at_game, rh = g.home.rank_at_game, ranked = (r) => r > 0 && r <= 25;
   const margin = Math.abs(g.home.score - g.away.score);
   if (g.kind === "user_vs_user") out.push(["gold", "Game of the week"]);
@@ -994,7 +1017,7 @@ function heroCard(g) {
   const style = `--cw:${teamColor(w.team)};--cl:${teamColor((g.away === w ? g.home : g.away).team)};--wx:${wl[0]};--lx:${wl[1]}`;
   setTimeout(() => heroEnrich(g), 0);
   return `<section class="card hero v-${v}" id="hero" style="${style}">${bg}<div class="sweep"></div>
-    <div class="hero-tag">Final</div>
+    <div class="hero-tag">${esc(["Final", gameContext(g).event].filter(Boolean).join(" · "))}</div>
     <div class="hero-body">${side(g.away)}
       <div><div class="hero-score"><span class="${g.away === w ? "" : "l"}">${g.away.score}</span><span class="${g.home === w ? "" : "l"}">${g.home.score}</span></div><span class="f">Final · <a class="tl" href="#game/${g.key}" style="text-decoration:underline">Box score</a></span></div>
       ${side(g.home)}</div>
@@ -1771,7 +1794,8 @@ function renderTeam(key) {
 const gameCache = {};
 function loadGame(g) {
   if (isDemo) return Promise.resolve({ ...g, box_score: g.has_box_score ? sampleBox(g) : null });
-  if (!gameCache[g.key]) gameCache[g.key] = api(`/games/${g.key}?season=${g.season || D.schedule?.season || ""}`).then((r) => r.data).catch(() => g);
+  const fits = (d) => { const bx = d?.box_score; if (!bx || !g.played) return d; const a = [bx.Home?.Score, bx.Away?.Score].map(Number).sort().join(), e = [g.home.score, g.away.score].map(Number).sort().join(); return a === e ? d : { ...d, box_score: null, has_box_score: false }; };
+  if (!gameCache[g.key]) gameCache[g.key] = api(`/games/${g.key}?season=${g.season || D.schedule?.season || ""}`).then((r) => fits(r.data)).catch(() => g);
   return gameCache[g.key];
 }
 const mmss = (sec) => (sec == null ? "—" : `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`);
@@ -2936,6 +2960,7 @@ function route() {
 async function init() {
   try { await load(); } catch (e) { console.error(e); }
   D.logos = {};
+  if (!isDemo) try { const r = await fetch(`${HISTORY_BASE.replace(/\/data\/history$/, "")}/rivalries.json`, { cache: "no-cache" }); if (r.ok) RIVALS = (await r.json()).rivalries || []; } catch (e) { /* optional */ }
   if (!isDemo) try { const r = await fetch(`${DATA_BASE}/coach-names.json`, { cache: "no-cache" }); if (r.ok) COACH_NAMES = await r.json(); } catch (e) { /* names are optional */ }
   if (!isDemo) try { const r = await fetch(LOGO_BASE() + "/logos", { cache: "no-store" }); if (r.ok) D.logos = await r.json(); } catch (e) { /* logos are optional */ }
   if (isDemo) $("#demo").innerHTML = '<div class="demo">Showing sample data. Set API_BASE in the CONFIG block to load your dynasty.</div>';
