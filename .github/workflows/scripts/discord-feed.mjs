@@ -556,7 +556,7 @@ async function main() {
     const line = (g) => { const { W, L } = res(g); return `**${rk(W.rank_at_game)}${W.team} ${W.score}**, ${rk(L.rank_at_game)}${L.team} ${L.score} · [box](${site(`game/${g.key}`)})`; };
     const user = wg.filter(isUserGame).map(line);
     const ranked = wg.filter((g) => !isUserGame(g) && ((g.home.rank_at_game || 99) <= 25 || (g.away.rank_at_game || 99) <= 25)).map(line);
-    const upsets = wg.filter((g) => { const { W, L } = res(g); return (L.rank_at_game || 99) <= 25 && (W.rank_at_game || 99) > (L.rank_at_game || 99); })
+    const upsets = wg.filter((g) => { const { W, L } = res(g); const wr = W.rank_at_game || 99, lr = L.rank_at_game || 99; return lr <= 25 && (wr > 25 || wr - lr >= 6); })
       .map((g) => { const { W, L } = res(g); return `😱 ${rk(W.rank_at_game) || "Unranked "}${W.team} over #${L.rank_at_game} ${L.team}, ${W.score}-${L.score}`; });
     const label = weekLabel(wg[0]);
     const embeds = [];
@@ -620,7 +620,7 @@ async function main() {
       const side = (t) => ({ name: t.team, rank: t.rank_at_game, score: t.score, logo: logoFor(t.team, map), coach: coachName(t.team_key) });
       const G = (g) => ({ away: side(g.away), home: side(g.home) });
       const res = (g) => (g.home.score >= g.away.score ? [g.home, g.away] : [g.away, g.home]);
-      const isUpset = (g) => { const [W, L] = res(g); return (L.rank_at_game || 99) <= 25 && (W.rank_at_game || 99) > (L.rank_at_game || 99); };
+      const isUpset = (g) => { const [W, L] = res(g); const wr = W.rank_at_game || 99, lr = L.rank_at_game || 99; return lr <= 25 && (wr > 25 || wr - lr >= 6); };
       const bestRank = (g) => Math.min(g.home.rank_at_game || 99, g.away.rank_at_game || 99);
       const lgGames = wg.filter(isUserGame).map(G);
       const upsets = wg.filter((g) => !isUserGame(g) && isUpset(g)).sort((a, b) => bestRank(a) - bestRank(b)).map(G);

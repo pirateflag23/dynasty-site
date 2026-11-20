@@ -519,7 +519,7 @@ async function main() {
     const wSay = coachSays(W.team_key), lSay = coachSays(L.team_key);
 
     // headline result
-    if (lr && (!wr || wr > lr)) add({ kind: "upset", kick: "Upset", score: base + 60 + Math.min(lr <= 10 ? 20 : 0, 20),
+    if (lr && lr <= 25 && (!wr || wr > 25 || wr - lr >= 6)) add({ kind: "upset", kick: "Upset", score: base + 60 + Math.min(lr <= 10 ? 20 : 0, 20),
       h: pick(seed + "u", [`Stunner: ${wr ? `No. ${wr} ` : "Unranked "}${WT} topples No. ${lr} ${LT}, ${sc}`, `${WT} shocks No. ${lr} ${LT} ${sc}${userTeams.has(W.team_key) ? ` and ${coachTok(W.team_key)} has the whole league talking` : ""}`, `Chaos: No. ${lr} ${LT} goes down to ${WT}`]),
       d: `${W.team} ${WS.totalYardsGained >= LS.totalYardsGained ? `outgained ${L.team} ${WS.totalYardsGained} to ${LS.totalYardsGained}` : `won despite being outgained ${LS.totalYardsGained} to ${WS.totalYardsGained}`}${LS.turnovers >= 2 ? ` and forced ${num(LS.turnovers)} turnovers` : ""}. ${pick(seed + "u2", ["Expect a fall in the polls for " + L.team + ".", "The rankings committee will be busy this week.", "Somewhere a playoff bracket just broke."])}`,
       quote: wSay ? { text: pick(seed + "uq", ["Nobody gave us a chance. We heard it all week.", "We're not surprised. This locker room believed.", "Put some respect on it."]), by: wSay } : null });

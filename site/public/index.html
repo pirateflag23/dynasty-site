@@ -917,7 +917,8 @@ function headline(g) {
   const w = t25(w0), l = t25(l0);
   const m = w.score - l.score;
   const verb = m <= 3 ? "edges" : m <= 8 ? "holds off" : m <= 16 ? "beats" : m <= 27 ? "rolls past" : "routs";
-  const upset = l.rank_at_game > 0 && (!w.rank_at_game || w.rank_at_game > l.rank_at_game);
+  // upset: unranked beats ranked, or the winner was ranked at least 6 spots lower (#2 over #1 isn't one)
+  const upset = l.rank_at_game > 0 && (!w.rank_at_game || w.rank_at_game - l.rank_at_game >= 6);
   const wn = (w.rank_at_game ? `No. ${w.rank_at_game} ` : "") + w.team;
   const ln = (l.rank_at_game ? `No. ${l.rank_at_game} ` : "") + l.team;
   const nm = (s) => (s.rank_at_game ? `No. ${s.rank_at_game} ` : "") + tLink(s.team, s.team_key);
