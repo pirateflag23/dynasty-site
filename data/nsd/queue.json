@@ -7,24 +7,5 @@
  "end": "2026-11-20T20:36:51.085Z",
  "built": "2026-11-20T19:56:51.086Z",
  "test": false,
- "items": [
-  {
-   "id": "open",
-   "title": "📝 National Signing Day is LIVE",
-   "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2030/open.png",
-   "at": "2026-11-20T20:06:51.085Z"
-  },
-  {
-   "id": "c832438379",
-   "title": "ACC · 📋 Stanford signs 20: H0ldStillPlease's class is in",
-   "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2030/c832438379.png",
-   "at": "2026-11-20T20:08:51.085Z"
-  },
-  {
-   "id": "close",
-   "title": "🏆 Signing Day final: the top classes. Thank you for watching National Signing Day!",
-   "image": "https://raw.githubusercontent.com/pirateflag23/dynasty-site/main/data/nsd/4943020/2030/close.png",
-   "at": "2026-11-20T20:36:51.085Z"
-  }
- ]
+ "items": []
 }

@@ -1,0 +1,18 @@
+name: Discord purge (clear channels)
+on:
+  workflow_dispatch:
+    inputs:
+      channels:
+        description: Comma-separated channel names to empty
+        required: true
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node .github/workflows/scripts/discord-purge.mjs
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          CHANNELS: ${{ inputs.channels }}

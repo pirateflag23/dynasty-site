@@ -644,6 +644,7 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
       <a href="#scores">Scores</a>
       <a href="#standings">Standings</a>
       <a href="#stats">Stats</a>
+      <a href="#players">Players</a>
       <a href="#recruiting">Recruiting</a>
       <a href="#history">History</a>
       <a href="#rules">Rules</a>
@@ -2071,8 +2072,8 @@ function sortRows(rows, get, dir) {
 }
 
 function renderStats(sub = "") {
-  const nav = `<nav class="subnav" aria-label="Stats"><h1>Stats</h1><a href="#stats" ${sub === "" ? 'aria-current="page"' : ""}>Team stats</a><a href="#stats/players" ${sub === "players" ? 'aria-current="page"' : ""}>Player stats</a><a href="#stats/rosters" ${sub === "rosters" ? 'aria-current="page"' : ""}>All players</a></nav>`;
-  sub === "players" ? renderPlayerStats(nav) : sub === "rosters" ? renderRosters(nav) : renderTeamStats(nav);
+  const nav = `<nav class="subnav" aria-label="Stats"><h1>Stats</h1><a href="#stats" ${sub === "" ? 'aria-current="page"' : ""}>Team stats</a><a href="#stats/players" ${sub === "players" ? 'aria-current="page"' : ""}>Player stats</a></nav>`;
+  sub === "players" ? renderPlayerStats(nav) : renderTeamStats(nav);
 }
 function renderTeamStats(nav) {
   const C = TS_CATS[tsState.cat], col = C.cols[tsState.sort] || C.cols[0], dir = tsState.dir || col[4];
@@ -2132,7 +2133,7 @@ const ratingCls = (v) => (v >= 90 ? "r90" : v >= 80 ? "r80" : v < 50 ? "r50" : "
 function renderRosters(nav) {
   $("#view").innerHTML = `${nav}<section class="card"><h2 class="card-h">All players <small id="ro-sub">Every player on every roster</small></h2><div id="ro"><div class="empty">Loading every roster…</div></div></section>`;
   loadAllRosters().then((J) => {
-    if (location.hash !== "#stats/rosters") return;
+    if (location.hash !== "#players") return;
     if (!J) { $("#ro").innerHTML = '<div class="empty">Rosters haven’t synced yet. They’ll show up after the next sync.</div>'; return; }
     const teamName = (k) => teamByKey(k)?.name || (D.teamstats?.data || []).find((t) => t.team_key === k)?.name || "";
     const isUser = (k) => !!teamByKey(k)?.user_controlled || !!(D.teamstats?.data || []).find((t) => t.team_key === k)?.user_controlled;
@@ -2903,12 +2904,14 @@ function route() {
   if (!WIRE && D.league) wireLoad().then(() => { if (WIRE && /^#?(recruiting(\/(portal|crystal))?\/?|home|standings\/cfp|feature\/\w+)?$/.test(location.hash)) route(); });
   const name = location.hash.slice(1);
   const tm = name.match(/^team\/(\d+)$/), gm = name.match(/^game\/(\d+)$/), rm = name.match(/^recruit\/(\d+)$/), pm = name.match(/^player\/(\d+)$/);
-  const rs = name.match(/^recruiting(?:\/(classes|board|portal|crystal))?\/?$/), ss = name.match(/^stats(?:\/(players|rosters))?\/?$/);
+  const rs = name.match(/^recruiting(?:\/(classes|board|portal|crystal))?\/?$/), ss = name.match(/^stats(?:\/(players))?\/?$/);
   const hs = name.match(/^history(?:\/(coaches|careers|seasons|champions|trophies|hof))?\/?$/), cm = name.match(/^coach\/(.+)$/);
   if (hs || cm) { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#history" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); if (cm) renderCoach(decodeURIComponent(cm[1])); else { document.title = `History · ${CONFIG.SITE_NAME}`; renderHistory(hs[1] || "coaches"); } window.scrollTo(0, 0); return; }
   const sc2 = name === "standings/cfp", ft = name.match(/^feature\/(\w+)$/);
   if (sc2 || ft) { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === (sc2 ? "#standings" : "#home") ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `${sc2 ? "Playoff odds" : "Offseason report"} · ${CONFIG.SITE_NAME}`; sc2 ? renderCfp() : renderFeature(ft[1]); window.scrollTo(0, 0); return; }
   if (name === "news/temperature") { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#news" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `Temperature · ${CONFIG.SITE_NAME}`; renderTemperature(); window.scrollTo(0, 0); return; }
+  if (name === "stats/rosters") { location.replace("#players"); return; } // old link
+  if (name === "players") { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#players" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `Players · ${CONFIG.SITE_NAME}`; renderRosters('<nav class="subnav" aria-label="Players"><h1>Players</h1></nav>'); window.scrollTo(0, 0); return; }
   if (name === "logos") { document.querySelectorAll(".tabs a").forEach((a) => a.removeAttribute("aria-current")); document.title = `League admin · ${CONFIG.SITE_NAME}`; renderLogos(); window.scrollTo(0, 0); return; }
   const key = tm || gm || rm || pm ? "" : rs ? "recruiting" : ss ? "stats" : ROUTES[name] ? name : "home";
   document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#" + key ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
