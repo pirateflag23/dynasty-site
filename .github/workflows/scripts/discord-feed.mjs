@@ -945,7 +945,7 @@ async function main() {
       const name = `${slug(weekLabel(g)).replace("week-", "wk")}-${slug(g.away.team)}-at-${slug(g.home.team)}`.slice(0, 95);
       const coaches = [coachId(g.away.team_key), coachId(g.home.team_key)].filter(Boolean);
       const overwrites = [
-        { id: guild, type: 0, allow: String(VIEW | HIST), deny: String(SEND) }, // everyone can watch, only coaches talk
+        { id: guild, type: 0, allow: String(VIEW | SEND | HIST | REACT), deny: "0" }, // whole league can see and talk; the two coaches get full rights below
         ...coaches.map((id) => ({ id, type: 1, allow: String(VIEW | SEND | EMBED | ATTACH | HIST | REACT), deny: "0" })),
         ...(botId ? [{ id: botId, type: 1, allow: String(VIEW | SEND | EMBED | HIST), deny: "0" }] : []),
         ...(roleId(cfg.commish_role) && !DRY ? [{ id: roleId(cfg.commish_role), type: 0, allow: String(VIEW | SEND | HIST), deny: "0" }] : []),
