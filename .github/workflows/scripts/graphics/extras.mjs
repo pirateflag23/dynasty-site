@@ -191,7 +191,7 @@ export async function renderBigPerformances({ label = "", sub = "", rows = [], s
     const { c1, c2 } = teamCols(colors, p.team);
     const win = /^W/.test(p.result || "");
     return `<div class="r" style="--c1:${c1};--c2:${c2}">
-      <div class="lg">${badge(p.team, p.logo, colors, 78)}${p.jersey != null ? `<span class="jn">${p.jersey}</span>` : ""}</div>
+      <div class="lgo">${badge(p.team, p.logo, colors, 78)}${p.jersey != null ? `<span class="jn">${p.jersey}</span>` : ""}</div>
       <div class="who"><div class="nm">${esc(p.name)}</div>
         <div class="mt">${esc([p.pos, p.ovr ? `${p.ovr} OVR` : ""].filter(Boolean).join(" · "))} · ${p.rank > 0 && p.rank <= 25 ? `<i>#${p.rank}</i> ` : ""}${esc(short(p.team))}${p.coach ? `<em>🎮 ${esc(p.coach)}</em>` : ""}</div>
         <div class="ch">${p.chips.map((c) => `<span>${esc(c)}</span>`).join("")}</div></div>
@@ -210,7 +210,7 @@ header img{height:64px}
 .hm{margin-left:auto;text-align:right;font:700 22px RC;text-transform:uppercase}.hm small{display:block;font:500 15px R;color:#9a9b9e;text-transform:none}
 .list{padding:16px 24px 6px;display:grid;gap:12px}
 .r{display:grid;grid-template-columns:110px 1fr 190px;align-items:center;gap:18px;background:#1f2022;border-radius:10px;overflow:hidden;border-left:8px solid var(--c1)}
-.lg{position:relative;height:110px;display:grid;place-items:center;background:radial-gradient(circle,color-mix(in srgb,var(--c1) 70%,#000),#141516 80%)}
+.lgo{position:relative;height:110px;display:grid;place-items:center;background:radial-gradient(circle,color-mix(in srgb,var(--c1) 70%,#000),#141516 80%)}
 .jn{position:absolute;right:4px;bottom:-6px;font:800 46px/1 RC;color:rgba(255,255,255,.18)}
 .who{padding:12px 0}
 .nm{font:800 32px/1 RC;text-transform:uppercase}
