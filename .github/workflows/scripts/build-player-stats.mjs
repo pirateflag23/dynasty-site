@@ -8,6 +8,7 @@
 // Env: DYNASTY_API_KEY (required), DYNASTY_API_BASE (optional), OUT (optional)
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { currentGames } from "./current-games.mjs";
 import { dirname } from "node:path";
 
 const BASE = (process.env.DYNASTY_API_BASE || "https://dynasty.prestonchoate.dev/v1").replace(/\/$/, "");
@@ -87,8 +88,9 @@ function finish(s) {
 const slim = (stats) => Object.fromEntries(Object.entries(stats).filter(([, v]) => v));
 
 async function main() {
-  const [userStats, schedule] = await Promise.all([api("/player-stats"), api("/schedule?played=true")]);
-  const gameKeys = schedule.data.filter((g) => g.has_box_score).map((g) => g.key);
+  const [userStats, schedule, league] = await Promise.all([api("/player-stats"), api("/schedule"), api("/league").catch(() => null)]);
+  // full schedule (not ?played=true) so last season's leftover games can be spotted and dropped
+  const gameKeys = currentGames(schedule.data, league?.data?.current_period?.season).filter((g) => g.played && g.has_box_score).map((g) => g.key);
 
   // Skip the expensive part if nothing changed since the last build.
   try {

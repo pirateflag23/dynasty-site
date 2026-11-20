@@ -11,6 +11,7 @@
 // Env: DYNASTY_API_KEY. Optional files: discord.config.json (coach_names), rivalries.json.
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { currentGames } from "./current-games.mjs";
 
 const API = (process.env.DYNASTY_API_BASE || "https://dynasty.prestonchoate.dev/v1").replace(/\/$/, "");
 const KEY = process.env.DYNASTY_API_KEY;
@@ -76,10 +77,15 @@ async function main() {
   // Past seasons don't include standings, so conferences come from the current lineup.
   const curStandings = await api("/standings").catch(() => ({ data: [] }));
   const curTeams = curStandings.data.map((t) => ({ team_key: t.team_key, name: t.name, conference: t.conference }));
+  // The current season's schedule can still hold last season's tail (e.g. the title game). Those games
+  // belong to the previous season's archive, not this one.
+  const curSch = await api(`/schedule?season=${cur.season}`).catch(() => ({ data: [] }));
+  const curKeep = new Set(currentGames(curSch.data || [], cur.season));
+  const leftovers = (curSch.data || []).filter((g) => !curKeep.has(g) && g.played);
   for (const year of seasons) {
     const file = `${DIR}/seasons/${year}.json`;
     const prev = await readJson(file);
-    if (prev?.final) continue; // finished seasons are frozen
+    if (prev?.final && year !== cur.season) continue; // finished seasons are frozen (the current one never is)
     const [sch, st, aw, aa] = await Promise.all([
       api(`/schedule?season=${year}`), year === cur.season ? api("/standings") : null,
       api(`/awards?season=${year}`).catch(() => ({ data: [] })), api(`/awards/all-american?season=${year}`).catch(() => ({ data: [] })),
@@ -88,8 +94,12 @@ async function main() {
     const side = (s) => ({ k: s.team_key, t: s.team, s: s.score, u: s.user_name && s.user_name !== "CPU" ? s.user_name : null, r: s.rank_at_game > 0 && s.rank_at_game <= 25 ? s.rank_at_game : null });
     // Past seasons come back with played=false even when final scores exist, so trust the score line.
     const wasPlayed = (g) => !!g.played || (year < cur.season && (g.home.score || 0) + (g.away.score || 0) > 0);
-    const games = (sch.data || []).map((g) => ({ key: g.key, w: g.week, label: g.bowl_name || g.displayed_week, type: gameType(g), played: wasPlayed(g), a: side(g.away), h: side(g.home) }));
-    const nattyPlayed = games.some((g) => g.type === "natty" && g.played);
+    let raw = sch.data || [];
+    if (year === cur.season) raw = currentGames(raw, year);
+    if (year === cur.season - 1 && leftovers.length) { const have = new Set(raw.map((g) => `${g.week}|${g.home.team_key}|${g.away.team_key}`)); raw = [...raw, ...leftovers.filter((g) => !have.has(`${g.week}|${g.home.team_key}|${g.away.team_key}`))]; }
+    const games = raw.map((g) => ({ key: g.key, w: g.week, label: g.bowl_name || g.displayed_week, type: gameType(g), played: wasPlayed(g), a: side(g.away), h: side(g.home) }));
+    // final only when the title game AND every other game is done (a leftover natty from last season must not freeze a new season)
+    const nattyPlayed = games.some((g) => g.type === "natty" && g.played) && games.length > 1 && (year < cur.season || games.every((g) => g.played));
     const out = {
       season: year, final: nattyPlayed,
       teams: st ? st.data.map((t) => ({ team_key: t.team_key, name: t.name, conference: t.conference, record: t.record, rank: t.rank, user: !!t.user_controlled })) : prev?.teams?.length ? prev.teams : curTeams,

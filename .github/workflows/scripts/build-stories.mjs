@@ -13,6 +13,7 @@
 // Quote policy: CFB27 rosters start with real players and real CPU head coaches, so they never
 // get invented quotes, only narration. Quotes come only from generated recruits and league coaches.
 
+import { currentGames } from "./current-games.mjs";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { buildOutlook } from "./stories-outlook.mjs";
 
@@ -77,9 +78,9 @@ async function main() {
   const LID = league.league_id, cur = league.current_period, DIR = `data/stories/${LID}`;
   const prevIdx = await readJson(`${DIR}/latest.json`, {});
   const schedule = await api("/schedule");
-  const games = schedule.data;
+  const games = currentGames(schedule.data, cur.season);
   const playedCount = games.filter((g) => g.played).length;
-  const STORY_V = 4; // bump when the story code changes so the next sync rebuilds without forcing every box score
+  const STORY_V = 5; // bump when the story code changes so the next sync rebuilds without forcing every box score
   const sig = `${cur.id}:${leagueRes.data_version}:${playedCount}:v${STORY_V}`; // data_version sits on the response, not league.data
   if (prevIdx.sig === sig && !process.env.FORCE) { log("Stories up to date."); return; }
   await mkdir(DIR, { recursive: true });

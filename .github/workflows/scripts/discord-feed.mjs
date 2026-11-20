@@ -15,6 +15,7 @@
 // Files: discord.config.json (settings), data/discord-state.json (what's been posted),
 //        data/player-stats-all.json (from build-player-stats.mjs), data/bot/*.json (written for the slash bot)
 
+import { currentGames } from "./current-games.mjs";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { gameOfTheWeek, pickem, powerRankings, seriesFor, carouselCards, signingDay, recordDesk, positionRules } from "./league-extras.mjs";
 // Graphics (PNG) need the packages in ./graphics — loaded lazily so text posts still work without them.
@@ -119,7 +120,7 @@ async function main() {
   const cur = league.data.current_period;
   const prevPeriod = periods.data.find((p) => p.id !== cur.id);
   const standingsPrev = prevPeriod ? await api(`/standings?period=${prevPeriod.id}`).catch(() => null) : null;
-  const games = schedule.data;
+  const games = currentGames(schedule.data, league.data.current_period?.season);
   const teams = new Map(standings.data.map((t) => [t.team_key, t]));
   const tstats = new Map(teamStats.data.map((t) => [t.team_key, t]));
   const byTeamId = new Map(teamStats.data.map((t) => [t.team_id, t.team_key]));

@@ -861,7 +861,20 @@ async function load() {
 }
 
 /* ---------- derived data ---------- */
-const games = () => D.schedule?.data || [];
+// The API's /schedule can still carry last season's tail (e.g. the title game, week 21, played) after the
+// year rolls over. Drop played games past the first mostly-unplayed week so "latest week" stays correct.
+function currentGames(gs = [], curSeason = null) {
+  const seasons = new Set(gs.map((g) => g.season).filter(Boolean));
+  if (curSeason && seasons.size > 1 && seasons.has(curSeason)) gs = gs.filter((g) => !g.season || g.season === curSeason);
+  const byWeek = new Map();
+  for (const g of gs) { const b = byWeek.get(g.week) || { n: 0, open: 0 }; b.n++; if (!g.played) b.open++; byWeek.set(g.week, b); }
+  const openWeeks = [...byWeek].filter(([, b]) => b.open * 2 >= b.n).map(([w]) => w);
+  if (!openWeeks.length) return gs;
+  const firstOpen = Math.min(...openWeeks);
+  return gs.filter((g) => !g.played || g.week <= firstOpen);
+}
+let _gSrc = null, _gOut = [];
+const games = () => { const src = D.schedule?.data || []; if (src !== _gSrc) { _gSrc = src; _gOut = currentGames(src, D.league?.data?.current_period?.season); } return _gOut; };
 const standings = () => D.standings?.data || [];
 const teamByKey = (key) => standings().find((t) => t.team_key === key);
 const teamByName = (n) => standings().find((t) => t.name === n);
