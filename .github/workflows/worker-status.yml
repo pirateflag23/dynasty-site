@@ -1,0 +1,8 @@
+name: Worker status (read-only)
+on: { workflow_dispatch: {} }
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for p in greeter reporters; do echo "== /$p"; curl -s -m 60 "https://odl-dispatch.jw1388954.workers.dev/$p" | head -c 6000; echo; done
