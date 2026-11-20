@@ -43,6 +43,11 @@ jobs:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
           FORCE: ${{ inputs.force && '1' || '' }}
         run: node .github/workflows/scripts/build-player-stats.mjs
+      - name: Build data/rosters-all.json (every player, Roster-tab columns)
+        env:
+          DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
+          FORCE: ${{ inputs.force && '1' || '' }}
+        run: node .github/workflows/scripts/build-rosters.mjs || echo "rosters step failed, continuing"
       - name: Update dynasty history archive
         env:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}

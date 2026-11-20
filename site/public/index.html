@@ -321,6 +321,15 @@ details.raw code{word-break:break-all}
 .abil span small{color:var(--dim);font-weight:500;margin-left:4px}
 /* ---------- Stats ---------- */
 .tbl th.sort{cursor:pointer;user-select:none}
+.ro-tbl th,.ro-tbl td{padding:6px 7px}
+.ro-tbl th:nth-child(2),.ro-tbl td:nth-child(2){position:sticky;left:0;z-index:1;background:var(--card);text-align:left;box-shadow:1px 0 0 var(--line)}
+.ro-tbl tr.user td:nth-child(2){background:color-mix(in srgb,var(--red) 6%,var(--card))}
+.ro-tbl td.l,.ro-tbl th.l{text-align:left}
+.ro-tbl th.key{color:var(--text)}
+.ro-tbl td.r90{color:#0a8a3c;font-weight:700}.ro-tbl td.r80{color:#2f7d3a}.ro-tbl td.r50{color:var(--dim)}
+.ro-pager{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;font-size:13px;color:var(--dim)}
+.ro-dev{font-size:11px;font-weight:700;padding:2px 5px;border-radius:3px;background:var(--line-2)}
+.ro-dev.Elite{background:#f2b134;color:#000}.ro-dev.Star{background:#5b8def;color:#fff}.ro-dev.Impact{background:#0a8a3c;color:#fff}
 .tbl th.sort:hover{color:var(--text)}
 .tbl th.on{color:var(--text);font-weight:700}
 .tbl th.on::after{content:" ▾"}
@@ -1947,6 +1956,7 @@ function renderPlayer(key) {
     if (location.hash !== "#player/" + key) return;
     let p = roster.find((x) => x.player_key === key);
     if (!p) { const ap = (await loadAllPlayers()).find((x) => x.player_key === key); if (ap) p = (await api(`/rosters?team=${ap.team_key}`).then((r) => r.data || []).catch(() => [])).find((x) => x.player_key === key) || ap; if (location.hash !== "#player/" + key) return; }
+    if (!p) { const ar = (await loadAllRosters())?.players?.find((x) => x.key === key); if (ar) p = (await api(`/rosters?team=${ar.team}&scope=all`).then((r) => r.data || []).catch(() => [])).find((x) => x.player_key === key); if (location.hash !== "#player/" + key) return; }
     if (!p) { $("#view").innerHTML = '<div class="card"><div class="empty">Player cards are available for players on teams with a league coach. This player isn’t on a synced roster.</div></div>'; return; }
     const team = teamByKey(p.team_key) || { name: games().map((g) => [g.home, g.away]).flat().find((s) => s.team_key === p.team_key)?.team || "", team_key: p.team_key };
     const tc = teamColor(team.name), grp = POS_GROUP(p.position), G = PGROUP[grp];
@@ -2061,8 +2071,8 @@ function sortRows(rows, get, dir) {
 }
 
 function renderStats(sub = "") {
-  const nav = `<nav class="subnav" aria-label="Stats"><h1>Stats</h1><a href="#stats" ${sub === "" ? 'aria-current="page"' : ""}>Team stats</a><a href="#stats/players" ${sub === "players" ? 'aria-current="page"' : ""}>Player stats</a></nav>`;
-  sub === "players" ? renderPlayerStats(nav) : renderTeamStats(nav);
+  const nav = `<nav class="subnav" aria-label="Stats"><h1>Stats</h1><a href="#stats" ${sub === "" ? 'aria-current="page"' : ""}>Team stats</a><a href="#stats/players" ${sub === "players" ? 'aria-current="page"' : ""}>Player stats</a><a href="#stats/rosters" ${sub === "rosters" ? 'aria-current="page"' : ""}>All players</a></nav>`;
+  sub === "players" ? renderPlayerStats(nav) : sub === "rosters" ? renderRosters(nav) : renderTeamStats(nav);
 }
 function renderTeamStats(nav) {
   const C = TS_CATS[tsState.cat], col = C.cols[tsState.sort] || C.cols[0], dir = tsState.dir || col[4];
@@ -2095,6 +2105,79 @@ function renderPlayerStats(nav) {
       </tbody></table></div>` : '<div class="empty">No players with these stats yet.</div>'}`;
     document.querySelectorAll("[data-pc]").forEach((b) => b.onclick = () => { psState = { cat: b.dataset.pc, sort: null, dir: "desc" }; renderPlayerStats(nav); });
     document.querySelectorAll("[data-ps]").forEach((h) => h.onclick = () => { const k = h.dataset.ps; psState.dir = k === sortKey ? (dir === "asc" ? "desc" : "asc") : (h.dataset.dir === "asc" ? "asc" : "desc"); psState.sort = k; renderPlayerStats(nav); });
+  });
+}
+
+/* ---------- all players (every roster, in-game Roster tab columns) ---------- */
+const RO_GROUPS = { QB: ["QB"], HB: ["HB"], FB: ["FB"], WR: ["WR"], TE: ["TE"], OL: ["LT", "LG", "C", "RG", "RT", "OL", "OT", "OG"], DL: ["LEDG", "REDG", "DT", "LE", "RE", "DE", "DL"],
+  LB: ["SAM", "MIKE", "WILL", "LOLB", "MLB", "ROLB", "LB"], CB: ["CB"], S: ["FS", "SS", "S"], "K/P": ["K", "P"] };
+const RO_KEYS = { QB: ["THP", "SAC", "MAC", "DAC", "RUN", "TUP", "BSK", "PAC", "AWR", "SPD"], HB: ["SPD", "ACC", "AGI", "COD", "BCV", "CAR", "BTK", "TRK", "JKM", "SPM", "SFA", "CTH"],
+  FB: ["RBK", "LBK", "IBL", "TRK", "CAR", "STR", "CTH", "SPD"], WR: ["SPD", "ACC", "AGI", "CTH", "CIT", "SPC", "SRR", "MRR", "DRR", "RLS", "JMP"],
+  TE: ["CTH", "CIT", "SPC", "SRR", "MRR", "RBK", "PBK", "SPD", "STR"], OL: ["PBK", "PBP", "PBF", "RBK", "RBP", "RBF", "IBL", "STR", "AWR"],
+  DL: ["PMV", "FMV", "BSH", "STR", "TAK", "PUR", "PRC", "POW", "SPD"], LB: ["TAK", "PUR", "PRC", "BSH", "POW", "ZCV", "MCV", "SPD"],
+  CB: ["MCV", "ZCV", "PRS", "SPD", "ACC", "AGI", "PRC", "JMP", "CTH"], S: ["ZCV", "MCV", "PRC", "TAK", "POW", "PUR", "SPD"], "K/P": ["KPW", "KAC"] };
+const groupOf = (pos) => Object.keys(RO_GROUPS).find((g) => RO_GROUPS[g].includes(pos)) || pos;
+let roState = { q: "", team: "", pos: "", cls: "", dev: "", sort: "ovr", dir: "desc", page: 0 };
+let allRostersP = null;
+function loadAllRosters() {
+  if (!allRostersP) allRostersP = fetch(`${DATA_BASE}/rosters-all.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+    if (!j) return null;
+    const F = j.fields, ix = Object.fromEntries(F.map((f, i) => [f, i])), R = j.ratings.map((x) => x[0]);
+    const players = j.players.map((a) => { const p = {}; for (const f of F) p[f] = a[ix[f]]; p.rt = {}; R.forEach((ab, i) => (p.rt[ab] = p.r[i])); delete p.r; p.grp = groupOf(p.pos); p.nm = `${p.first} ${p.last}`.trim(); return p; });
+    return { ...j, players, R, names: Object.fromEntries(j.ratings) };
+  }).catch(() => { allRostersP = null; return null; });
+  return allRostersP;
+}
+const ratingCls = (v) => (v >= 90 ? "r90" : v >= 80 ? "r80" : v < 50 ? "r50" : "");
+function renderRosters(nav) {
+  $("#view").innerHTML = `${nav}<section class="card"><h2 class="card-h">All players <small id="ro-sub">Every player on every roster</small></h2><div id="ro"><div class="empty">Loading every roster…</div></div></section>`;
+  loadAllRosters().then((J) => {
+    if (location.hash !== "#stats/rosters") return;
+    if (!J) { $("#ro").innerHTML = '<div class="empty">Rosters haven’t synced yet. They’ll show up after the next sync.</div>'; return; }
+    const teamName = (k) => teamByKey(k)?.name || (D.teamstats?.data || []).find((t) => t.team_key === k)?.name || "";
+    const isUser = (k) => !!teamByKey(k)?.user_controlled || !!(D.teamstats?.data || []).find((t) => t.team_key === k)?.user_controlled;
+    const teams = [...new Set(J.players.map((p) => p.team))].map((k) => [k, teamName(k)]).filter((t) => t[1]).sort((a, b) => a[1].localeCompare(b[1]));
+    const classes = [...new Set(J.players.map((p) => p.class))].filter(Boolean);
+    const devs = [...new Set(J.players.map((p) => p.dev))].filter(Boolean);
+    const S = roState, keyCols = RO_KEYS[S.pos] || RO_KEYS[groupOf(S.pos)] || [];
+    const rCols = [...keyCols, ...J.R.filter((c) => !keyCols.includes(c))];
+    const q = S.q.trim().toLowerCase();
+    let rows = J.players.filter((p) => (!q || p.nm.toLowerCase().includes(q) || teamName(p.team).toLowerCase().includes(q))
+      && (!S.team || (S.team === "@users" ? isUser(p.team) : String(p.team) === S.team))
+      && (!S.pos || p.grp === S.pos || p.pos === S.pos) && (!S.cls || p.class === S.cls) && (!S.dev || p.dev === S.dev));
+    const get = S.sort === "ovr" ? (p) => p.ovr : S.sort === "ht" ? (p) => p.ht : S.sort === "wt" ? (p) => p.wt : S.sort === "jersey" ? (p) => p.jersey : S.sort === "nil" ? (p) => p.nil : (p) => p.rt[S.sort];
+    sortRows(rows, get, S.dir);
+    const PER = 100, pages = Math.max(1, Math.ceil(rows.length / PER)); if (S.page >= pages) S.page = 0;
+    const view = rows.slice(S.page * PER, S.page * PER + PER);
+    const th = (k, label, title, extra = "") => `<th class="sort ${S.sort === k ? "on " + (S.dir === "asc" ? "asc" : "") : ""} ${extra}" data-ro="${k}" title="${esc(title)}">${label}</th>`;
+    const opt = (v, l, cur) => `<option value="${esc(v)}"${String(cur) === String(v) ? " selected" : ""}>${esc(l)}</option>`;
+    $("#ro-sub").textContent = `${J.players.length.toLocaleString()} players · ${J.season_text || ""}`;
+    $("#ro").innerHTML = `<div class="filters">
+        <input id="ro-q" type="search" placeholder="Search player or team" value="${esc(S.q)}" aria-label="Search">
+        <select id="ro-team" aria-label="Team">${opt("", "All teams", S.team)}${opt("@users", "League teams only", S.team)}${teams.map(([k, n]) => opt(k, n, S.team)).join("")}</select>
+        <select id="ro-pos" aria-label="Position">${opt("", "All positions", S.pos)}${Object.keys(RO_GROUPS).map((g) => opt(g, g, S.pos)).join("")}</select>
+        <select id="ro-cls" aria-label="Class">${opt("", "All classes", S.cls)}${["FR", "SO", "JR", "SR"].filter((c) => classes.includes(c)).concat(classes.filter((c) => !["FR", "SO", "JR", "SR"].includes(c))).map((c) => opt(c, c, S.cls)).join("")}</select>
+        <select id="ro-dev" aria-label="Dev trait">${opt("", "All dev traits", S.dev)}${["Elite", "Star", "Impact", "Normal"].filter((d) => devs.includes(d)).concat(devs.filter((d) => !["Elite", "Star", "Impact", "Normal"].includes(d))).map((d) => opt(d, d, S.dev)).join("")}</select>
+      </div>
+      ${view.length ? `<div class="scroll"><table class="tbl ro-tbl"><thead><tr><th>#</th><th class="l">Player</th><th class="l">Team</th>${th("jersey", "NO", "Jersey number")}<th class="l">POS</th><th class="l">ARCH</th>${th("ovr", "OVR", "Overall")}<th class="l">YR</th><th class="l">DEV</th>${th("ht", "HT", "Height")}${th("wt", "WT", "Weight")}
+        ${rCols.map((c) => th(c, c, J.names[c] || c, keyCols.includes(c) ? "key" : "")).join("")}${th("nil", "NIL", "NIL compensation")}<th class="l">Hometown</th><th class="l">Abilities</th></tr></thead><tbody>
+        ${view.map((p, i) => `<tr class="${isUser(p.team) ? "user" : ""}"><td>${S.page * PER + i + 1}</td><td class="pl">${plLink(p.nm, p.key)}${p.inj ? ' <small title="Injured">🩹</small>' : ""}</td>
+          <td class="l"><div class="team-cell">${badge(teamName(p.team))}${tLink(teamName(p.team), p.team)}</div></td><td>${p.jersey ?? "—"}</td><td class="l">${esc(p.pos)}</td><td class="l">${esc(p.arch)}</td>
+          <td class="${S.sort === "ovr" ? "on" : ""}"><b>${p.ovr ?? "—"}</b></td><td class="l">${esc(p.class)}${p.rs ? " (RS)" : ""}</td><td class="l"><span class="ro-dev ${esc(p.dev)}">${esc(p.dev)}</span></td><td>${htFmt(p.ht)}</td><td>${p.wt ?? "—"}</td>
+          ${rCols.map((c) => { const v = p.rt[c]; return `<td class="${ratingCls(v)} ${S.sort === c ? "on" : ""}">${v ?? "—"}</td>`; }).join("")}
+          <td>${p.nil ? "$" + money(p.nil) : "—"}</td><td class="l">${esc(p.home)}</td><td class="l" style="color:var(--dim)">${esc((p.abil || "").split("|").filter(Boolean).map((a) => a.split(":")[0]).join(", "))}</td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="ro-pager"><button class="pill" id="ro-prev" ${S.page ? "" : "disabled"}>← Prev</button><span>${(S.page * PER + 1).toLocaleString()}–${Math.min(rows.length, S.page * PER + PER).toLocaleString()} of ${rows.length.toLocaleString()}</span><button class="pill" id="ro-next" ${S.page + 1 < pages ? "" : "disabled"}>Next →</button></div>`
+      : '<div class="empty">No players match those filters.</div>'}`;
+    const re = (patch) => { Object.assign(roState, patch); renderRosters(nav); };
+    let qt; $("#ro-q").oninput = (e) => { clearTimeout(qt); qt = setTimeout(() => { re({ q: e.target.value, page: 0 }); const el = $("#ro-q"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }, 250); };
+    $("#ro-team").onchange = (e) => re({ team: e.target.value, page: 0 });
+    $("#ro-pos").onchange = (e) => re({ pos: e.target.value, page: 0, sort: "ovr", dir: "desc" });
+    $("#ro-cls").onchange = (e) => re({ cls: e.target.value, page: 0 });
+    $("#ro-dev").onchange = (e) => re({ dev: e.target.value, page: 0 });
+    document.querySelectorAll("[data-ro]").forEach((h) => h.onclick = () => { const k = h.dataset.ro; re({ sort: k, dir: k === S.sort ? (S.dir === "asc" ? "desc" : "asc") : "desc", page: 0 }); });
+    const pg = (d) => { re({ page: S.page + d }); $("#ro")?.scrollIntoView({ block: "start" }); };
+    if ($("#ro-prev")) { $("#ro-prev").onclick = () => pg(-1); $("#ro-next").onclick = () => pg(1); }
   });
 }
 
@@ -2820,7 +2903,7 @@ function route() {
   if (!WIRE && D.league) wireLoad().then(() => { if (WIRE && /^#?(recruiting(\/(portal|crystal))?\/?|home|standings\/cfp|feature\/\w+)?$/.test(location.hash)) route(); });
   const name = location.hash.slice(1);
   const tm = name.match(/^team\/(\d+)$/), gm = name.match(/^game\/(\d+)$/), rm = name.match(/^recruit\/(\d+)$/), pm = name.match(/^player\/(\d+)$/);
-  const rs = name.match(/^recruiting(?:\/(classes|board|portal|crystal))?\/?$/), ss = name.match(/^stats(?:\/(players))?\/?$/);
+  const rs = name.match(/^recruiting(?:\/(classes|board|portal|crystal))?\/?$/), ss = name.match(/^stats(?:\/(players|rosters))?\/?$/);
   const hs = name.match(/^history(?:\/(coaches|careers|seasons|champions|trophies|hof))?\/?$/), cm = name.match(/^coach\/(.+)$/);
   if (hs || cm) { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#history" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); if (cm) renderCoach(decodeURIComponent(cm[1])); else { document.title = `History · ${CONFIG.SITE_NAME}`; renderHistory(hs[1] || "coaches"); } window.scrollTo(0, 0); return; }
   const sc2 = name === "standings/cfp", ft = name.match(/^feature\/(\w+)$/);
