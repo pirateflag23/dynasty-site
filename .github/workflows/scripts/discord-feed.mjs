@@ -131,7 +131,30 @@ async function main() {
   const site = (hash) => `${cfg.site_url.replace(/\/$/, "")}/#${hash}`;
   const tName = (k) => teams.get(k)?.name || tstats.get(k)?.name || "?";
   const isUserGame = (g) => g.kind !== "cpu_vs_cpu";
-  const weekLabel = (g) => g.bowl_name || g.displayed_week || `Week ${g.week}`;
+  // Postseason weeks are labeled by WEEK, not by the first unplayed bowl's name: every bowl in a week shares
+  // one week number, so the old label changed as each bowl was played (Cure Bowl → Poinsettia Bowl …) and
+  // re-posted #schedule and the @everyone advance card for what was really the same week.
+  //   conference title week → "Conference Championships"; bowl weeks → "Bowl Week 1/2/3" with the CFP round
+  //   as a sub-line (weekRound); title game week → "National Championship".
+  const NY6 = new Set(["Peach Bowl", "Rose Bowl", "Fiesta Bowl", "Cotton Bowl", "Orange Bowl", "Sugar Bowl"]);
+  const postWeek = (() => {
+    const byW = new Map();
+    for (const g of games) if (g.bowl_name) (byW.get(g.week) || byW.set(g.week, []).get(g.week)).push(g.bowl_name);
+    const info = new Map();
+    let n = 0;
+    for (const w of [...byW.keys()].sort((a, b) => a - b)) {
+      const names = byW.get(w);
+      if (names.includes("National Championship")) { info.set(w, { label: "National Championship", round: "" }); continue; }
+      if (names.every((b) => /Championship$/.test(b))) { info.set(w, { label: "Conference Championships", round: "" }); continue; }
+      const cfp = names.filter((b) => b.startsWith("CFP") || NY6.has(b));
+      const round = cfp.some((b) => /First Round/i.test(b)) ? "CFP First Round" : cfp.length >= 3 ? "CFP Quarterfinals" : cfp.length ? "CFP Semifinals" : "";
+      info.set(w, { label: `Bowl Week ${++n}`, round });
+    }
+    return info;
+  })();
+  const weekLabel = (g) => (g && postWeek.get(g.week)?.label) || g?.displayed_week || `Week ${g?.week}`;
+  const weekRound = (g) => (g && postWeek.get(g.week)?.round) || "";
+  const withRound = (label, g) => (weekRound(g) ? `${label} · ${weekRound(g)}` : label);
 
   // Logo versions from the site's logo store (same one the site's League admin page uploads to).
   let logos = null;
@@ -304,7 +327,7 @@ async function main() {
     const nowW = weeks[0], sch = pickChannel(cfg.channels.schedule);
     if (sch && nowW != null) {
       const label = weekLabel(open.find((g) => g.week === nowW));
-      await once(`schedule:${cur.season}:${label}`, "schedule", sch, () => ondeckPost(games.filter((g) => g.week === nowW && isUserGame(g)), label, "schedule"));
+      await once(`schedule:${cur.season}:${label}`, "schedule", sch, () => ondeckPost(games.filter((g) => g.week === nowW && isUserGame(g)), label, "schedule", weekRound(open.find((g) => g.week === nowW))));
     }
     // #on-deck: the week after that, held until on_deck_delay_hours after the advance (the dispatcher runs a sync then)
     const nextW = weeks[1];
@@ -314,7 +337,7 @@ async function main() {
     if (ch && nextW != null && onDeckReady) {
       const ng = open.filter((g) => g.week === nextW && isUserGame(g));
       const label = weekLabel(open.find((g) => g.week === nextW));
-      await once(`ondeck:${cur.season}:${label}`, "ondeck", ch, () => ondeckPost(ng, label));
+      await once(`ondeck:${cur.season}:${label}`, "ondeck", ch, () => ondeckPost(ng, label, "ondeck", weekRound(open.find((g) => g.week === nextW))));
     }
   }
 
@@ -579,22 +602,23 @@ async function main() {
     const seasons = [...(league.data.seasons || [])].map(Number).sort((a, b) => a - b); // API lists newest first
     const yr = seasons.indexOf(cur.season) >= 0 ? `Year ${seasons.indexOf(cur.season) + 1}` : "";
     const lines = cfg.advance_notes || ["Please try and schedule your game within 24hr", "Remember to include \"TheDynasty\" in your stream title"];
-    const text = { embeds: [{ title: `📣 We have advanced to ${wkText}`, color: RED, description: [yr && `${yr} · ${cur.season} season`, ...lines.map((l) => `• ${l}`)].filter(Boolean).join("\n") }] };
+    const round = nowRound();
+    const text = { embeds: [{ title: `📣 We have advanced to ${wkText}${round ? ` · ${round}` : ""}`, color: RED, description: [yr && `${yr} · ${cur.season} season`, ...lines.map((l) => `• ${l}`)].filter(Boolean).join("\n") }] };
     if (cfg.graphics?.advance === false) return text;
     try {
       const { renderAdvance } = await extraGraphics();
-      const png = await renderAdvance({ week: wkText, year: yr, season: `${cur.season} Season`, lines: lines.map((l, i) => [["🗓️", "🎥"][i] || "📌", l]), siteLogo: gfxSiteLogo() });
+      const png = await renderAdvance({ week: wkText, round, year: yr, season: `${cur.season} Season`, lines: lines.map((l, i) => [["🗓️", "🎥"][i] || "📌", l]), siteLogo: gfxSiteLogo() });
       return { embeds: [{ ...text.embeds[0], description: undefined, image: { url: "attachment://advance.png" } }], files: [{ name: "advance.png", data: png }] };
     } catch (err) { log(`Advance graphic failed, posting text instead: ${err.message}`); return text; }
   }
 
-  async function ondeckPost(ng, label, kind = "ondeck") {
+  async function ondeckPost(ng, label, kind = "ondeck", round = "") {
     const isSched = kind === "schedule";
     const side = (t) => { const k = t.team_key, tm = teams.get(k) || {}; return { name: t.team, rank: tm.rank, record: tm.record, coach: coachName(k), logo: "" }; };
     const order = (g) => (g.kind === "user_vs_user" ? 0 : 1);
     const list = [...ng].sort((a, b) => order(a) - order(b) || Math.min(teams.get(a.home.team_key)?.rank || 99, teams.get(a.away.team_key)?.rank || 99) - Math.min(teams.get(b.home.team_key)?.rank || 99, teams.get(b.away.team_key)?.rank || 99));
     const line = (g) => { const A = side(g.away), H = side(g.home); return `${A.name}${A.record ? ` (${A.record})` : ""}${A.coach ? ` · ${A.coach}` : ""} **at** ${H.name}${H.record ? ` (${H.record})` : ""}${H.coach ? ` · ${H.coach}` : ""}`; };
-    const text = { embeds: [{ title: isSched ? `📅 This week · ${label}` : `🗓️ On deck · ${label}`, url: site("schedule"), color: RED, description: list.length ? clip(list.map(line).join("\n"), 3900) : "No league games that week." }] };
+    const text = { embeds: [{ title: `${isSched ? "📅 This week" : "🗓️ On deck"} · ${label}${round ? ` · ${round}` : ""}`, url: site("schedule"), color: RED, description: list.length ? clip(list.map(line).join("\n"), 3900) : "No league games that week." }] };
     if (cfg.graphics?.[kind] === false) return text;
     try {
       const { renderOnDeck } = await extraGraphics();
@@ -606,7 +630,7 @@ async function main() {
       const rivals = rivalryNames;
       const G = list.map((g) => { const a = side(g.away), h = side(g.home); a.logo = logoFor(a.name, map); h.logo = logoFor(h.name, map);
         return { away: a, home: h, uvu: g.kind === "user_vs_user", tag: rivals.get(`${g.away.team}|${g.home.team}`) || (g.kind === "user_vs_user" ? "Coach vs coach" : "") }; });
-      const png = await renderOnDeck({ label, sub: `${list.length} league game${list.length === 1 ? "" : "s"} · ${cur.season} season`, games: G, siteLogo: gfxSiteLogo(), colors: await gfxColors(),
+      const png = await renderOnDeck({ label, sub: `${round ? `${round} · ` : ""}${list.length} league game${list.length === 1 ? "" : "s"} · ${cur.season} season`, games: G, siteLogo: gfxSiteLogo(), colors: await gfxColors(),
         ...(isSched ? { heading: ["This", "Week"], foot: "Set your game time in your matchup chat · red outline = coach vs coach" } : {}) });
       return { embeds: [{ title: text.embeds[0].title, url: text.embeds[0].url, color: RED, image: { url: `attachment://${kind}.png` } }], files: [{ name: `${kind}.png`, data: png }] };
     } catch (err) { log(`${kind} graphic failed, posting text instead: ${err.message}`); return text; }
@@ -676,6 +700,12 @@ async function main() {
     if (!open.length) return prettyWeek(cur.season_text || ""); // offseason: no unplayed games left
     const w = Math.min(...open.map((g) => g.week));
     return weekLabel(open.find((g) => g.week === w));
+  }
+  function nowRound() {
+    const open = games.filter((g) => !g.played);
+    if (!open.length) return "";
+    const w = Math.min(...open.map((g) => g.week));
+    return weekRound(open.find((g) => g.week === w));
   }
 
   // Players of the week card for one conference (or National); falls back to the text embed.

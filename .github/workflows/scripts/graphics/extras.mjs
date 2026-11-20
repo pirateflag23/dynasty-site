@@ -20,7 +20,7 @@ const logoImg = (src, h = 72) => (src ? `<img src="${src}" style="height:${h}px"
 // [[p:123|Name]] / [[t:..|Team]] / [[r:..|Recruit]] → Name
 export const plain = (s) => String(s || "").replace(/\[\[[a-z]:[^|\]]*\|([^\]]*)\]\]/g, "$1");
 
-export async function renderAdvance({ week = "", year = "", season = "", lines = [], siteLogo = "", chromeChannel = "chrome" }) {
+export async function renderAdvance({ week = "", round = "", year = "", season = "", lines = [], siteLogo = "", chromeChannel = "chrome" }) {
   const html = `<!doctype html><html><head><style>${await fonts()}
 ${BASE}
 .adv{position:relative;padding:54px 40px 46px;text-align:center;overflow:hidden;
@@ -28,6 +28,7 @@ ${BASE}
 .adv img{height:150px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.7))}
 .kick{font:700 22px RC;letter-spacing:.34em;color:#cc0000;text-transform:uppercase;margin-top:22px}
 .wk{font:800 120px/0.95 RC;text-transform:uppercase;margin-top:6px;text-shadow:0 4px 18px rgba(0,0,0,.6)}
+.rnd{font:800 44px RC;letter-spacing:.06em;text-transform:uppercase;color:#f2b134;margin-top:8px}
 .yr{display:inline-block;margin-top:14px;font:700 24px RC;letter-spacing:.12em;text-transform:uppercase;background:#cc0000;padding:6px 18px;border-radius:4px}
 .notes{display:grid;gap:12px;padding:26px 60px 8px}
 .note{display:flex;align-items:center;gap:16px;background:#1f2022;border-left:6px solid #cc0000;border-radius:6px;padding:16px 20px;font:700 26px RC}
@@ -36,6 +37,7 @@ ${BASE}
 <div class="adv">${logoImg(siteLogo, 150)}
   <div class="kick">We have advanced to</div>
   <div class="wk">${esc(week)}</div>
+  ${round ? `<div class="rnd">${esc(round)}</div>` : ""}
   <div class="yr">${esc([year, season].filter(Boolean).join(" · "))}</div></div>
 <div class="notes">${lines.map(([icon, t]) => `<div class="note"><i>${icon}</i><span>${esc(t)}</span></div>`).join("")}</div>
 <footer><span>Matchup chats are open under Matchups</span><b>thedynastycfb.com</b></footer>
