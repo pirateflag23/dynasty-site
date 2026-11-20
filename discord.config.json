@@ -53,7 +53,7 @@
     "SEC":     { "role": "SEC", "channel": "sec" }
   },
 
-  "coaches": { "East Carolina": "Pirate_flag", "Ohio State": "Tuddy_roosevelt",
+  "coaches": { "Stanford": "Pirate_flag", "Ohio State": "Tuddy_roosevelt",
     "Penn State": "agerm40" },
   "commish_role": "Badmin",
   "temperature": { "paused": true, "note": "paused until the new dynasty starts: set paused to false to resume AI feeds and photos" },

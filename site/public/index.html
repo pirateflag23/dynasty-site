@@ -902,7 +902,10 @@ function weekLabel(w) {
 const kindOrder = { user_vs_user: 0, user_vs_cpu: 1, cpu_vs_cpu: 2 };
 const rankWeight = (g) => (g.home.rank_at_game || 40) + (g.away.rank_at_game || 40);
 const sortGames = (list) => [...list].sort((a, b) => (kindOrder[a.kind] - kindOrder[b.kind]) || (rankWeight(a) - rankWeight(b)));
-const coach = (side) => (side.user_id > 0 || (side.user_name && side.user_id !== -1) ? side.user_name : "");
+// Coaches show by their Discord server name (data/coach-names.json, keyed by gamertag) when the bot knows it.
+let COACH_NAMES = {};
+const dn = (gt) => (gt && (COACH_NAMES[gt] || COACH_NAMES[Object.keys(COACH_NAMES).find((k) => k.toLowerCase() === String(gt).toLowerCase())])) || gt || "";
+const coach = (side) => (side.user_id > 0 || (side.user_name && side.user_id !== -1) ? dn(side.user_name) : "");
 
 function winnerLoser(g) {
   const homeWon = g.home.score > g.away.score;
@@ -1128,7 +1131,7 @@ function buildStories(boxes) {
   }
   // perfect seasons among league teams
   for (const t of standings().filter((x) => x.user_controlled && x.losses === 0 && x.wins >= 3)) {
-    const c = (D.members?.data || []).find((m) => m.team_key === t.team_key)?.user_name;
+    const c = dn((D.members?.data || []).find((m) => m.team_key === t.team_key)?.user_name);
     add({ id: t.team_key + "perfect" + w, type: "perfect", scene: "trophy", team: t.name, score: 40 + t.wins * 4, kick: "Still perfect",
       h: pick(t.team_key + w, [`${c ? c + " and " : ""}${t.name} still perfect at ${t.record}`, `Unbeaten ${t.name} (${t.record}) keeps rolling`, `How long can ${t.name} stay perfect? ${t.record} and counting`]),
       d: t.rank > 0 && t.rank <= 25 ? `Ranked No. ${t.rank}.` : "Still outside the Top 25." });
@@ -1336,7 +1339,7 @@ function renderRecruiting(sub = "") {
 const pickT = (seed, list) => list[hue(String(seed)) % list.length];
 const starWord = (n) => ({ 5: "five-star", 4: "four-star", 3: "three-star", 2: "two-star", 1: "one-star" }[n] || "");
 const isUserSchool = (name) => !!(teamByName(name)?.user_controlled || (D.classes?.data || []).find((c) => c.name === name)?.user_team);
-const coachOf = (name) => { const t = teamByName(name); return t && ((D.members?.data || []).find((m) => m.team_key === t.team_key)?.user_name); };
+const coachOf = (name) => { const t = teamByName(name); return t && dn((D.members?.data || []).find((m) => m.team_key === t.team_key)?.user_name); };
 
 function storyScore(e) {
   const r = e.national_rank || 999;
@@ -1689,7 +1692,7 @@ function renderTeam(key) {
   const g = games().filter((x) => x.home.team_key === key || x.away.team_key === key).sort((a, b) => a.week - b.week);
   const mine = (x) => (x.home.team_key === key ? x.home : x.away);
   const member = (D.members?.data || []).find((m) => m.team_key === key);
-  const coachName = member?.user_name || g.map((x) => coach(mine(x))).find(Boolean) || (userCtl ? "League coach" : "CPU");
+  const coachName = dn(member?.user_name) || g.map((x) => coach(mine(x))).find(Boolean) || (userCtl ? "League coach" : "CPU");
   const m = teamMetrics(ts);
   const row = (label, field, val, higher, fmt = f1) => `<div class="st-row"><span class="l">${label}</span><span class="v">${fmt(val)}</span><span class="r">${metricRank(field, val, higher)}</span></div>`;
   const toFmt = (v) => (v == null ? "—" : (v > 0 ? "+" : "") + v);
@@ -2269,7 +2272,8 @@ const H = { cache: {} };
 const hLeague = () => D.league?.league_id ?? D.league?.data?.league_id;
 const hGet = (path) => (H.cache[path] ??= fetch(`${HISTORY_BASE}/${hLeague()}/${path}`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null));
 const coachLabel = (c, link = true) => {
-  const txt = c.name ? `${esc(c.name)} <span class="h-gt">(${esc(c.gamertag)})</span>` : esc(c.gamertag);
+  const nm = COACH_NAMES[c.gamertag] ? dn(c.gamertag) : c.name;
+  const txt = nm ? `${esc(nm)} <span class="h-gt">(${esc(c.gamertag)})</span>` : esc(c.gamertag);
   return link ? `<a class="tl" href="#coach/${encodeURIComponent(c.gamertag)}">${txt}</a>` : txt;
 };
 const hWl = (w, l, t) => `${w}-${l}${t ? "-" + t : ""}`;
@@ -2467,7 +2471,7 @@ async function renderHof() {
     <section class="hof-wing"><h3>Players<small>The best to ever suit up in The Dynasty</small></h3>
       ${players.map((p) => `<div class="hof-plaque"><div class="cls">${esc(p.class || "")}</div><div><b>${esc(p.name)}</b><small>${esc([p.pos, p.team, p.years].filter(Boolean).join(" · "))}</small>${p.line ? `<div>${esc(p.line)}</div>` : ""}</div></div>`).join("") || empty("players")}</section>
     <section class="hof-wing"><h3>Coaches<small>The ones who built programs</small></h3>
-      ${coaches.map((c) => `<div class="hof-plaque"><div class="cls">${esc(c.class || "")}</div><div><b>${c.gamertag ? `<a href="#coach/${encodeURIComponent(c.gamertag)}">${esc(c.name || c.gamertag)}</a>` : esc(c.name)}</b><small>${esc([c.teams, c.years].filter(Boolean).join(" · "))}</small>${c.line ? `<div>${esc(c.line)}</div>` : ""}</div></div>`).join("") || empty("coaches")}</section>
+      ${coaches.map((c) => `<div class="hof-plaque"><div class="cls">${esc(c.class || "")}</div><div><b>${c.gamertag ? `<a href="#coach/${encodeURIComponent(c.gamertag)}">${esc(COACH_NAMES[c.gamertag] ? dn(c.gamertag) : c.name || c.gamertag)}</a>` : esc(c.name)}</b><small>${esc([c.teams, c.years].filter(Boolean).join(" · "))}</small>${c.line ? `<div>${esc(c.line)}</div>` : ""}</div></div>`).join("") || empty("coaches")}</section>
   </div>
   <div class="h-note">No one has been enshrined yet. The first class goes in once The Dynasty has some seasons behind it.</div>`;
 }
@@ -2477,14 +2481,15 @@ async function renderCoach(tag) {
   const d = await hGet("coaches.json");
   const c = d?.coaches?.find((x) => x.gamertag === tag);
   if (!c) { $("#view").innerHTML = `<div class="card"><div class="empty">No history for ${esc(tag)} yet. <a href="#history/coaches">All coaches</a></div></div>`; return; }
-  document.title = `${c.name || c.gamertag} · ${CONFIG.SITE_NAME}`;
+  const cnm = COACH_NAMES[c.gamertag] ? dn(c.gamertag) : c.name;
+  document.title = `${cnm || c.gamertag} · ${CONFIG.SITE_NAME}`;
   const tiles = [["Record", hWl(c.w, c.l, c.t)], ["Win %", hPct(c.pct)], ["Conference", hWl(c.conf_w, c.conf_l)], ["vs Top 25", hWl(c.ranked_w, c.ranked_l)],
     ["Rivalry", hWl(c.rival_w, c.rival_l)], ["Bowls", hWl(c.bowl_w, c.bowl_l)], ["Conf titles", `${c.cc_wins}/${c.cc_apps}`], ["CFP apps", c.cfp_apps], ["CFP", hWl(c.cfp_w, c.cfp_l)], ["Natl titles", c.natty_wins]];
   const yrs = Object.keys(c.seasons).sort((a, b) => b - a);
   const h2h = Object.entries(c.h2h).sort((a, b) => b[1].w + b[1].l - (a[1].w + a[1].l));
   const coachBy = new Map((d.coaches || []).map((x) => [x.gamertag, x]));
   $("#view").innerHTML = `
-    <section class="card h-head"><h1>${c.name ? esc(c.name) + ` <span class="gt">(${esc(c.gamertag)})</span>` : esc(c.gamertag)}</h1>
+    <section class="card h-head"><h1>${cnm ? esc(cnm) + ` <span class="gt">(${esc(c.gamertag)})</span>` : esc(c.gamertag)}</h1>
       <div class="cur">${c.current_team ? `Current: ${tLink(c.current_team, c.stints[c.stints.length - 1].team_key)} · ` : ""}${c.n_seasons} season${c.n_seasons === 1 ? "" : "s"} · ${c.first}${c.last !== c.first ? "–" + c.last : ""}</div></section>
     <div class="tp-grid"><div>
       <section class="card"><h2 class="card-h">Career</h2><div class="h-tiles">${tiles.map(([l, v]) => `<div><b>${v}</b><span>${l}</span></div>`).join("")}</div>
@@ -2922,6 +2927,7 @@ function route() {
 async function init() {
   try { await load(); } catch (e) { console.error(e); }
   D.logos = {};
+  if (!isDemo) try { const r = await fetch(`${DATA_BASE}/coach-names.json`, { cache: "no-cache" }); if (r.ok) COACH_NAMES = await r.json(); } catch (e) { /* names are optional */ }
   if (!isDemo) try { const r = await fetch(LOGO_BASE() + "/logos", { cache: "no-store" }); if (r.ok) D.logos = await r.json(); } catch (e) { /* logos are optional */ }
   if (isDemo) $("#demo").innerHTML = '<div class="demo">Showing sample data. Set API_BASE in the CONFIG block to load your dynasty.</div>';
   else if (!D.schedule) $("#demo").innerHTML = '<div class="demo">Couldn’t reach the data proxy. Check API_BASE and that the Worker’s DYNASTY_KEY secret is set.</div>';

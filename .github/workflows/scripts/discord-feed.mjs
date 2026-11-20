@@ -127,7 +127,7 @@ async function main() {
   const userTeams = new Set(members.data.map((m) => m.team_key));
   const memberByTeam = new Map(members.data.map((m) => [m.team_key, m]));
   const coachId = (teamKey) => { const id = cfg.coaches?.[teams.get(teamKey)?.name]; return /^\d{15,22}$/.test(id || "") ? id : null; }; // ignores blanks/placeholders
-  const coachTag = (teamKey) => { const id = coachId(teamKey); const m = memberByTeam.get(teamKey); return id ? `<@${id}>` : m ? m.user_name : "CPU"; };
+  const coachTag = (teamKey) => { const id = coachId(teamKey); const m = memberByTeam.get(teamKey); return id ? `<@${id}>` : m ? disp(m.user_name) : "CPU"; };
   const site = (hash) => `${cfg.site_url.replace(/\/$/, "")}/#${hash}`;
   const tName = (k) => teams.get(k)?.name || tstats.get(k)?.name || "?";
   const isUserGame = (g) => g.kind !== "cpu_vs_cpu";
@@ -204,6 +204,22 @@ async function main() {
       } catch (e) { log(`⚠️  Member lookup failed for "${v}": ${e.message}`); }
     }
   }
+  // Server display names (nickname → display name → username) for each mapped coach, keyed by gamertag, so posts and
+  // the site say "Andy" instead of "agerm40". Kept across seasons/job changes; published to data/coach-names.json.
+  state.display_names ??= {};
+  if (!DRY || TOKEN) {
+    const byName = new Map([...teams.values()].map((t) => [String(t.name).toLowerCase(), t.team_key]));
+    for (const [team, id] of Object.entries(cfg.coaches || {})) {
+      if (!/^\d{15,22}$/.test(id || "")) continue;
+      const gt = memberByTeam.get(byName.get(team.toLowerCase()))?.user_name;
+      if (!gt || gt === "CPU") continue;
+      const m = await dc("GET", `/guilds/${guild}/members/${id}`).catch(() => null);
+      const dn = m && (m.nick || m.user?.global_name || m.user?.username);
+      if (dn) state.display_names[gt.toLowerCase()] = { gt, name: dn };
+    }
+    if (!DRY) await writeFile("data/coach-names.json", JSON.stringify(Object.fromEntries(Object.values(state.display_names).map((v) => [v.gt, v.name])), null, 1)).catch(() => {});
+  }
+  const disp = (gt) => (gt && state.display_names[String(gt).toLowerCase()]?.name) || gt || "";
   const textCh = (name) => (name ? chan[`0:${name.toLowerCase()}`] || chan[`5:${name.toLowerCase()}`] : null) || (DRY ? `#${name}` : null);
   const warnedRoles = new Set();
   // names are matched ignoring case, spaces and punctuation ("B-10" = "b10"); extra names are fallbacks
@@ -444,7 +460,7 @@ async function main() {
       const { renderFinal, leadersFor } = await finalGraphics();
       const { siteTeamColors } = await import("./graphics/common.mjs");
       const map = await logoMap();
-      const coach = (sd) => { const t = g[sd], c = cfg.coaches?.[t.team]; return c && !/^\d{15,22}$/.test(c) ? c : t.user_name && t.user_name !== "CPU" ? t.user_name : ""; };
+      const coach = (sd) => { const t = g[sd], c = cfg.coaches?.[t.team]; return c && !/^\d{15,22}$/.test(c) ? c : t.user_name && t.user_name !== "CPU" ? disp(t.user_name) : ""; };
       const team = (sd, B) => ({ name: g[sd].team, abbrev: B.Abbrev, rank: g[sd].rank_at_game, score: g[sd].score, quarters: B.Quarters || [],
         coach: coach(sd), logo: logoFor(g[sd].team, map), stats: B.Stats || {}, leaders: leadersFor(b.Players, g[sd].team_key) });
       const name = `final-${g.key}.png`;
@@ -486,7 +502,7 @@ async function main() {
         { name: `${A.Abbrev} leaders`, value: clip(sideLeaders(b, ak), 1024), inline: true },
         { name: `${H.Abbrev} leaders`, value: clip(sideLeaders(b, hk), 1024), inline: true },
       ],
-      footer: { text: `${league.data.calendar_year} · ${weekLabel(g)} · ${g.away.team} (${g.away.user_name}) at ${g.home.team} (${g.home.user_name})` },
+      footer: { text: `${league.data.calendar_year} · ${weekLabel(g)} · ${g.away.team} (${disp(g.away.user_name)}) at ${g.home.team} (${disp(g.home.user_name)})` },
     }] };
   }
 
@@ -535,7 +551,7 @@ async function main() {
       const { renderTop25, siteTeamColors } = await graphics();
       const prev = standingsPrev ? new Map(standingsPrev.data.map((t) => [t.team_key, t.rank])) : null;
       const map = await logoMap();
-      const coachName = (k, name) => { const c = cfg.coaches?.[name]; return c && !/^\d{15,22}$/.test(c) ? c : memberByTeam.get(k)?.user_name || ""; };
+      const coachName = (k, name) => { const c = cfg.coaches?.[name]; return c && !/^\d{15,22}$/.test(c) ? c : disp(memberByTeam.get(k)?.user_name); };
       const teamsIn = standings.data.filter((t) => t.rank > 0 && t.rank <= 25).map((t) => ({
         rank: t.rank, name: t.name, conference: t.conference, record: t.record, user: userTeams.has(t.team_key),
         coach: userTeams.has(t.team_key) ? coachName(t.team_key, t.name) : "", logo: logoFor(t.name, map),
@@ -568,7 +584,7 @@ async function main() {
   // (function declarations, not consts: they're called by posts that run earlier in main)
   function gfxSiteLogo() { return cfg.site_url ? `${cfg.site_url.replace(/\/$/, "")}/logo.png` : ""; }
   async function gfxColors() { return (await import("./graphics/common.mjs")).siteTeamColors("site/public/index.html"); }
-  function coachName(k) { if (!userTeams.has(k)) return ""; const c = cfg.coaches?.[tName(k)]; return c && !/^\d{15,22}$/.test(c) ? c : memberByTeam.get(k)?.user_name || ""; }
+  function coachName(k) { if (!userTeams.has(k)) return ""; const c = cfg.coaches?.[tName(k)]; return c && !/^\d{15,22}$/.test(c) ? c : disp(memberByTeam.get(k)?.user_name); }
 
   // Weekly scoreboard graphic; falls back to the text embeds.
   async function scoresPost(w) {
@@ -669,7 +685,7 @@ async function main() {
     try {
       const { renderHeismanWinner } = await extraGraphics();
       const png = await renderHeismanWinner({ season: cur.season, name: w.name, pos: w.position, cls: wl?.class_year || "", team, rank_t: st?.rank, record: st?.record || "",
-        coach: user ? memberByTeam.get(tk)?.user_name || "" : "", logo: logoFor(team, await logoMap()), user, stats, line: wl?.stat_line || "",
+        coach: user ? disp(memberByTeam.get(tk)?.user_name) : "", logo: logoFor(team, await logoMap()), user, stats, line: wl?.stat_line || "",
         trophy: cfg.heisman_trophy || "", siteLogo: gfxSiteLogo(), colors: await gfxColors() });
       return { content: user && coachId(tk) ? `Congrats ${coachTag(tk)} 🏆` : undefined, allowed_mentions: { users: user && coachId(tk) && !DRY ? [coachId(tk)] : [] }, embeds: [{ title: text.embeds[0].title, color: GOLD, image: { url: "attachment://heisman-winner.png" } }],
         files: [{ name: "heisman-winner.png", data: png }] };
@@ -857,7 +873,7 @@ async function main() {
         return { name: g[sd].team, rank: t.rank, record: t.record, confRecord: t.conference_record, conference: t.conference,
           ovr: t.overall, off: t.offense, def: t.defense, ppg: gp ? t.points_for / gp : null, oppg: gp ? t.points_against / gp : null,
           last: lastResult(k), logo: logoFor(g[sd].team, map), leaders: seasonLeaders(allPlayers, k),
-          coach: userTeams.has(k) ? (c && !/^\d{15,22}$/.test(c) ? c : memberByTeam.get(k)?.user_name || "") : "" };
+          coach: userTeams.has(k) ? (c && !/^\d{15,22}$/.test(c) ? c : disp(memberByTeam.get(k)?.user_name)) : "" };
       };
       const A = team("away"), H = team("home");
       const tag = rivalryNames.get(`${g.away.team}|${g.home.team}`) || (g.kind === "user_vs_user" ? "League matchup" : "");
