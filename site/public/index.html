@@ -644,6 +644,7 @@ footer{max-width:1280px;margin:0 auto;padding:8px 16px 32px;color:var(--dim);fon
       <a href="#scores">Scores</a>
       <a href="#standings">Standings</a>
       <a href="#stats">Stats</a>
+      <a href="#teams">Teams</a>
       <a href="#players">Players</a>
       <a href="#recruiting">Recruiting</a>
       <a href="#history">History</a>
@@ -1770,7 +1771,7 @@ function renderTeam(key) {
             ${row("Rush yards allowed per game", "rushApg", m.rushApg, false)}</div>
         </div>` : '<div class="empty">Team stats not synced yet.</div>'}
       </section>
-      ${userCtl === false ? "" : '<section class="card"><h2 class="card-h">Roster <small>by overall</small></h2><div id="roster"><div class="empty">Loading…</div></div></section>'}
+      <section class="card"><h2 class="card-h">Roster <small>by overall</small></h2><div id="roster"><div class="empty">Loading…</div></div></section>
       <section class="card"><h2 class="card-h">Stat leaders</h2><div id="leaders">${userCtl === false
         ? '<div class="empty">Player stats are only synced for teams with a league coach.</div>' : '<div class="empty">Loading…</div>'}</div></section>
     </div>
@@ -1778,9 +1779,12 @@ function renderTeam(key) {
       ${sched ? `<table class="tbl"><tbody>${sched}</tbody></table>` : '<div class="empty">No games found.</div>'}</section>
     </div>`;
   document.title = `${name} · ${CONFIG.SITE_NAME}`;
-  if (userCtl !== false) loadRosters().then((ro) => {
+  // league teams come from the live roster feed; CPU teams (open jobs) from the every-roster file
+  Promise.all([userCtl === false ? [] : loadRosters(), loadAllRosters()]).then(([ro, J]) => {
     const el = $("#roster"); if (!el || location.hash !== "#team/" + key) return;
-    const list = ro.filter((x) => x.team_key === key).sort((a, b) => (b.overall || 0) - (a.overall || 0));
+    let list = ro.filter((x) => x.team_key === key);
+    if (!list.length && J) list = J.players.filter((x) => x.team === key).map((x) => ({ name: x.nm, player_key: x.key, position: x.pos, class_year: x.class, redshirted: !!x.rs, dev_trait: x.dev, overall: x.ovr, jersey: x.jersey }));
+    list.sort((a, b) => (b.overall || 0) - (a.overall || 0));
     el.innerHTML = list.length ? `<div class="scroll" style="max-height:420px;overflow-y:auto"><table class="tbl"><thead><tr><th>Player</th><th>Pos</th><th>Class</th><th>Dev</th><th>OVR</th></tr></thead><tbody>
       ${list.map((x) => `<tr><td class="pl"><span class="num">${x.jersey ?? ""}</span>${plLink(x.name, x.player_key)}</td><td>${esc(x.position)}</td><td>${esc(x.class_year || "")}${x.redshirted ? " (RS)" : ""}</td><td>${esc(x.dev_trait || "")}</td><td><b>${x.overall ?? ""}</b></td></tr>`).join("")}
       </tbody></table></div>` : '<div class="empty">Roster not synced yet.</div>';
@@ -2168,6 +2172,27 @@ function loadAllRosters() {
   return allRostersP;
 }
 const ratingCls = (v) => (v >= 90 ? "r90" : v >= 80 ? "r80" : v < 50 ? "r50" : "");
+/* ---------- teams directory (every team by conference: coach / open, OVR, OFF, DEF) ---------- */
+let teamsConf = "";
+function renderTeams() {
+  const P4 = ["ACC", "Big Ten", "Big 12", "SEC"];
+  const all = standings();
+  const confs = [...new Set(all.map((t) => t.conference).filter(Boolean))].sort((a, b) => ((P4.indexOf(a) + 1 || 99) - (P4.indexOf(b) + 1 || 99)) || a.localeCompare(b));
+  const coachOfKey = (k) => dn((D.members?.data || []).find((m) => m.team_key === k)?.user_name);
+  const show = teamsConf ? [teamsConf] : confs;
+  const open = all.filter((t) => !t.user_controlled).length;
+  $("#view").innerHTML = `<nav class="subnav" aria-label="Teams"><h1>Teams</h1></nav>
+    <section class="card"><h2 class="card-h">Every team <small>${all.length} teams · ${open} open · tap a team for its roster</small></h2>
+      <div class="ctrl" style="padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px"><button class="pill" data-tc="" aria-pressed="${!teamsConf}">All</button>${confs.map((c) => `<button class="pill" data-tc="${esc(c)}" aria-pressed="${teamsConf === c}">${esc(c)}</button>`).join("")}</div>
+    </section>
+    ${show.map((c) => { const ts = all.filter((t) => t.conference === c).sort((a, b) => (b.overall || 0) - (a.overall || 0) || a.name.localeCompare(b.name));
+      return `<section class="card"><h2 class="card-h">${esc(c)} <small>${ts.length} teams</small></h2><div class="scroll"><table class="tbl"><thead><tr><th class="l">Team</th><th class="l">Coach</th><th>Record</th><th>OVR</th><th>OFF</th><th>DEF</th></tr></thead><tbody>
+        ${ts.map((t) => `<tr class="${t.user_controlled ? "user" : ""}"><td><div class="team-cell">${badge(t.name)}<span class="nm">${rk(t.rank)}${tLink(t.name, t.team_key)}</span></div></td>
+          <td class="l">${t.user_controlled ? esc(coachOfKey(t.team_key) || "League coach") : '<span style="color:var(--dim)">Open</span>'}</td><td>${esc(t.record || "")}</td>
+          <td><b>${t.overall ?? "—"}</b></td><td>${t.offense ?? "—"}</td><td>${t.defense ?? "—"}</td></tr>`).join("")}</tbody></table></div></section>`; }).join("") || '<div class="card"><div class="empty">Teams not synced yet.</div></div>'}`;
+  document.querySelectorAll("[data-tc]").forEach((b) => (b.onclick = () => { teamsConf = b.dataset.tc; renderTeams(); }));
+}
+
 function renderRosters(nav) {
   $("#view").innerHTML = `${nav}<section class="card"><h2 class="card-h">All players <small id="ro-sub">Every player on every roster</small></h2><div id="ro"><div class="empty">Loading every roster…</div></div></section>`;
   loadAllRosters().then((J) => {
@@ -2950,6 +2975,7 @@ function route() {
   if (sc2 || ft) { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === (sc2 ? "#standings" : "#home") ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `${sc2 ? "Playoff odds" : "Offseason report"} · ${CONFIG.SITE_NAME}`; sc2 ? renderCfp() : renderFeature(ft[1]); window.scrollTo(0, 0); return; }
   if (name === "news/temperature") { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#news" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `Temperature · ${CONFIG.SITE_NAME}`; renderTemperature(); window.scrollTo(0, 0); return; }
   if (name === "stats/rosters") { location.replace("#players"); return; } // old link
+  if (name === "teams") { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#teams" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `Teams · ${CONFIG.SITE_NAME}`; renderTeams(); window.scrollTo(0, 0); return; }
   if (name === "players") { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#players" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `Players · ${CONFIG.SITE_NAME}`; renderRosters('<nav class="subnav" aria-label="Players"><h1>Players</h1></nav>'); window.scrollTo(0, 0); return; }
   if (name === "logos") { document.querySelectorAll(".tabs a").forEach((a) => a.removeAttribute("aria-current")); document.title = `League admin · ${CONFIG.SITE_NAME}`; renderLogos(); window.scrollTo(0, 0); return; }
   const key = tm || gm || rm || pm ? "" : rs ? "recruiting" : ss ? "stats" : ROUTES[name] ? name : "home";
