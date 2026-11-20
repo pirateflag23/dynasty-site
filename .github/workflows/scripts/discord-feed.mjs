@@ -294,16 +294,16 @@ async function main() {
   }
 
   /* ============ #big-performances ============ */
-  const bpLines = [];
+  const bpLines = [], bpRows = [];
   for (const g of played.filter(isUserGame)) {
     if (seen(`big:${g.key}`) && !REPLAY.has("big")) continue;
     if (seeding && !REPLAY.has("big")) { mark(`big:${g.key}`); continue; }
     const b = box.get(g.key); if (!b) continue;
-    const lines = bigPerformances(g, b, cfg.big_performances || {});
+    const lines = bigPerformances(g, b, cfg.big_performances || {}, bpRows);
     bpLines.push(...lines); mark(`big:${g.key}`);
   }
-  if (REPLAY.has("big") && bpLines.length > 20) bpLines.length = 20;
-  if (bpLines.length) await send(cfg.channels.big_performances, { embeds: pages(bpLines).map((d, i) => ({ title: i ? undefined : "🔥 Big performances", description: d, color: GOLD })) });
+  if (REPLAY.has("big") && bpLines.length > 20) { bpLines.length = 20; bpRows.length = 20; }
+  if (bpLines.length) await send(cfg.channels.big_performances, await bigPerfPost(bpLines, bpRows));
 
   /* ============ #scores weekly roundup ============ */
   const weeksDone = [...new Set(games.map((g) => g.week))].filter((w) => games.filter((g) => g.week === w).every((g) => g.played));
@@ -506,7 +506,26 @@ async function main() {
     }] };
   }
 
-  function bigPerformances(g, b, T) {
+  // Graphic version of #big-performances (8 players per image, up to 10 images); text if rendering fails.
+  async function bigPerfPost(lines, rows) {
+    const text = { embeds: pages(lines).map((d, i) => ({ title: i ? undefined : "🔥 Big performances", description: d, color: GOLD })) };
+    if (cfg.graphics?.big_performances === false || !rows.length) return text;
+    try {
+      const { renderBigPerformances } = await extraGraphics();
+      const map = await logoMap(), colors = await gfxColors();
+      const wk = [...new Set(rows.map((x) => x.week))];
+      const chunks = []; for (let i = 0; i < rows.length && chunks.length < 10; i += 8) chunks.push(rows.slice(i, i + 8));
+      const files = [];
+      for (const [i, c] of chunks.entries()) {
+        const png = await renderBigPerformances({ label: wk.length === 1 ? wk[0] : nowWeek(), sub: `${cur.season} season${chunks.length > 1 ? ` · ${i + 1}/${chunks.length}` : ""}`,
+          rows: c.map((x) => ({ ...x, logo: logoFor(x.team, map) })), siteLogo: gfxSiteLogo(), colors });
+        files.push({ name: `big-performances-${i + 1}.png`, data: png });
+      }
+      return { embeds: files.map((f, i) => ({ title: i ? undefined : "🔥 Big performances", color: GOLD, image: { url: `attachment://${f.name}` } })), files };
+    } catch (err) { log(`Big performances graphic failed, posting text instead: ${err.message}`); return text; }
+  }
+
+  function bigPerformances(g, b, T, rowsOut = []) {
     const out = [];
     for (const p of b.Players) {
       if (!userTeams.has(p.Team)) continue; // user teams only
@@ -523,6 +542,10 @@ async function main() {
       const mine = p.Team === g.home.team_key ? g.home : g.away, opp = mine === g.home ? g.away : g.home;
       const res = mine.score > opp.score ? "W" : mine.score < opp.score ? "L" : "T";
       out.push(`**[${p.Name}](${site(`player/${p.Key}`)})** (${mine.team}) — ${bits.join(" · ")}  ·  ${res} ${mine.score}-${opp.score} vs ${opp.team} · ${weekLabel(g)}`);
+      const ap = allPlayers.find((x) => x.player_key === p.Key);
+      rowsOut.push({ name: ap ? [ap.first_name, ap.last_name].filter(Boolean).join(" ") || p.Name : p.Name, pos: ap?.position || "", jersey: ap?.jersey ?? null, ovr: ap?.overall || null,
+        team: mine.team, rank: teams.get(mine.team_key)?.rank || 0, coach: coachName(mine.team_key), chips: bits, result: `${res} ${mine.score}-${opp.score}`,
+        opp: `${mine === g.home ? "vs" : "at"} ${opp.team}`, week: weekLabel(g) });
     }
     return out;
   }

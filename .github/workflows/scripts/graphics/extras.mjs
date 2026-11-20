@@ -182,3 +182,49 @@ ${games.length ? `<div class="grid">${games.map(tile).join("")}</div>` : '<div c
 </div></body></html>`;
   return shoot(html, { chromeChannel });
 }
+
+// #big-performances card: one row per player (league teams only).
+// renderBigPerformances({ label, sub, rows:[{ name, pos, jersey, ovr, team, rank, logo, coach, chips:[..], result, opp, oppLogo }], siteLogo, colors })
+export async function renderBigPerformances({ label = "", sub = "", rows = [], siteLogo = "", colors = {}, chromeChannel = "chrome" }) {
+  const fontCss = await fonts();
+  const row = (p) => {
+    const { c1, c2 } = teamCols(colors, p.team);
+    const win = /^W/.test(p.result || "");
+    return `<div class="r" style="--c1:${c1};--c2:${c2}">
+      <div class="lg">${badge(p.team, p.logo, colors, 78)}${p.jersey != null ? `<span class="jn">${p.jersey}</span>` : ""}</div>
+      <div class="who"><div class="nm">${esc(p.name)}</div>
+        <div class="mt">${esc([p.pos, p.ovr ? `${p.ovr} OVR` : ""].filter(Boolean).join(" · "))} · ${p.rank > 0 && p.rank <= 25 ? `<i>#${p.rank}</i> ` : ""}${esc(short(p.team))}${p.coach ? `<em>🎮 ${esc(p.coach)}</em>` : ""}</div>
+        <div class="ch">${p.chips.map((c) => `<span>${esc(c)}</span>`).join("")}</div></div>
+      <div class="res ${win ? "w" : "l"}"><b>${esc(p.result || "")}</b><small>${esc(p.opp || "")}</small></div></div>`;
+  };
+  const html = `<!doctype html><html><head><style>
+${fontCss}
+${BADGE_CSS}
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1200px;background:#0d0e0f;font-family:R,sans-serif;color:#ededee}
+.card{background:linear-gradient(180deg,#17181a,#0f1011);overflow:hidden}
+header{display:flex;align-items:center;gap:22px;padding:20px 32px 18px;background:#000;border-bottom:5px solid #f2b134}
+header img{height:64px}
+.ttl small{display:block;font:700 15px RC;letter-spacing:.22em;color:#f2b134;text-transform:uppercase}
+.ttl h1{font:800 48px/0.95 RC;text-transform:uppercase}
+.hm{margin-left:auto;text-align:right;font:700 22px RC;text-transform:uppercase}.hm small{display:block;font:500 15px R;color:#9a9b9e;text-transform:none}
+.list{padding:16px 24px 6px;display:grid;gap:12px}
+.r{display:grid;grid-template-columns:110px 1fr 190px;align-items:center;gap:18px;background:#1f2022;border-radius:10px;overflow:hidden;border-left:8px solid var(--c1)}
+.lg{position:relative;height:110px;display:grid;place-items:center;background:radial-gradient(circle,color-mix(in srgb,var(--c1) 70%,#000),#141516 80%)}
+.jn{position:absolute;right:4px;bottom:-6px;font:800 46px/1 RC;color:rgba(255,255,255,.18)}
+.who{padding:12px 0}
+.nm{font:800 32px/1 RC;text-transform:uppercase}
+.mt{font:500 15px R;color:#b9babd;margin-top:6px;display:flex;align-items:center;gap:8px}.mt i{font-style:normal;color:#9a9b9e}
+.mt em{font-style:normal;font:700 12px R;background:#cc0000;color:#fff;padding:2px 7px;border-radius:3px}
+.ch{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ch span{font:800 19px RC;background:#2a2b2e;border-left:4px solid #f2b134;padding:5px 11px;border-radius:4px}
+.res{text-align:center;padding:0 16px}.res b{display:block;font:800 30px RC}.res.w b{color:#3ecf6e}.res.l b{color:#ff5a5a}
+.res small{display:block;font:500 14px R;color:#9a9b9e;margin-top:4px}
+footer{display:flex;justify-content:flex-end;padding:10px 28px 14px;font:700 14px R;border-top:1px solid #26282a;margin-top:8px}
+</style></head><body><div class="card">
+<header>${siteLogo ? `<img src="${siteLogo}" onerror="this.remove()">` : ""}<div class="ttl"><small>League coaches</small><h1>🔥 Big Performances</h1></div><div class="hm">${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ""}</div></header>
+<div class="list">${rows.map(row).join("")}</div>
+<footer>thedynastycfb.com</footer>
+</div></body></html>`;
+  return shoot(html, { chromeChannel });
+}
