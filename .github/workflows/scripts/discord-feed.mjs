@@ -775,12 +775,18 @@ async function main() {
     const fromName = (r) => (typeof r.transfer_from === "string" ? r.transfer_from : r.transfer_from?.name) || "?";
     const fromKey = (r) => (r.transfer_from?.team_id ? byTeamId.get(r.transfer_from.team_id) : standings.data.find((t) => t.name === fromName(r))?.team_key);
     const lines = [];
+    const entries = [];
     for (const r of pool_.data) {
       const k = `portal-in:${r.prospect_key}`;
       if (seen(k) && !REPLAY.has("portal")) continue;
       mark(k); if (seeding && !REPLAY.has("portal")) continue;
+      entries.push(r);
+    }
+    // Only the top 50 new entrants by portal rank; the full list was too long to read. User-team players stay bold.
+    const rankOf = (r) => (Number.isFinite(+r.national_rank) && +r.national_rank > 0 ? +r.national_rank : Infinity);
+    entries.sort((a, b) => rankOf(a) - rankOf(b) || (b.stars || 0) - (a.stars || 0));
+    for (const r of entries.slice(0, 50)) {
       const user = userTeams.has(fromKey(r));
-      if (!user && (r.stars || 0) < 3) continue; // keep the feed readable: 3★+ or leaving a user team
       lines.push(`📥 ${user ? "**🎮 " : ""}${stars(r.stars)} ${r.position} ${r.name}${user ? "**" : ""} entered from **${fromName(r)}** (#${r.national_rank} overall)`);
     }
     for (const m of moves.data) {
