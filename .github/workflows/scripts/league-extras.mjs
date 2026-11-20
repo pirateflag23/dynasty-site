@@ -249,7 +249,7 @@ function nextEt(hhmm, lead) {
   return now + d * 60e3;
 }
 export async function signingDay(x) {
-  const C = { start_et: "19:00", hours: 3, min_signed: 40, after_stage: 7, ...(x.cfg.nsd || {}) };
+  const C = { min_signed: 40, after_stage: 7, ...(x.cfg.nsd || {}) };
   const ch = x.pickChannel(x.cfg.channels.signing_day || x.cfg.channels.recruiting);
   if (!ch) return;
   const TEST = process.env.NSD_TEST === "1";
@@ -329,17 +329,11 @@ export async function signingDay(x) {
   await card("close", "🏆 Signing Day final: the top classes. Thank you for watching National Signing Day!", () => G.renderNSDBoard({ title: "Final class rankings", sub: `${season} recruiting class · Thank you for watching National Signing Day`,
     rows: classes.slice(0, 20).map((c) => ({ rank: c.rank, name: c.name, logo: x.logoFor(c.name, map), coach: x.userTeams.has(c.team_key) ? x.coachName(c.team_key) : "", pts: c.points != null ? `${c.points} pts` : `${c.commits?.total ?? ""}` })), label, siteLogo, colors }));
 
-  // timing: opener at start, everything else evenly in show order, final rankings at the end
-  // start_now (testing): begin 10 minutes after the build and squeeze the show into `test_minutes`
-  const quick = TEST || x.DRY || C.start_now;
-  const start = quick ? Date.now() + 10 * 60e3 : nextEt(C.start_et, 20 * 60e3), H = C.start_now ? (C.test_minutes ?? 30) * 60e3 : C.hours * 3600e3;
-  const mid = items.filter((q) => q.id !== "open" && q.id !== "close");
+  // timing: no set show time. Runs on the sync that reaches the Signing Day stage (once per season); cards go out
+  // in show order as a slideshow (the dispatch worker posts ~4 every 2 minutes). Short delay so the images are pushed first.
+  const start = Date.now() + 3 * 60e3, H = items.length * 1000;
   const at = (t) => new Date(Math.round(t)).toISOString();
-  for (const q of items) {
-    if (q.id === "open") q.at = at(start);
-    else if (q.id === "close") q.at = at(start + H);
-    else q.at = at(start + 2 * 60e3 + (mid.indexOf(q) * (H * 0.95 - 2 * 60e3)) / Math.max(1, mid.length));
-  }
+  items.forEach((q, i) => { q.at = at(start + i * 1000); });
   const queue = { season, league_id: x.lid, channel_id: x.channelId(ch), channel: ch, start: at(start), end: at(start + H), built: new Date().toISOString(), test: TEST, items };
   await writeFile(x.DRY ? "graphics-preview/nsd/queue.json" : `data/nsd/queue.json`, JSON.stringify(queue, null, 1));
   if (!TEST) st[season] = { built: queue.built, start: queue.start, n: items.length };
