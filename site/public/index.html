@@ -944,7 +944,7 @@ function renderStrip() {
 }
 
 /* ---------- home ---------- */
-// Hero ("Top result") card: Spotlight style. Uses the site's own helpers:
+// Hero ("Final") card: Spotlight style. Uses the site's own helpers:
 // winnerLoser, headline, badge, rk, tLink, coach, teamRec, teamColor, teamAccent, esc, loadGame, initials.
 
 function heroBadges(g, h, b) {
@@ -994,7 +994,7 @@ function heroCard(g) {
   const style = `--cw:${teamColor(w.team)};--cl:${teamColor((g.away === w ? g.home : g.away).team)};--wx:${wl[0]};--lx:${wl[1]}`;
   setTimeout(() => heroEnrich(g), 0);
   return `<section class="card hero v-${v}" id="hero" style="${style}">${bg}<div class="sweep"></div>
-    <div class="hero-tag">${g.kind === "user_vs_user" ? "Game of the Week" : "Top result"}</div>
+    <div class="hero-tag">Final</div>
     <div class="hero-body">${side(g.away)}
       <div><div class="hero-score"><span class="${g.away === w ? "" : "l"}">${g.away.score}</span><span class="${g.home === w ? "" : "l"}">${g.home.score}</span></div><span class="f">Final · <a class="tl" href="#game/${g.key}" style="text-decoration:underline">Box score</a></span></div>
       ${side(g.home)}</div>
@@ -1024,12 +1024,22 @@ async function heroEnrich(g) {
   }
 }
 
+// Most recently completed game: latest week, then latest in-game date (season runs Aug→Jan), then the sync that
+// first saw it final; ties within the same day/sync favor league games, then the usual game order.
+function mostRecentFinal() {
+  const MO = ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
+  const day = (g) => { const m = /([A-Z][a-z]{2})\s+(\d+)/.exec(g.date || ""); return m ? MO.indexOf(m[1]) * 40 + +m[2] : -1; };
+  const all = games().filter((g) => g.played);
+  if (!all.length) return null;
+  return [...all].sort((a, b) => (b.week - a.week) || (day(b) - day(a)) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")) || (kindOrder[a.kind] - kindOrder[b.kind]) || (rankWeight(a) - rankWeight(b)))[0];
+}
+
 function renderHome() {
   setTimeout(enrichStories, 0);
   const w = latestPlayedWeek();
   const played = sortGames(games().filter((g) => g.week === w && g.played));
   const userGames = played.filter((g) => g.kind !== "cpu_vs_cpu");
-  const top = userGames[0] || played[0];
+  const top = mostRecentFinal() || userGames[0] || played[0];
   const rest = (userGames.length ? userGames : played).filter((g) => g !== top);
   // headlines: user games only, max 5 (hero game excluded so it isn't repeated)
   const heads = rest.filter((g) => g.kind !== "cpu_vs_cpu").slice(0, 5).map((g) => {
