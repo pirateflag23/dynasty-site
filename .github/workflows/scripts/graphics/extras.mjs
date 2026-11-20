@@ -222,7 +222,7 @@ header img{height:64px}
 .res small{display:block;font:500 14px R;color:#9a9b9e;margin-top:4px}
 footer{display:flex;justify-content:flex-end;padding:10px 28px 14px;font:700 14px R;border-top:1px solid #26282a;margin-top:8px}
 </style></head><body><div class="card">
-<header>${siteLogo ? `<img src="${siteLogo}" onerror="this.remove()">` : ""}<div class="ttl"><small>League coaches</small><h1>🔥 Big Performances</h1></div><div class="hm">${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ""}</div></header>
+<header>${siteLogo ? `<img src="${siteLogo}" onerror="this.remove()">` : ""}<div class="ttl"><small>League coaches</small><h1>Big Performances</h1></div><div class="hm">${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ""}</div></header>
 <div class="list">${rows.map(row).join("")}</div>
 <footer>thedynastycfb.com</footer>
 </div></body></html>`;
