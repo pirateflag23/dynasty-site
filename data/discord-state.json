@@ -10301,7 +10301,18 @@
   "scores:2030:19": "2026-11-20",
   "top25:801": "2026-11-20",
   "advance:2030:Offseason Stage 1": "2026-11-20",
-  "headlines:801": "2026-11-20"
+  "headlines:801": "2026-11-20",
+  "rec:dyn:career:defenseSacks:557721689": "2026-11-20",
+  "potw:2030:20:National": "2026-11-20",
+  "potw:2030:19:National": "2026-11-20",
+  "potw:2030:19:Big 12": "2026-11-20",
+  "potw:2030:19:Big Ten": "2026-11-20",
+  "potw:2030:18:National": "2026-11-20",
+  "potw:2030:18:ACC": "2026-11-20",
+  "potw:2030:18:Big 12": "2026-11-20",
+  "potw:2030:18:Big Ten": "2026-11-20",
+  "potw:2030:18:SEC": "2026-11-20",
+  "recruit:801": "2026-11-20"
  },
  "chats": {
   "831914913": {
@@ -10782,10 +10793,10 @@
    "tn": "Penn State"
   },
   "career:defenseSacks": {
-   "k": 557718784,
-   "n": "D.Onujiogu",
-   "v": 22,
-   "tn": "Ohio State"
+   "k": 557721689,
+   "n": "M.Slaughter",
+   "v": 22.5,
+   "tn": "Penn State / USC"
   },
   "career:defenseInterceptions": {
    "k": 557726373,
