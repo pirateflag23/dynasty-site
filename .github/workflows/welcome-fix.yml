@@ -1,0 +1,11 @@
+name: Welcome fix (one-off)
+on: { workflow_dispatch: {} }
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node .github/workflows/scripts/welcome-fix.mjs
+        env: { DISCORD_BOT_TOKEN: "${{ secrets.DISCORD_BOT_TOKEN }}" }
