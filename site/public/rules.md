@@ -87,3 +87,6 @@ Do not have a lead by a margin greater than 35 points at any point during a game
 ### DISCONNECTS
 In the event of a game disconnect, the two coaches will collaborate to determine the best resolution.
 If they want to play a shortened game to mimic what was left or play an entirely new game, that is their decision.
+
+New-addition:
+No Swerve Catch (you may not run into a defender to move them out of the way and run back into the path of the ball)
