@@ -4,7 +4,12 @@
   "name": "pf-07",
   "account_id": "94040c1270d9dc5406fa79b47377f21f",
   "compatibility_date": "2026-11-16",
-  "assets": { "directory": "./public" },
+  "main": "worker.js",
+  // Static site; the Worker only runs for paths with no matching file (e.g. /api/...)
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  // Breakaway arcade league leaderboard (SQLite-backed Durable Object, see worker.js)
+  "durable_objects": { "bindings": [{ "name": "LEADERBOARD", "class_name": "Leaderboard" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Leaderboard"] }],
   "workers_dev": true
   // thedynastycfb.com + www are attached in the dashboard (Domains); deploys leave them alone
 }
