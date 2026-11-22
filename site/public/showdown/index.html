@@ -41,6 +41,9 @@ button{font:inherit;color:inherit}
 #keysHint{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);font:7px var(--px);color:rgba(255,255,255,.55);display:none;z-index:5;text-shadow:1px 1px 0 #000}
 #mute{position:fixed;top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));z-index:12;width:34px;height:34px;border-radius:6px;border:2px solid #000;background:#141a28;color:#fff;display:grid;place-items:center;cursor:pointer}
 #mute svg{width:16px;height:16px}
+#pauseBtn{position:fixed;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));z-index:11;width:40px;height:40px;border-radius:6px;border:2px solid #000;background:#141a28;color:#fff;display:none;place-items:center;cursor:pointer;touch-action:none}
+#pauseBtn.on{display:grid}
+#pauseBtn svg{width:16px;height:16px}
 
 /* ---------- screens ---------- */
 .screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:calc(16px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));background:rgba(5,7,13,.9);overflow-y:auto;z-index:8;touch-action:pan-y}
@@ -131,6 +134,7 @@ h1.px{font-size:clamp(20px,6vw,34px);line-height:1.35;margin:14px 0 6px;text-sha
 </div>
 <div id="keysHint">MOVE: ARROWS/WASD · A: SPACE · B: SHIFT</div>
 <button id="mute" aria-label="Mute sound"></button>
+<button id="pauseBtn" aria-label="Pause"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg></button>
 
 <div class="screen on" id="sTitle">
   <div class="box center">
@@ -345,8 +349,8 @@ function unlockAudio(){
 }
 ['touchend','click','keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { capture: true, passive: true }));
 document.addEventListener('visibilitychange', () => {
-  if (AC){ if (document.hidden) AC.suspend().catch(()=>{}); else AC.resume().catch(()=>{}); }
-  if (document.hidden && G && (phase === 'live' || phase === 'presnap')) pause();
+  if (document.hidden && G) pause();
+  if (AC && phase !== 'paused'){ if (document.hidden) AC.suspend().catch(()=>{}); else AC.resume().catch(()=>{}); }
 });
 
 // ================= INPUT =================
@@ -358,7 +362,7 @@ addEventListener('keydown', e => {
   if (!e.repeat){
     if (k === ' ' || k === 'j' || k === 'z') aPress++;
     if (k === 'shift' || k === 'k' || k === 'x') bPress++;
-    if (k === 'escape' && G && (phase === 'live' || phase === 'presnap')) pause();
+    if ((k === 'escape' || k === 'p') && G){ if (phase === 'paused') $('resume').click(); else pause(); }
   }
   keys[k] = true;
 });
@@ -524,7 +528,7 @@ function newGame(home, away, user, opts){
   buildField(home);
   P = []; O = {}; D = {};
   setupPlayers(0);
-  showScreen(null); $('bug').classList.add('on');
+  showScreen(null); $('bug').classList.add('on'); $('pauseBtn').classList.add('on');
   startMusic(0.16);
   showBanner('KICKOFF', `${G[G.poss].school.toUpperCase()} BALL`, 1.6);
   toCall();
@@ -1091,10 +1095,10 @@ function updateBug(){
   const s = situation();
   const q = G.q <= 4 ? `${G.q}Q ${clockTxt(G.clock)}` : 'OT';
   const tm = side => { const t = G[side]; return `<div class="tm ${G.poss === side ? 'poss' : ''}" style="background:${t.c1}"><i></i><span>${t.id}</span><b>${G.score[side]}</b></div>`; };
-  const html = tm('away') + tm('home') + `<div class="info"><span>${q}</span><span class="dd">${G.over ? 'FINAL' : s.dd}</span></div><button class="menu" data-pause>II</button>`;
+  const html = tm('away') + tm('home') + `<div class="info"><span>${q}</span><span class="dd">${G.over ? 'FINAL' : s.dd}</span></div>`;
   if (html !== lastBug){ lastBug = html; $('bug').innerHTML = html; }
 }
-$('bug').addEventListener('click', e => { if (e.target.closest('[data-pause]') && G && !G.over) pause(); });
+$('pauseBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (G && !G.over) pause(); });
 let lastLabels = '';
 function updatePadLabels(){
   let a = '', b = '';
@@ -1108,14 +1112,14 @@ const isTouch = matchMedia('(pointer:coarse)').matches;
 function showPad(){ if (isTouch) $('pad').classList.add('on'); else $('keysHint').style.display = 'block'; }
 function hidePad(){ $('pad').classList.remove('on'); $('keysHint').style.display = 'none'; stick.on = false; stick.x = stick.y = 0; knob.style.transform = ''; }
 
-function pause(){ if (phase === 'paused') return; pausedFrom = phase; phase = 'paused'; hidePad(); showScreen('sPause'); }
-$('resume').addEventListener('click', () => { showScreen(null); phase = pausedFrom; if (phase === 'live' || phase === 'presnap') showPad(); if (phase === 'call') showScreen('sCall'); });
+function pause(){ if (phase === 'paused' || phase === 'final' || phase === 'menu' || !G) return; pausedFrom = phase; phase = 'paused'; hidePad(); showScreen('sPause'); if (AC) AC.suspend().catch(()=>{}); }
+$('resume').addEventListener('click', () => { if (AC) AC.resume().catch(()=>{}); showScreen(null); phase = pausedFrom; if (phase === 'live' || phase === 'presnap') showPad(); if (phase === 'call') showScreen('sCall'); });
 $('quit').addEventListener('click', () => { quitToMenu(); });
-function quitToMenu(){ G = null; P = []; phase = 'menu'; hidePad(); $('bug').classList.remove('on'); fieldC = null; startMusic(0.3); showScreen('sTitle'); }
+function quitToMenu(){ if (AC) AC.resume().catch(()=>{}); G = null; P = []; phase = 'menu'; hidePad(); $('bug').classList.remove('on'); $('pauseBtn').classList.remove('on'); fieldC = null; startMusic(0.3); showScreen('sTitle'); }
 
 // ================= GAME END / SEASON =================
 function finalGame(){
-  G.over = true; phase = 'final'; hidePad(); stopMusic();
+  G.over = true; phase = 'final'; hidePad(); stopMusic(); $('pauseBtn').classList.remove('on');
   const us = G.score[G.user], them = G.score[other(G.user)], win = us > them;
   setTimeout(() => (win ? SFX.td() : SFX.bad()), 300);
   let extra = '', btns = '';
@@ -1137,7 +1141,7 @@ function finalGame(){
     $('final').querySelector('#fMenu').onclick = quitToMenu;
   }
 }
-function quitToMenuSilent(){ G = null; P = []; phase = 'menu'; $('bug').classList.remove('on'); fieldC = null; startMusic(0.3); }
+function quitToMenuSilent(){ $('pauseBtn').classList.remove('on'); G = null; P = []; phase = 'menu'; $('bug').classList.remove('on'); fieldC = null; startMusic(0.3); }
 
 const SEASON_KEY = 'ss-season-v1';
 function roundRobin(ids){
