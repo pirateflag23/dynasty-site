@@ -158,6 +158,7 @@ async function fetchPicks(x, round) {
 
 /* ---------------- Coach Power Rankings ---------------- */
 export async function powerRankings(x) {
+  if (x.cfg.power_rankings?.paused) return; // paused until the new league dynasty starts
   const ch = x.pickChannel(x.cfg.channels.power_rankings);
   if (!ch) return;
   const hours = x.cfg.power_rankings?.after_hours ?? 30;
