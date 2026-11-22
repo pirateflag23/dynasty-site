@@ -52,6 +52,8 @@ input:focus{border-color:var(--red)}
 .lb li .y{font:700 16px Oswald,sans-serif}
 .lb li.me{color:var(--gold)}
 .lb .empty{color:var(--muted);font-size:13px}
+.lb h3 .live{color:#3ecf6a;margin-left:6px;letter-spacing:.08em}
+.lb .you{color:var(--gold);font-size:13px;margin-top:8px}
 .lb .note{color:#5f6873;font-size:11px;margin-top:8px}
 .result{display:flex;gap:8px;margin:12px 0 2px}
 .result>div{flex:1;background:#0f1216;border:1px solid var(--line);padding:8px 10px}
@@ -67,7 +69,7 @@ input:focus{border-color:var(--red)}
 <div id="hud">
   <div class="stat"><div class="k">Yards</div><div class="v" id="hYards">0</div></div>
   <div class="stat"><div class="k">TD</div><div class="v" id="hTD">0</div></div>
-  <div class="stat right"><div class="k">Best</div><div class="v" id="hBest">0</div></div>
+  <div class="stat right"><div class="k" id="hBestK">Best</div><div class="v" id="hBest">0</div></div>
 </div>
 <div id="banner"></div>
 <div id="controls">
@@ -125,11 +127,48 @@ function save(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e
 let scores = load(LB_KEY, []);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function bestFor(name){ return scores.filter(s => s.name.toLowerCase() === name.toLowerCase()).reduce((m,s)=>Math.max(m,s.yards),0); }
+// ---------- league leaderboard (live, via the site's Worker; falls back to this device) ----------
+const API = '/api/breakaway/scores';
+let league = null, leagueRuns = 0, lastSubmit = null;
+async function fetchLeague(){
+  try { const r = await fetch(API, { cache: 'no-store' }); if (!r.ok) throw 0; const j = await r.json(); league = j.top || []; leagueRuns = j.runs || 0; }
+  catch(e){ league = null; }
+  refreshBoards();
+}
+function refreshBoards(){
+  if ($('startScreen').classList.contains('on')) renderLB($('lbStart'), -1);
+  if ($('overScreen').classList.contains('on')) renderLB($('lbOver'), -1);
+}
+setInterval(() => { if (!document.hidden && (state === 'menu' || state === 'over')) fetchLeague(); }, 15000);
 function renderLB(el, hiIdx){
+  const me = (name || load(NAME_KEY, '') || '').trim().toLowerCase();
+  if (league){
+    const top = league.slice(0, 10);
+    let html = '<h3>League leaderboard<span class="live">&#9679; LIVE</span></h3>';
+    html += top.length
+      ? '<ol>' + top.map((s,i)=>`<li class="${s.name.toLowerCase()===me?'me':''}"><span class="r">${i+1}</span><span class="n">${esc(s.name)}</span><span class="y">${s.yards} yds</span></li>`).join('') + '</ol>'
+      : '<p class="empty">No runs yet. Set the first mark.</p>';
+    if (lastSubmit && lastSubmit.rank > 10) html += `<p class="you">You: #${lastSubmit.rank} &middot; best ${lastSubmit.best} yds</p>`;
+    html += `<p class="note">Best run per name &middot; ${leagueRuns.toLocaleString()} runs league-wide</p>`;
+    el.innerHTML = html; return;
+  }
   const top = scores.slice(0, 10);
   el.innerHTML = '<h3>Leaderboard</h3>' + (top.length
     ? '<ol>' + top.map((s,i)=>`<li class="${i===hiIdx?'me':''}"><span class="r">${i+1}</span><span class="n">${esc(s.name)}</span><span class="y">${s.yards} yds</span></li>`).join('') + '</ol>'
     : '<p class="empty">No runs yet. Set the first mark.</p>') + '<p class="note">Scores are saved on this device.</p>';
+}
+async function submitRun(yards, tds, ms){
+  try {
+    const r = await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, yards, tds, ms: Math.round(ms) }) });
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw 0;
+    league = j.top; leagueRuns = j.runs; lastSubmit = { rank: j.rank, best: j.best };
+    $('oRank').textContent = '#' + j.rank;
+    const pb = $('pb');
+    if (j.newBest && j.rank === 1){ pb.textContent = 'New league record'; pb.classList.add('on'); }
+    else if (j.newBest && j.prevBest > 0){ pb.textContent = 'New personal best'; pb.classList.add('on'); }
+    refreshBoards();
+  } catch(e){}
 }
 
 // ---------- audio ----------
@@ -349,6 +388,7 @@ const TEAMS = [
 ];
 let state = 'menu', name = '', dist = START, speed = 13, defs = [], nextWave = 0, waveCount = 0;
 let player = { lane: 0, x: 0, phase: 0, lean: 0, angle: 0 };
+let playMs = 0, record = 0, recordBroken = false;
 let tds = 0, timer = 0, shake = 0, tackler = null, bannerT = 0, lastHud = '';
 
 function startGame(){
@@ -357,7 +397,10 @@ function startGame(){
   player = { lane: 0, x: 0, phase: 0, lean: 0, angle: 0 };
   $('startScreen').classList.remove('on'); $('overScreen').classList.remove('on');
   $('hud').classList.add('on'); $('controls').classList.add('on');
-  $('hBest').textContent = bestFor(name);
+  playMs = 0; recordBroken = false;
+  record = league && league.length ? league[0].yards : bestFor(name);
+  $('hBestK').textContent = league ? 'Record' : 'Best';
+  $('hBest').textContent = record;
   initAudio(); startMusic();
   state = 'ready'; timer = 1.1;
   showBanner('READY', 'Set... Hut!', 1.0);
@@ -403,6 +446,7 @@ function update(dt){
   }
   if (state !== 'play') return;
 
+  playMs += dt * 1000;
   speed = Math.min(40, 13 + (dist - START) * 0.03);
   dist += speed * dt;
   player.phase += dt * (8 + speed * 0.35);
@@ -434,6 +478,11 @@ function update(dt){
   const nowTD = Math.floor((dist - 100) / SEG) + 1;
   if (dist >= 100 && nowTD > tds){ tds = nowTD; cheer(); showBanner('TOUCHDOWN!', `${name} · ${tds} TD`, 1.3); }
 
+  const gained = Math.floor(dist - START);
+  if (league && record > 0 && gained > record){
+    if (!recordBroken){ recordBroken = true; cheer(); showBanner('NEW RECORD!', 'League #1', 1.3); }
+    $('hBest').textContent = gained;
+  }
   const hud = Math.floor(dist - START) + '|' + tds;
   if (hud !== lastHud){ lastHud = hud; $('hYards').textContent = Math.floor(dist - START); $('hTD').textContent = tds; }
 }
@@ -450,10 +499,13 @@ function gameOver(){
   $('oYards').textContent = yards; $('oTD').textContent = tds;
   $('oRank').textContent = idx >= 0 ? '#' + (idx + 1) : '-';
   $('overLine').textContent = `${name} was brought down after ${yards} yards.`;
+  $('pb').textContent = 'New personal best';
   $('pb').classList.toggle('on', yards > prevBest && prevBest > 0);
+  lastSubmit = null;
   renderLB($('lbOver'), idx < 10 ? idx : -1);
   $('hud').classList.remove('on'); $('controls').classList.remove('on');
   $('overScreen').classList.add('on');
+  submitRun(yards, tds, playMs);
 }
 
 // ---------- drawing ----------
@@ -677,11 +729,11 @@ nameIn.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefau
 $('againBtn').addEventListener('click', startGame);
 $('nameBtn').addEventListener('click', () => {
   state = 'menu'; defs = []; $('overScreen').classList.remove('on');
-  renderLB($('lbStart'), -1); $('startScreen').classList.add('on'); nameIn.focus();
+  renderLB($('lbStart'), -1); $('startScreen').classList.add('on'); nameIn.focus(); fetchLeague();
 });
 
 addEventListener('resize', resize);
-resize(); renderLB($('lbStart'), -1);
+resize(); renderLB($('lbStart'), -1); fetchLeague();
 requestAnimationFrame(frame);
 })();
 </script>
