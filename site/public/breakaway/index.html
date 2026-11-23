@@ -475,10 +475,12 @@ function update(dt){
 
   const lvl = (dist - START) / 120;
   while (nextWave < dist + ZMAX){
-    spawnWave(nextWave);
+    const wpos = ((nextWave % SEG) + SEG) % SEG;
+    if (wpos < 99) spawnWave(nextWave); // no waves set up inside the end zone
     nextWave += speed * Math.max(0.6, 1.35 - lvl * 0.07) * (0.85 + Math.random() * 0.3);
   }
 
+  const inEZ = (((dist % SEG) + SEG) % SEG) >= 100; // can't be tackled in the end zone
   for (const d of defs){
     d.wp -= d.vz * dt;
     d.phase += dt * (6 + d.vz);
@@ -488,7 +490,7 @@ function update(dt){
       if (player.lane !== Math.round(d.x)) d.tx = Math.round(d.x) + Math.sign(player.lane - d.x);
     }
     d.x += (d.tx - d.x) * Math.min(1, dt * 7);
-    if (z < 0.9 && z > -0.5 && Math.abs(d.x - player.x) < 0.58){
+    if (!inEZ && z < 0.9 && z > -0.5 && Math.abs(d.x - player.x) < 0.58){
       state = 'tackled'; tackler = d; timer = 1.2; shake = 1; playTackle();
       showBanner('TACKLED', `${Math.floor(dist - START)} yards`, 1.1);
       if (navigator.vibrate) try { navigator.vibrate(120); } catch(e){}
