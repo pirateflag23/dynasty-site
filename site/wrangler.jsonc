@@ -8,8 +8,9 @@
   // Static site; the Worker only runs for paths with no matching file (e.g. /api/...)
   "assets": { "directory": "./public", "binding": "ASSETS" },
   // Breakaway arcade league leaderboard (SQLite-backed Durable Object, see worker.js)
-  "durable_objects": { "bindings": [{ "name": "LEADERBOARD", "class_name": "Leaderboard" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Leaderboard"] }],
+  // + Ball Knower University trivia leaderboard (TriviaBoard)
+  "durable_objects": { "bindings": [{ "name": "LEADERBOARD", "class_name": "Leaderboard" }, { "name": "TRIVIA", "class_name": "TriviaBoard" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Leaderboard"] }, { "tag": "v2", "new_sqlite_classes": ["TriviaBoard"] }],
   "workers_dev": true
   // thedynastycfb.com + www are attached in the dashboard (Domains); deploys leave them alone
 }
