@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Ball Knower University — The Dynasty</title>
+<meta name="theme-color" content="#10203f">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=EB+Garamond:ital,wght@0,500;0,700;1,500&family=Inter:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#10203f;--navy2:#172b52;--ink:#0a1428;--gold:#c9a227;--gold2:#e8c96a;--parch:#f4ecd8;--parch2:#e9dcbc;--maroon:#7a1f2b;--text:#1d1a14;--dim:#6f6552;--good:#1f7a43;--bad:#a3222f;
+  --serif:"EB Garamond",Georgia,serif;--cap:Cinzel,"Trajan Pro",Georgia,serif;--ui:Inter,system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--ink);color:var(--text);font-family:var(--serif);-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(ellipse at top,#1b3260 0%,var(--navy) 45%,var(--ink) 100%) fixed;min-height:100dvh;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;cursor:pointer}
+.wrap{width:100%;max-width:520px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 14px calc(22px + env(safe-area-inset-bottom));flex:1;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.top a{color:#b9c3d8;text-decoration:none;font:600 13px var(--ui)}
+.top a:hover{color:#fff}
+.screen{display:none;flex-direction:column;flex:1}
+.screen.on{display:flex}
+
+/* parchment card */
+.card{background:var(--parch) linear-gradient(180deg,#fbf6e8,#f1e6cb);border-radius:4px;box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 0 0 1px #d8c79c,inset 0 0 0 6px var(--parch),inset 0 0 0 7px rgba(122,31,43,.35);padding:22px 20px 20px;position:relative}
+.crest{display:block;margin:0 auto 6px;width:116px;height:auto}
+.uni{font:800 25px/1.05 var(--cap);text-align:center;color:var(--navy);letter-spacing:.04em}
+.uni small{display:block;font:600 11px var(--cap);letter-spacing:.32em;color:var(--maroon);margin-top:6px}
+.rule{height:1px;background:linear-gradient(90deg,transparent,#b79c5c,transparent);margin:14px 0}
+.lede{text-align:center;font:500 17px/1.4 var(--serif);color:#3b3427}
+.lede i{color:var(--maroon)}
+.syll{list-style:none;margin:12px 0 4px;display:grid;gap:6px}
+.syll li{display:flex;gap:10px;align-items:baseline;font:500 15.5px/1.35 var(--serif);color:#3b3427}
+.syll b{font:700 11px var(--cap);color:var(--maroon);letter-spacing:.12em;min-width:64px}
+label{display:block;font:600 11px var(--cap);letter-spacing:.2em;color:var(--dim);margin:14px 0 6px}
+input{width:100%;background:#fffdf6;border:1px solid #cdb98a;border-radius:3px;font:700 19px var(--serif);padding:11px 12px;color:var(--text);outline:none}
+input:focus{border-color:var(--maroon);box-shadow:0 0 0 3px rgba(122,31,43,.15)}
+.btn{display:block;width:100%;margin-top:12px;padding:14px;border:0;border-radius:3px;background:var(--maroon);color:#fff7e6;font:800 16px var(--cap);letter-spacing:.14em;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 2px 0 #4a1119}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:transparent;color:var(--navy);box-shadow:inset 0 0 0 1px #b79c5c;font-size:13px;padding:11px}
+
+/* dean's list */
+.lb{margin-top:16px}
+.lbh{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--navy);padding-bottom:5px;margin-bottom:2px}
+.lbh h3{font:800 14px var(--cap);letter-spacing:.14em;color:var(--navy)}
+.live{font:700 10px var(--ui);letter-spacing:.1em;color:var(--good)}
+.live::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--good);margin-right:5px;vertical-align:0;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.3}}
+.lb ol{list-style:none}
+.lb li{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px dotted #c9b68a;font-size:16px}
+.lb .r{width:22px;font:700 14px var(--cap);color:var(--dim)}
+.lb .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.lb .s{font:500 13px var(--serif);color:var(--dim);font-style:italic}
+.lb .p{font:800 14px var(--ui);color:var(--navy);min-width:58px;text-align:right}
+.lb li.me{background:rgba(201,162,39,.18)}
+.lb li.me .n::after{content:'YOU';margin-left:6px;font:800 9px var(--ui);letter-spacing:.08em;color:#fff;background:var(--maroon);border-radius:2px;padding:1px 4px;vertical-align:2px}
+.lb .empty{padding:10px 2px;color:var(--dim);font-style:italic}
+.lb .note{font:500 12.5px var(--serif);color:var(--dim);font-style:italic;margin-top:8px}
+.lb .you{font:700 14px var(--serif);color:var(--maroon);margin-top:8px}
+
+/* exam */
+.hud{display:flex;gap:8px;margin-bottom:10px}
+.hud>div{flex:1;background:rgba(10,20,40,.6);border:1px solid rgba(201,162,39,.45);border-radius:3px;padding:6px 10px;color:#fff}
+.hud .k{font:600 9.5px var(--cap);letter-spacing:.2em;color:var(--gold2)}
+.hud .v{font:800 22px/1.1 var(--ui)}
+.hud .v.sm{font:700 14px/1.6 var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clock{height:10px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden;margin-bottom:12px;box-shadow:inset 0 0 0 1px rgba(201,162,39,.35)}
+.clock i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));transform-origin:left;border-radius:5px}
+.clock.hurry i{background:linear-gradient(90deg,#c0392b,#e66a5a)}
+.q{text-align:center;padding:22px 18px 22px}
+.qn{font:600 11px var(--cap);letter-spacing:.26em;color:var(--maroon)}
+.who{font:700 clamp(30px,9vw,42px)/1.05 var(--serif);color:var(--navy);margin:12px 0 8px;word-break:break-word}
+.meta{display:inline-flex;gap:8px;align-items:center;font:700 12px var(--ui);letter-spacing:.08em;color:#5b513f}
+.meta span{background:#efe3c3;border:1px solid #d6c291;border-radius:2px;padding:3px 8px}
+.ask{font:500 italic 17px var(--serif);color:#5b513f;margin-top:14px}
+.opts{display:grid;gap:9px;margin-top:12px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fbf6e8;border:0;border-radius:3px;padding:14px 14px;box-shadow:0 3px 0 rgba(0,0,0,.35),inset 0 0 0 1px #d8c79c;font:700 19px var(--serif);color:var(--text);transition:transform .06s}
+.opt:active{transform:translateY(2px)}
+.opt .l{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--navy);color:var(--gold2);font:800 13px var(--cap)}
+.opt.right{background:#dff0e2;box-shadow:0 3px 0 rgba(0,0,0,.35),inset 0 0 0 2px var(--good)}
+.opt.right .l{background:var(--good);color:#fff}
+.opt.wrong{background:#f6dcdc;box-shadow:0 3px 0 rgba(0,0,0,.35),inset 0 0 0 2px var(--bad)}
+.opt.wrong .l{background:var(--bad);color:#fff}
+.opts.locked .opt{pointer-events:none}
+.opts.locked .opt:not(.right):not(.wrong){opacity:.55}
+.pop{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(.7);font:800 44px var(--cap);color:var(--gold2);text-shadow:0 3px 0 #000,0 0 22px rgba(201,162,39,.5);opacity:0;pointer-events:none;transition:opacity .15s,transform .2s;z-index:9;white-space:nowrap}
+.pop.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.pop.bad{color:#ff8b8b;text-shadow:0 3px 0 #000,0 0 22px rgba(163,34,47,.6)}
+.promo{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top));transform:translate(-50%,-30px);background:var(--maroon);color:#fff7e6;font:800 12px var(--cap);letter-spacing:.16em;padding:9px 16px;border-radius:3px;box-shadow:0 6px 16px rgba(0,0,0,.4);opacity:0;transition:opacity .2s,transform .25s;z-index:9;white-space:nowrap}
+.promo.on{opacity:1;transform:translate(-50%,0)}
+
+/* transcript */
+.stamp{position:absolute;right:16px;top:18px;transform:rotate(10deg);border:3px solid var(--bad);color:var(--bad);font:800 12px var(--cap);letter-spacing:.14em;padding:4px 8px;border-radius:3px;opacity:.85}
+.tt{font:800 22px var(--cap);max-width:72%;color:var(--navy);letter-spacing:.06em}
+.tsub{font:600 11px var(--cap);letter-spacing:.24em;color:var(--maroon);margin-top:2px}
+.miss{margin-top:12px;font:500 16.5px/1.4 var(--serif);color:#3b3427}
+.miss b{color:var(--navy)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:14px;border:1px solid #cdb98a}
+.grid>div{padding:9px 12px;border-bottom:1px solid #e0d1a8}
+.grid>div:nth-child(odd){border-right:1px solid #e0d1a8}
+.grid>div:last-child{border-bottom:0}
+.grid .k{font:600 9.5px var(--cap);letter-spacing:.2em;color:var(--dim)}
+.grid .v{font:700 22px var(--serif);color:var(--navy)}
+.pb{display:none;margin-top:10px;text-align:center;font:800 12px var(--cap);letter-spacing:.18em;color:var(--maroon)}
+.pb.on{display:block}
+.foot{text-align:center;color:#8e9bb8;font:500 italic 13px var(--serif);margin-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/arcade/">&larr; Arcade</a><a href="/">The Dynasty</a></div>
+
+  <!-- ADMISSIONS -->
+  <section class="screen on" id="sStart">
+    <div class="card">
+      <svg class="crest" viewBox="0 0 120 132" aria-hidden="true">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b3260"/><stop offset="1" stop-color="#0d1a35"/></linearGradient></defs>
+        <path d="M60 4 108 18v42c0 34-22 56-48 68C34 116 12 94 12 60V18Z" fill="url(#g)" stroke="#c9a227" stroke-width="4"/>
+        <path d="M60 12 100 24v36c0 29-18 48-40 59C38 108 20 89 20 60V24Z" fill="none" stroke="#c9a227" stroke-width="1.2" opacity=".7"/>
+        <path d="M24 74h72" stroke="#c9a227" stroke-width="1.5"/>
+        <ellipse cx="60" cy="46" rx="22" ry="13" fill="#7a3e12" stroke="#4a240a" stroke-width="1.5" transform="rotate(-25 60 46)"/>
+        <path d="M49 51l22-10" stroke="#fff" stroke-width="2"/><path d="M54 46l2 4M58 44l2 4M62 42l2 4M66 40l2 4" stroke="#fff" stroke-width="1.6"/>
+        <path d="M38 84q11-5 22 0q11-5 22 0v20q-11-5-22 0q-11-5-22 0Z" fill="#f4ecd8" stroke="#c9a227" stroke-width="1.5"/>
+        <path d="M60 84v20" stroke="#c9a227" stroke-width="1.5"/>
+        <text x="60" y="68" text-anchor="middle" font-family="Cinzel,Georgia,serif" font-weight="800" font-size="9" fill="#e8c96a" letter-spacing="1.5">MMXXVI</text>
+      </svg>
+      <div class="uni">Ball Knower<br>University<small>Scientia Pilae &middot; Est. 2026</small></div>
+      <div class="rule"></div>
+      <p class="lede">Welcome to the <i>Office of Admissions</i>. Name the college. Prove you know ball.</p>
+      <ul class="syll">
+        <li><b>Exam</b><span>A former college player appears. Pick his school from four choices.</span></li>
+        <li><b>Clock</b><span>Ten seconds per question. The faster you answer, the more points you earn.</span></li>
+        <li><b>Policy</b><span>One wrong answer or a blown clock and you&rsquo;re expelled.</span></li>
+      </ul>
+      <label for="nameIn">Student name</label>
+      <input id="nameIn" maxlength="14" placeholder="Enter your name" autocomplete="off" autocapitalize="words">
+      <button class="btn" id="goBtn" disabled>Begin Entrance Exam</button>
+      <div class="lb" id="lbStart"></div>
+    </div>
+    <p class="foot">Players are listed under the school he&rsquo;s best known for. Transfers never show a second school of his as a wrong answer.</p>
+  </section>
+
+  <!-- EXAM -->
+  <section class="screen" id="sExam">
+    <div class="hud">
+      <div><div class="k">Points</div><div class="v" id="hPts">0</div></div>
+      <div><div class="k">Streak</div><div class="v" id="hStreak">0</div></div>
+      <div style="flex:1.5"><div class="k">Standing</div><div class="v sm" id="hRank">Freshman</div></div>
+    </div>
+    <div class="clock" id="clock"><i id="clockBar"></i></div>
+    <div class="card q">
+      <div class="qn" id="qNum">Question 1</div>
+      <div class="who" id="qWho"></div>
+      <div class="meta" id="qMeta"></div>
+      <div class="ask">Where did he play college ball?</div>
+    </div>
+    <div class="opts" id="opts"></div>
+  </section>
+
+  <!-- TRANSCRIPT -->
+  <section class="screen" id="sOver">
+    <div class="card">
+      <div class="stamp" id="stamp">Expelled</div>
+      <div class="tt">Official Transcript</div>
+      <div class="tsub">Ball Knower University</div>
+      <p class="miss" id="miss"></p>
+      <div class="grid">
+        <div><div class="k">Student</div><div class="v" id="oName">-</div></div>
+        <div><div class="k">Points</div><div class="v" id="oPts">0</div></div>
+        <div><div class="k">Correct</div><div class="v" id="oRight">0</div></div>
+        <div><div class="k">Class Rank</div><div class="v" id="oRank">-</div></div>
+        <div style="grid-column:1/-1;border-right:0"><div class="k">Highest Standing</div><div class="v" id="oTitle">-</div></div>
+      </div>
+      <div class="pb" id="pb">New personal best</div>
+      <button class="btn" id="againBtn">Re-enroll</button>
+      <button class="btn ghost" id="nameBtn">Change name</button>
+      <div class="lb" id="lbOver"></div>
+    </div>
+  </section>
+</div>
+<div class="pop" id="pop"></div>
+<div class="promo" id="promo"></div>
+
+<script src="players.js"></script>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--){ const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pick = a => a[(Math.random() * a.length) | 0];
+
+// ---------- data ----------
+const CONF = {}; for (const [c, list] of Object.entries(window.BKU_SCHOOLS)) for (const s of list) CONF[s] = c;
+const FBS = Object.keys(CONF).filter(s => CONF[s] !== 'Small');
+const BANK = window.BKU_PLAYERS.trim().split('\n').map(l => {
+  const [name, pos, era, tier, schools] = l.split('|');
+  const s = schools.split(';').map(x => x.trim());
+  return { name, pos, era, tier: +tier, answer: s[0], all: new Set(s) };
+});
+
+function choicesFor(p){
+  const conf = CONF[p.answer], used = new Set(p.all), out = [];
+  const take = pool => { const c = shuffle(pool.filter(s => !used.has(s))); if (c.length){ used.add(c[0]); out.push(c[0]); } };
+  if (conf === 'Small'){
+    take(window.BKU_SCHOOLS.Small);
+  } else {
+    // two conference-mates (tougher), then fill from everywhere
+    take(window.BKU_SCHOOLS[conf] || FBS); take(window.BKU_SCHOOLS[conf] || FBS);
+  }
+  while (out.length < 3) take(FBS);
+  return shuffle([p.answer, ...out]);
+}
+
+// ---------- academic standing ----------
+const TITLES = [[0,'Freshman'],[3,'Sophomore'],[6,'Junior'],[10,'Senior'],[15,'Graduate Student'],[20,"Master's Candidate"],[30,'Doctoral Candidate'],[40,'Ph.D. in Ball'],[50,'Tenured Professor'],[65,'Dean of Ball Knowledge'],[80,'University Chancellor']];
+const titleFor = n => { let t = TITLES[0][1]; for (const [k, v] of TITLES) if (n >= k) t = v; return t; };
+
+// ---------- league leaderboard ----------
+const API = '/api/bku/scores', NAME_KEY = 'td-bku-name', BEST_KEY = 'td-bku-best';
+let league = null, runs = 0, lastSubmit = null;
+async function fetchLeague(){
+  try { const r = await fetch(API, { cache: 'no-store' }); if (!r.ok) throw 0; const j = await r.json(); league = j.top || []; runs = j.runs || 0; }
+  catch(e){ league = null; }
+  renderBoards();
+}
+function renderLB(el){
+  const me = (name || load(NAME_KEY, '') || '').trim().toLowerCase();
+  let h = `<div class="lbh"><h3>Dean&rsquo;s List</h3>${league ? '<span class="live">LIVE</span>' : ''}</div>`;
+  if (!league){ el.innerHTML = h + '<p class="empty">The Dean&rsquo;s List is loading&hellip;</p>'; return; }
+  const top = league.slice(0, 10);
+  h += top.length
+    ? '<ol>' + top.map((s, i) => `<li class="${s.name.toLowerCase() === me ? 'me' : ''}"><span class="r">${i + 1}</span><span class="n">${esc(s.name)}</span><span class="s">${s.correct} right</span><span class="p">${s.points.toLocaleString()}</span></li>`).join('') + '</ol>'
+    : '<p class="empty">No one has enrolled yet. Be the first on the Dean&rsquo;s List.</p>';
+  if (lastSubmit && lastSubmit.rank > 10) h += `<p class="you">You: #${lastSubmit.rank} &middot; best ${lastSubmit.best.toLocaleString()} pts</p>`;
+  h += `<p class="note">Best exam per name &middot; ${runs.toLocaleString()} exam${runs === 1 ? '' : 's'} taken league-wide</p>`;
+  el.innerHTML = h;
+}
+function renderBoards(){ renderLB($('lbStart')); renderLB($('lbOver')); }
+setInterval(() => { if (!document.hidden && state !== 'exam') fetchLeague(); }, 15000);
+async function submit(){
+  try {
+    const r = await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, points, correct, ms: Math.round(performance.now() - startedAt) }) });
+    const j = await r.json(); if (!r.ok || !j.ok) throw 0;
+    league = j.top; runs = j.runs; lastSubmit = { rank: j.rank, best: j.best };
+    $('oRank').textContent = '#' + j.rank;
+    if (j.newBest && j.rank === 1){ $('pb').textContent = 'Valedictorian · New league record'; $('pb').classList.add('on'); }
+    else if (j.newBest && j.prevBest > 0){ $('pb').textContent = 'New personal best'; $('pb').classList.add('on'); }
+    renderBoards();
+  } catch(e){ $('oRank').textContent = '-'; }
+}
+
+// ---------- game ----------
+let state = 'menu', name = '', points = 0, correct = 0, qIdx = 0, cur = null, opts = [], deadline = 0, qStart = 0, qDur = 10, raf = 0, startedAt = 0;
+let decks = {};
+function freshDecks(){ decks = { 1: shuffle(BANK.filter(p => p.tier === 1)), 2: shuffle(BANK.filter(p => p.tier === 2)), 3: shuffle(BANK.filter(p => p.tier === 3)) }; }
+function tierFor(n){ // n = question number (1-based): ease in, then deep cuts
+  const r = Math.random();
+  if (n <= 5) return 1;
+  if (n <= 12) return r < .6 ? 1 : 2;
+  if (n <= 25) return r < .2 ? 1 : r < .8 ? 2 : 3;
+  return r < .1 ? 1 : r < .55 ? 2 : 3;
+}
+function draw(n){
+  let t = tierFor(n);
+  for (const tt of [t, 2, 3, 1]) if (decks[tt].length) return decks[tt].pop();
+  freshDecks(); return decks[1].pop();
+}
+const durFor = n => n <= 15 ? 10 : n <= 30 ? 8 : 7;
+
+function show(id){ for (const s of ['sStart', 'sExam', 'sOver']) $(s).classList.toggle('on', s === id); scrollTo(0, 0); }
+function start(){
+  points = 0; correct = 0; qIdx = 0; lastSubmit = null; freshDecks();
+  $('hPts').textContent = '0'; $('hStreak').textContent = '0'; $('hRank').textContent = titleFor(0);
+  $('pb').classList.remove('on');
+  state = 'exam'; startedAt = performance.now(); show('sExam'); next();
+}
+function next(){
+  qIdx++; cur = draw(qIdx); opts = choicesFor(cur); qDur = durFor(qIdx);
+  $('qNum').textContent = `Question ${qIdx}`;
+  $('qWho').textContent = cur.name;
+  $('qMeta').innerHTML = `<span>${esc(cur.pos)}</span><span>${esc(cur.era)}</span>`;
+  const box = $('opts'); box.classList.remove('locked');
+  box.innerHTML = opts.map((s, i) => `<button class="opt" data-i="${i}"><span class="l">${'ABCD'[i]}</span><span>${esc(s)}</span></button>`).join('');
+  qStart = performance.now(); deadline = qStart + qDur * 1000;
+  cancelAnimationFrame(raf); tick();
+}
+function tick(){
+  const left = Math.max(0, deadline - performance.now()), f = left / (qDur * 1000);
+  $('clockBar').style.transform = `scaleX(${f})`;
+  $('clock').classList.toggle('hurry', f < 0.3);
+  if (state !== 'exam') return;
+  if (left <= 0) return answer(-1);
+  raf = requestAnimationFrame(tick);
+}
+function answer(i){
+  if (state !== 'exam') return;
+  state = 'reveal'; cancelAnimationFrame(raf);
+  const box = $('opts'), btns = box.querySelectorAll('.opt'), ai = opts.indexOf(cur.answer);
+  box.classList.add('locked'); btns[ai].classList.add('right');
+  if (i === ai){
+    const f = Math.max(0, (deadline - performance.now()) / (qDur * 1000));
+    const gain = Math.round(100 + 900 * f);
+    const before = titleFor(correct);
+    points += gain; correct++;
+    $('hPts').textContent = points.toLocaleString(); $('hStreak').textContent = correct;
+    const after = titleFor(correct); $('hRank').textContent = after;
+    popup('+' + gain);
+    if (after !== before) promo('Promoted · ' + after);
+    if (navigator.vibrate) try { navigator.vibrate(25); } catch(e){}
+    setTimeout(() => { state = 'exam'; next(); }, 750);
+  } else {
+    if (i >= 0) btns[i].classList.add('wrong');
+    popup(i < 0 ? 'TIME' : 'WRONG', true);
+    if (navigator.vibrate) try { navigator.vibrate([60, 40, 120]); } catch(e){}
+    setTimeout(over, 1500);
+  }
+}
+let popT = 0, promoT = 0;
+function popup(t, bad){ const p = $('pop'); p.textContent = t; p.classList.toggle('bad', !!bad); p.classList.add('on'); clearTimeout(popT); popT = setTimeout(() => p.classList.remove('on'), bad ? 1100 : 520); }
+function promo(t){ const p = $('promo'); p.textContent = t; p.classList.add('on'); clearTimeout(promoT); promoT = setTimeout(() => p.classList.remove('on'), 1600); }
+
+function over(){
+  state = 'over';
+  const others = [...cur.all].slice(1);
+  const also = others.length ? ` <span style="color:var(--dim);font-style:italic">(also ${others.map(esc).join(', ')})</span>` : '';
+  $('miss').innerHTML = `<b>${esc(cur.name)}</b> played at <b>${esc(cur.answer)}</b>${also}.`;
+  $('stamp').textContent = correct >= 50 ? 'Graduated' : 'Expelled';
+  $('stamp').style.color = $('stamp').style.borderColor = correct >= 50 ? 'var(--good)' : '';
+  $('oName').textContent = name; $('oPts').textContent = points.toLocaleString(); $('oRight').textContent = correct;
+  $('oTitle').textContent = titleFor(correct); $('oRank').textContent = '…';
+  const prevBest = load(BEST_KEY, 0);
+  if (points > prevBest){ save(BEST_KEY, points); if (prevBest > 0){ $('pb').textContent = 'New personal best'; $('pb').classList.add('on'); } }
+  renderBoards(); show('sOver'); submit();
+}
+
+// ---------- input ----------
+$('opts').addEventListener('click', e => { const b = e.target.closest('.opt'); if (b) answer(+b.dataset.i); });
+addEventListener('keydown', e => {
+  if (document.activeElement === $('nameIn')) return;
+  if (state === 'exam'){ const k = { '1':0,'2':1,'3':2,'4':3,a:0,b:1,c:2,d:3 }[e.key.toLowerCase()]; if (k !== undefined){ e.preventDefault(); answer(k); } }
+  else if (state === 'over' && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); start(); }
+});
+document.addEventListener('visibilitychange', () => { // no pausing to look it up
+  if (document.hidden && state === 'exam') answer(-1);
+});
+const nameIn = $('nameIn'), goBtn = $('goBtn');
+nameIn.value = load(NAME_KEY, '') || load('td-breakaway-name', '') || '';
+const sync = () => { goBtn.disabled = !nameIn.value.trim(); }; nameIn.addEventListener('input', sync); sync();
+function go(){ const n = nameIn.value.trim().replace(/\s+/g, ' ').slice(0, 14); if (!n) return; name = n; save(NAME_KEY, name); nameIn.blur(); start(); }
+goBtn.addEventListener('click', go);
+nameIn.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); go(); } });
+$('againBtn').addEventListener('click', start);
+$('nameBtn').addEventListener('click', () => { state = 'menu'; show('sStart'); nameIn.focus(); fetchLeague(); });
+
+renderBoards(); fetchLeague();
+})();
+</script>
+</body>
+</html>
