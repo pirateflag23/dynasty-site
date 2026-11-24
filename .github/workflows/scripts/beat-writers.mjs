@@ -5,6 +5,8 @@
 //   game   every finished game a league team plays (recap, take, why they won or lost)
 //   hire   a league coach takes over a school (the new writer's first column on him)
 //   exit   a league coach leaves a school or the league (the old writer's send-off)
+//   opener a season preview for every league team before its first game of the season
+//          (every season, including the very first sync of a brand-new league)
 //   recruit commits, flips and signings for a league team (one column per team per advance:
 //          big gets, class rankings, or a skeptical take: scheme fit, invented character concerns)
 //
@@ -62,6 +64,7 @@ Write ONE article of 200-250 words, fully in your persona's voice. You are a bea
 
 Rules:
 - FACTS STAY TRUE. Scores, stats, records, rankings, opponents, who coaches where come only from the fact sheet. Never change them and never invent new numbers. Your OPINION about the facts can be as biased or delusional as your persona (a homer can call a 30-point loss "closer than it looked"), but the numbers themselves are never wrong.
+- Season preview columns: an outlook for the year from your persona, ending with a predicted record. Name the games you've circled and the players who matter.
 - Recruiting columns: the fact sheet gives a suggested_angle. Take it unless your persona would obviously see it differently. Stirring the pot is the point: a skeptical column about a "great get" is as welcome as a celebration. Recruits are fictional, game-generated prospects; criticism of them stays about football and mild school-age stuff.
 - Explain why it happened from the stats when it's a game (turnovers, third downs, the run game, a quarter that got away), filtered through your persona.
 - Invented color is fine: unnamed sources, booster grumbling, a sideline moment, the mood in the stadium, what the coach said in the postgame presser, what a recruit's camp is saying. Quotes may come ONLY from the league coach (use the name given), recruits and their families or high school coaches, unnamed sources, fans, or the writer himself. Never invent quotes from current college players or from CPU coaches.
@@ -150,6 +153,14 @@ async function main() {
       if (!done.has(id)) events.push({ id, kind: "hire", tk: m.to, gt: m.gt, move: m });
     }
   }
+  // season openers: once per season per coach + school, while the team hasn't played yet this season
+  const seasonGames = currentGames(schedule.data || [], cur.season).filter((g) => !g.season || g.season === cur.season);
+  for (const m of nowMem) {
+    const mine = seasonGames.filter((g) => g.home.team_key === m.team_key || g.away.team_key === m.team_key);
+    if (!mine.length || mine.some((g) => g.played)) continue;
+    const id = `beat:open:${cur.season}:${lc(m.user_name)}:${m.team_key}`;
+    if (!done.has(id)) events.push({ id, kind: "opener", tk: m.team_key, gt: m.user_name, sched: mine.sort((a, b) => a.week - b.week) });
+  }
   // recruiting: commits, flips and signings this period, one column per league team (the biggest move leads)
   const [commitsR, commitsT, committed, classes] = await Promise.all([
     api("/recruits/commits?type=recruits").catch(() => ({ data: [] })), api("/recruits/commits?type=transfers").catch(() => ({ data: [] })),
@@ -209,7 +220,7 @@ async function main() {
     return ps.slice(0, n).map((p) => `${p.name}: ${p.line}`);
   }
 
-  function factSheet(e) {
+  async function factSheet(e) {
     const t = tInfo(e.tk), a = state.assignments[akey(e.gt, e.tk)];
     const base = { league_coach: { name: coachLabel(e.gt), call_him: coachShort(e.gt), career_at_school: careerAt(e.gt, e.tk), career_overall: careerAll(e.gt) },
       school: t.name, nickname: t.nickname || null, conference: t.conference || null, record: t.record || null, conference_record: t.conference_record || null,
@@ -233,6 +244,22 @@ async function main() {
       return { ...base, event: m.kind === "join" ? `${coachLabel(e.gt)} joins The Dynasty as the new head coach at ${t.name}` : `${coachLabel(e.gt)} was hired away from ${m.from_name} to coach ${t.name}`,
         previous_job: m.from_name || null, previous_job_record: m.from ? careerAt(e.gt, m.from) : null,
         note: "This is your first column on him. Introduce yourself through your take: welcome him, doubt him, or set the bar." };
+    }
+    if (e.kind === "opener") {
+      const prev = coachHist.find((x) => lc(x.gamertag) === lc(e.gt))?.seasons?.[cur.season - 1];
+      const opp = e.sched.map((g) => { const me = g.home.team_key === e.tk ? g.home : g.away, op = me === g.home ? g.away : g.home, ot = tInfo(op.team_key);
+        return { week: weekWord(g.week), opponent: `${me === g.home ? "vs" : "at"} ${rk(ot.rank) ? `No. ${ot.rank} ` : ""}${op.team}`, league_coach: gtOf.has(op.team_key) ? coachShort(gtOf.get(op.team_key)) : null,
+          rivalry: rivalOf.get(nk(t.name) + "|" + nk(op.team)) || null }; });
+      const cls = (classes.data || []).find((c) => String(c.team_key) === String(e.tk));
+      const ros = (await api(`/rosters?team=${e.tk}`).catch(() => ({ data: [] }))).data || [];
+      const stars = [...ros].sort((a, b) => (b.overall || 0) - (a.overall || 0)).slice(0, 6).map((p) => `${p.name}, ${p.position}, ${p.overall} OVR, ${p.class_year || ""}${p.dev_trait && p.dev_trait !== "Normal" ? `, ${p.dev_trait}` : ""}`);
+      const qb = ros.filter((p) => p.position === "QB").sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
+      return { ...base, event: `season preview for ${cur.season}`, preseason_ranking: rk(t.rank) ? `No. ${t.rank}` : "unranked",
+        team_ratings: { overall: t.overall ?? null, offense: t.offense ?? null, defense: t.defense ?? null, prestige_stars: t.prestige_stars ?? null },
+        last_season_under_this_coach: prev && String(prev.team_key) === String(e.tk) ? { record: `${prev.w}-${prev.l}`, notes: prev.notes || [] } : prev ? `he coached ${prev.team} last season (${prev.w}-${prev.l})` : coachHist.some((x) => lc(x.gamertag) === lc(e.gt) && Object.keys(x.seasons || {}).length) ? "didn't coach in the league last season" : "first season in The Dynasty",
+        best_players: stars, starting_qb: qb ? `${qb.name}, ${qb.overall} OVR ${qb.class_year || ""}` : null,
+        schedule: opp, recruiting_class_now: cls ? { national_rank: cls.rank, commits: cls.commits?.total ?? null } : null,
+        note: "Season preview column: set the stakes for the year, size up the roster and the schedule (circle the games that matter), and finish with your prediction for the record. The prediction is your opinion and can be as optimistic or as bleak as your persona would make it." };
     }
     if (e.kind === "recruit") {
       const STARS = ["", "1-star", "2-star", "3-star", "4-star", "5-star"];
@@ -274,7 +301,7 @@ async function main() {
 
   async function write(e) {
     const a = state.assignments[akey(e.gt, e.tk)] || assign(e.gt, e.tk), w = writerOf(a), t = tInfo(e.tk);
-    const facts = factSheet(e);
+    const facts = await factSheet(e);
     let out;
     const user = `YOUR PERSONA: ${w.name}, ${a.outlet}. ${w.style}
 You've covered ${coachShort(e.gt)} at ${t.name} since ${a.since}.
@@ -283,7 +310,7 @@ Your notes from earlier columns: ${a.notes?.length ? a.notes.slice(-5).map((n) =
 FACT SHEET:
 ${JSON.stringify(facts, null, 1)}`;
     if (process.env.BEAT_DUMP) console.log(user);
-    if (FAKE) out = { kick: e.kind === "game" ? "Postgame" : e.kind === "hire" ? "New era" : e.kind === "recruit" ? "Recruiting" : "Farewell", h: `[test] ${w.name} on ${t.name}: ${facts.result || facts.suggested_angle || facts.event}`, dek: `Test dek for ${t.name}.`,
+    if (FAKE) out = { kick: e.kind === "game" ? "Postgame" : e.kind === "hire" ? "New era" : e.kind === "recruit" ? "Recruiting" : e.kind === "opener" ? "Season preview" : "Farewell", h: `[test] ${w.name} on ${t.name}: ${facts.result || facts.suggested_angle || facts.event}`, dek: `Test dek for ${t.name}.`,
       body: ["Test paragraph one. " + JSON.stringify(facts).slice(0, 300), "Test paragraph two.", "Test paragraph three."], note: "test note" };
     else {
       out = parseJson(await claude(SYSTEM, user));
