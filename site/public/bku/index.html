@@ -218,7 +218,7 @@ const TITLES = [[0,'Freshman'],[3,'Sophomore'],[6,'Junior'],[10,'Senior'],[15,'G
 const titleFor = n => { let t = TITLES[0][1]; for (const [k, v] of TITLES) if (n >= k) t = v; return t; };
 
 // ---------- league leaderboard ----------
-const API = '/api/bku/scores', NAME_KEY = 'td-bku-name', BEST_KEY = 'td-bku-best';
+const API = '/api/bku/scores', NAME_KEY = 'td-bku-name', BEST_KEY = 'td-bku-best-2';
 let league = null, runs = 0, lastSubmit = null;
 async function fetchLeague(){
   try { const r = await fetch(API, { cache: 'no-store' }); if (!r.ok) throw 0; const j = await r.json(); league = j.top || []; runs = j.runs || 0; }

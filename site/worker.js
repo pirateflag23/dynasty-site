@@ -182,7 +182,7 @@ export default {
       return stub.fetch(request);
     }
     if (url.pathname === BKU_PATH) {
-      const stub = env.TRIVIA.get(env.TRIVIA.idFromName("bku"));
+      const stub = env.TRIVIA.get(env.TRIVIA.idFromName("bku-2"));
       return stub.fetch(request);
     }
     return env.ASSETS.fetch(request);
