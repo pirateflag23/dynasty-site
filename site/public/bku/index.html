@@ -181,6 +181,7 @@ input:focus{border-color:var(--maroon);box-shadow:0 0 0 3px rgba(122,31,43,.15)}
 <div class="promo" id="promo"></div>
 
 <script src="players.js"></script>
+<script src="players-more.js"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);
@@ -193,7 +194,7 @@ const pick = a => a[(Math.random() * a.length) | 0];
 // ---------- data ----------
 const CONF = {}; for (const [c, list] of Object.entries(window.BKU_SCHOOLS)) for (const s of list) CONF[s] = c;
 const FBS = Object.keys(CONF).filter(s => CONF[s] !== 'Small');
-const BANK = window.BKU_PLAYERS.trim().split('\n').map(l => {
+const BANK = window.BKU_PLAYERS.trim().split('\n').filter(l => l.trim()).map(l => {
   const [name, pos, era, tier, schools] = l.split('|');
   const s = schools.split(';').map(x => x.trim());
   return { name, pos, era, tier: +tier, answer: s[0], all: new Set(s) };
