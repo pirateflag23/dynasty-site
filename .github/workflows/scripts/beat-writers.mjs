@@ -149,7 +149,10 @@ async function main() {
       if (!done.has(id)) events.push({ id, kind: "exit", tk: m.from, gt: m.gt, move: m });
     }
     if (m.kind === "move" || m.kind === "join") {
+      // a coach joining before his team's first game of the season gets the season preview instead
+      const preseason = m.kind === "join" && !games.some((g) => g.home.team_key === m.to || g.away.team_key === m.to);
       const id = `beat:hire:${lc(m.gt)}:${m.to}:${m.period}`;
+      if (preseason) { done.add(id); continue; }
       if (!done.has(id)) events.push({ id, kind: "hire", tk: m.to, gt: m.gt, move: m });
     }
   }
