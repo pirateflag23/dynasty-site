@@ -5,6 +5,8 @@
 //   game   every finished game a league team plays (recap, take, why they won or lost)
 //   hire   a league coach takes over a school (the new writer's first column on him)
 //   exit   a league coach leaves a school or the league (the old writer's send-off)
+//   recruit commits, flips and signings for a league team (one column per team per advance:
+//          big gets, class rankings, or a skeptical take: scheme fit, invented character concerns)
 //
 // Files (data/stories/<league>/):
 //   beat-writers.json   who covers whom, each writer's running notes, which events are done
@@ -60,8 +62,9 @@ Write ONE article of 200-250 words, fully in your persona's voice. You are a bea
 
 Rules:
 - FACTS STAY TRUE. Scores, stats, records, rankings, opponents, who coaches where come only from the fact sheet. Never change them and never invent new numbers. Your OPINION about the facts can be as biased or delusional as your persona (a homer can call a 30-point loss "closer than it looked"), but the numbers themselves are never wrong.
+- Recruiting columns: the fact sheet gives a suggested_angle. Take it unless your persona would obviously see it differently. Stirring the pot is the point: a skeptical column about a "great get" is as welcome as a celebration. Recruits are fictional, game-generated prospects; criticism of them stays about football and mild school-age stuff.
 - Explain why it happened from the stats when it's a game (turnovers, third downs, the run game, a quarter that got away), filtered through your persona.
-- Invented color is fine: unnamed sources, booster grumbling, a sideline moment, the mood in the stadium, what the coach said in the postgame presser. Quotes may come ONLY from the league coach (use the name given), unnamed sources, fans, or the writer himself. Never invent quotes from players or from CPU coaches.
+- Invented color is fine: unnamed sources, booster grumbling, a sideline moment, the mood in the stadium, what the coach said in the postgame presser, what a recruit's camp is saying. Quotes may come ONLY from the league coach (use the name given), recruits and their families or high school coaches, unnamed sources, fans, or the writer himself. Never invent quotes from current college players or from CPU coaches.
 - League coaches are fair game for football drama (hot seat, play-calling, recruiting, feuds, ribbing). Nothing about anyone's real life (health, family, money, crimes, sex), no slurs, no profanity beyond "hell" or "damn".
 - Stay consistent with your earlier notes when they fit (your running takes, grudges, predictions). If a past prediction went wrong, your persona decides whether to admit it.
 - Use first person sparingly. No headers, no bullet points, no emojis. 3 to 5 paragraphs.
@@ -147,6 +150,22 @@ async function main() {
       if (!done.has(id)) events.push({ id, kind: "hire", tk: m.to, gt: m.gt, move: m });
     }
   }
+  // recruiting: commits, flips and signings this period, one column per league team (the biggest move leads)
+  const [commitsR, commitsT, committed, classes] = await Promise.all([
+    api("/recruits/commits?type=recruits").catch(() => ({ data: [] })), api("/recruits/commits?type=transfers").catch(() => ({ data: [] })),
+    api("/recruits?type=overall&committed=true").catch(() => ({ data: [] })), api("/recruits/classes").catch(() => ({ data: [] }))]);
+  const keyOf = (sch) => (sch ? standings.data.find((t) => t.name === sch.name)?.team_key ?? null : null);
+  const recInfo = new Map((committed.data || []).map((r) => [r.prospect_key, r]));
+  const recEv = new Map(); // team -> { gets: [], losses: [] }
+  for (const e of [...(commitsR.data || []), ...(commitsT.data || [])].filter((x) => x.period_id === cur.id)) {
+    const toK = e.kind === "decommit" ? null : keyOf(e.school), fromK = keyOf(e.previous_school || (e.kind === "decommit" ? e.school : null));
+    if (toK && userKeys.has(toK)) { const b = recEv.get(toK) || { gets: [], losses: [] }; b.gets.push(e); recEv.set(toK, b); }
+    if (fromK && userKeys.has(fromK) && fromK !== toK) { const b = recEv.get(fromK) || { gets: [], losses: [] }; b.losses.push(e); recEv.set(fromK, b); }
+  }
+  for (const [tk, b] of recEv) {
+    const id = `beat:rec:${tk}:${cur.id}`;
+    if (!done.has(id)) events.push({ id, kind: "recruit", tk, gt: gtOf.get(tk), rec: b });
+  }
   // a coach who left without a logged move (assignment still open, coach no longer there)
   for (const a of Object.values(state.assignments)) if (!a.ended && !nowMem.some((m) => akey(m.user_name, m.team_key) === akey(a.gt, a.team))) a.ended = cur.season_text;
 
@@ -215,6 +234,39 @@ async function main() {
         previous_job: m.from_name || null, previous_job_record: m.from ? careerAt(e.gt, m.from) : null,
         note: "This is your first column on him. Introduce yourself through your take: welcome him, doubt him, or set the bar." };
     }
+    if (e.kind === "recruit") {
+      const STARS = ["", "1-star", "2-star", "3-star", "4-star", "5-star"];
+      const POSW = { HB: "running back", FB: "fullback", WR: "receiver", TE: "tight end", LT: "offensive tackle", RT: "offensive tackle", LG: "guard", RG: "guard", C: "center", LEDG: "edge rusher", REDG: "edge rusher", DT: "defensive tackle", SAM: "linebacker", WILL: "linebacker", MIKE: "middle linebacker", CB: "cornerback", FS: "safety", SS: "safety", K: "kicker", P: "punter", ATH: "athlete" };
+      const who = (x) => { const r = recInfo.get(x.prospect_key) || {};
+        const beat = (r.top_schools || []).filter((s) => s.name !== x.school?.name && s.influence > 0).slice(0, 3).map((s) => s.name);
+        return { name: x.name, prospect: `${STARS[x.stars] || ""} ${POSW[x.position] || x.position}${x.national_rank ? `, No. ${x.national_rank} nationally` : ""}`.trim(), type: x.transfer ? "transfer portal" : "high school recruit",
+          move: x.kind === "sign" ? "signed" : x.kind === "decommit" ? "decommitted" : x.previous_school ? `flipped from ${x.previous_school.name} to ${x.school?.name}` : "committed",
+          archetype: r.archetype || null, hometown: r.hometown ? `${r.hometown}${r.state ? `, ${r.state}` : ""}` : null, top_priority: r.dealbreaker || null, other_finalists: beat }; };
+      const order = (a, c) => (c.stars - a.stars) || ((a.national_rank || 9999) - (c.national_rank || 9999));
+      const gets = [...e.rec.gets].sort(order), losses = [...e.rec.losses].sort(order);
+      const cls = (classes.data || []), mine = cls.find((c) => String(c.team_key) === String(e.tk));
+      const confRank = mine && t.conference ? cls.filter((c) => tInfo(c.team_key).conference === t.conference).findIndex((c) => String(c.team_key) === String(e.tk)) + 1 : 0;
+      const lg = [...games].filter((g) => g.home.team_key === e.tk || g.away.team_key === e.tk).sort((a, c) => c.week - a.week)[0];
+      const lastGame = lg ? (() => { const me = lg.home.team_key === e.tk ? lg.home : lg.away, op = me === lg.home ? lg.away : lg.home; return `${me.score > op.score ? "won" : "lost"} ${me.score}-${op.score} ${me === lg.home ? "vs" : "at"} ${rk(op.rank_at_game) ? `No. ${op.rank_at_game} ` : ""}${op.team} (${weekWord(lg.week)})`; })() : null;
+      // the writer's angle this time: mostly his persona's call, nudged so the feed isn't all good news
+      const top = gets[0], elite = top && (top.stars >= 4 || (top.national_rank || 999) <= 150);
+      const ANG = [
+        ["big get", "Celebrate (or grudgingly admit) the biggest get and what it says about the coach's pull on the trail.", 3 + (elite ? 3 : 0)],
+        ["the win sealed it", "Tie the commitment to the team's last result (a win sealed it, or he committed in spite of a loss).", lastGame ? 2 : 0],
+        ["class rankings", "Where the class now sits nationally and in the conference, who's ahead, who's behind, what's still missing.", mine ? 3 : 0],
+        ["scheme fit doubts", "Skeptical: question whether the top get fits this staff's scheme or depth chart. Make the case with conviction.", top ? 2 : 0],
+        ["culture risk", "Skeptical: invent a mild off-field concern about the top get from high school (a team-rules suspension his senior year, clashing with his high school coach, transferring high schools twice, a social media spat with a rival, effort questions on film) and wonder aloud if he's a culture risk. Frame it as what you're hearing; keep it mild and football-related.", top ? 2 : 0],
+        ["overrated?", "Skeptical: argue the ranking oversells him, or that the staff reached while better players went elsewhere.", top ? 1 : 0],
+        ["the one that got away", "Lead with the recruit who flipped or decommitted away from this program and what it means.", losses.length ? 6 : 0],
+      ].filter((a) => a[2] > 0);
+      const tot = ANG.reduce((n, a) => n + a[2], 0); let roll = hash(e.id + "angle") % tot, angle = ANG[0];
+      for (const a of ANG) { if (roll < a[2]) { angle = a; break; } roll -= a[2]; }
+      return { ...base, event: gets.some((x) => x.kind === "sign") && gets.every((x) => x.kind === "sign") ? "signings" : "recruiting moves this week",
+        additions: gets.slice(0, 6).map(who), more_additions: Math.max(0, gets.length - 6), lost_to_other_schools: losses.slice(0, 3).map(who),
+        recruiting_class: mine ? { national_rank: mine.rank, conference_rank: confRank || null, commits: mine.commits?.total ?? null, five_stars: mine.commits?.five_star ?? null, four_stars: mine.commits?.four_star ?? null } : null,
+        last_game: lastGame, suggested_angle: `${angle[0]}: ${angle[1]}`,
+        note: "Recruits and their families, high school coaches and anonymous recruiting sources may be quoted (invented). Keep any criticism of a recruit to football and mild school-age stuff: never crimes, drugs, violence, sex, health or family problems." };
+    }
     const m = e.move;
     return { ...base, event: m.kind === "leave" ? `${coachLabel(e.gt)} is out at ${t.name}; the program goes back to the CPU (he retired or left the league)` : `${coachLabel(e.gt)} is leaving ${t.name} to take the ${m.to_name} job`,
       destination: m.to_name || null, note: "This is your last column covering him. Send-off, good riddance, or betrayal: your call." };
@@ -231,7 +283,7 @@ Your notes from earlier columns: ${a.notes?.length ? a.notes.slice(-5).map((n) =
 FACT SHEET:
 ${JSON.stringify(facts, null, 1)}`;
     if (process.env.BEAT_DUMP) console.log(user);
-    if (FAKE) out = { kick: e.kind === "game" ? "Postgame" : e.kind === "hire" ? "New era" : "Farewell", h: `[test] ${w.name} on ${t.name}: ${facts.result || facts.event}`, dek: `Test dek for ${t.name}.`,
+    if (FAKE) out = { kick: e.kind === "game" ? "Postgame" : e.kind === "hire" ? "New era" : e.kind === "recruit" ? "Recruiting" : "Farewell", h: `[test] ${w.name} on ${t.name}: ${facts.result || facts.suggested_angle || facts.event}`, dek: `Test dek for ${t.name}.`,
       body: ["Test paragraph one. " + JSON.stringify(facts).slice(0, 300), "Test paragraph two.", "Test paragraph three."], note: "test note" };
     else {
       out = parseJson(await claude(SYSTEM, user));

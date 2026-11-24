@@ -96,6 +96,10 @@ async function archiveLeague(lid) {
       if (hit) Object.assign(hit, row); else { arc.stories.push(row); added++; }
     }
   }
+  // reporters that were renamed (discord.config.json "was"): fix old bylines too
+  const renames = new Map(((await readJson("discord.config.json", {})).reporters || []).flatMap((r) => (r.was || []).map((o) => [o, r.name])));
+  for (const season of (await readdir(dir)).map((f) => /^news-(\d{4})\.json$/.exec(f)?.[1]).filter(Boolean).map(Number)) await load(season);
+  for (const [, arc] of bySeason) for (const st of arc.stories) if (renames.has(st.by)) st.by = renames.get(st.by);
   for (const [season, arc] of bySeason) {
     arc.stories.sort((a, b) => String(b.first_seen).localeCompare(String(a.first_seen)));
     arc.updated = new Date().toISOString();

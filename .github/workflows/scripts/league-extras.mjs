@@ -402,7 +402,7 @@ export async function recordDesk(x) {
     when: e.scope === "game" ? (() => { const g = x.games.find((q) => q.key === e.game); if (!g) return "this season"; const me = g.home.team_key === e.team ? g.home : g.away, o = me === g.home ? g.away : g.home;
       return `${me.score}-${o.score} ${me.score > o.score ? "win" : me.score < o.score ? "loss" : "tie"} ${me === g.home ? "vs" : "at"} ${o.team}`; })() : e.scope === "season" ? `${e.y} season` : "career",
     previous: e.old ? `${e.old.value} by ${e.old.holder} (${e.old.school}, ${e.old.years})` : e.prev ? `${e.prev.v} by ${e.prev.n}${e.prev.y ? ` (${e.prev.y})` : ""}` : null }));
-  const rep = (x.cfg.reporters || []).find((r) => r.id === "pete") || { name: "Pete Thamel" };
+  const rep = (x.cfg.reporters || []).find((r) => r.id === "pete") || { name: "Pete Garrison" };
   const text = await peteLine(x, rep, facts) || facts.map((f) => `🚨 Record alert: **${f.player}** (${f.school}) just set the ${f.type} with ${f.value} ${f.stat}${f.previous ? `, passing ${f.previous}` : ""}.${f.coach ? ` Flowers to ${f.coach}.` : ""}`).join("\n");
   const chName = x.cfg.channels?.records || x.cfg.reporter_rules?.chime_channels?.[0] || "general";
   const ch = x.channelId(chName);
