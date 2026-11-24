@@ -63,6 +63,11 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node .github/workflows/scripts/ai-writer.mjs
+      - name: Beat writers (one local writer per league coach + school; game, hire and exit columns)
+        env:
+          DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node .github/workflows/scripts/beat-writers.mjs || echo "beat writers step failed, continuing"
       - name: Temperature (fan-base thermometer + mock social feeds)
         env:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}

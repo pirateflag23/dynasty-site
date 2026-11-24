@@ -83,6 +83,19 @@ async function archiveLeague(lid) {
       }
     }
   }
+  // beat writer columns (beat-writers.mjs): one row each, linking to the full article page
+  const beatSeasons = files.map((f) => /^beat-(\d{4})\.json$/.exec(f)?.[1]).filter(Boolean).map(Number);
+  for (const season of beatSeasons) {
+    const beat = await readJson(`${dir}/beat-${season}.json`, { articles: [] });
+    const arc = await load(season);
+    for (const b of beat.articles || []) {
+      const uid = `beat:${b.id}`;
+      const row = { id: uid, uid, cat: "beat", kind: b.kind, kick: b.kick || "Beat", h: b.h, d: b.dek || "", by: `${b.by} · ${b.outlet}`, team: b.team, teams: [b.team], user: true,
+        game: b.game || undefined, link: `#beat/${b.id}`, period: b.period, season_text: b.season_text, week: b.week, at: b.at, first_seen: b.at, first_period: b.period, last_seen: b.at };
+      const hit = arc.stories.find((s) => s.uid === uid);
+      if (hit) Object.assign(hit, row); else { arc.stories.push(row); added++; }
+    }
+  }
   for (const [season, arc] of bySeason) {
     arc.stories.sort((a, b) => String(b.first_seen).localeCompare(String(a.first_seen)));
     arc.updated = new Date().toISOString();

@@ -160,6 +160,26 @@ img.tb{background:none!important;box-shadow:none!important;border-radius:0;objec
 .tp-fact span{font-size:11px;color:var(--nav-dim)}
 .tp-head.team .tp-sub,.tp-head.team .tp-fact span,.tp-head.team .tp-name small,.tp-head.team .rk{color:inherit!important;opacity:.8}
 .tp-head.team .tp-facts,.tp-head.team .tp-fact{border-color:rgba(127,127,127,.35)}
+.bt-art{max-width:760px;margin:0 auto}
+.bt-art .card{padding:0;overflow:hidden}
+.bt-mast{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:3px double var(--line);font:700 italic 20px/1.1 Georgia,"Times New Roman",serif;letter-spacing:.2px}
+.bt-mast small{margin-left:auto;font:500 12px var(--body);color:var(--dim);font-style:normal}
+.bt-in{padding:18px 22px 22px}
+.bt-kick{font:800 12px/1 var(--head);text-transform:uppercase;letter-spacing:.6px;color:var(--red)}
+.bt-h{font:700 30px/1.15 Georgia,"Times New Roman",serif;margin:8px 0 10px}
+.bt-dek{font:italic 18px/1.4 Georgia,serif;color:var(--dim);margin:0 0 12px}
+.bt-by{font:600 13px var(--body);color:var(--dim);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 0;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.bt-by b{color:var(--text)}
+.bt-body p{font:18px/1.6 Georgia,"Times New Roman",serif;margin:0 0 14px}
+.bt-body p:first-child::first-letter{float:left;font:700 54px/.9 Georgia,serif;padding:4px 8px 0 0;color:var(--red)}
+.bt-list{list-style:none;margin:0;padding:0}
+.bt-list li{padding:10px 14px;border-bottom:1px solid var(--line-2)}
+.bt-list li:last-child{border-bottom:0}
+.bt-list a{font:700 15px/1.3 Georgia,serif;color:var(--text);text-decoration:none}
+.bt-list a:hover{text-decoration:underline}
+.bt-list small{display:block;font:500 12px var(--body);color:var(--dim);margin-top:3px}
+.bt-who{padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px}
+.bt-who b{font-family:Georgia,serif}
 .tp-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
 @media (max-width:900px){.tp-grid{grid-template-columns:minmax(0,1fr)}}
 .st2{display:grid;grid-template-columns:1fr 1fr}
@@ -1776,9 +1796,11 @@ function renderTeam(key) {
       <section class="card"><h2 class="card-h">Stat leaders</h2><div id="leaders">${userCtl === false
         ? '<div class="empty">Player stats are only synced for teams with a league coach.</div>' : '<div class="empty">Loading…</div>'}</div></section>
     </div>
-    <section class="card"><h2 class="card-h">Schedule <small>${esc(D.schedule?.season || "")}</small></h2>
+    <div><section class="card"><h2 class="card-h">Schedule <small>${esc(D.schedule?.season || "")}</small></h2>
       ${sched ? `<table class="tbl"><tbody>${sched}</tbody></table>` : '<div class="empty">No games found.</div>'}</section>
+      <section class="card" id="beat-team" hidden></section></div>
     </div>`;
+  beatTeamCard(key);
   document.title = `${name} · ${CONFIG.SITE_NAME}`;
   // league teams come from the live roster feed; CPU teams (open jobs) from the every-roster file
   Promise.all([userCtl === false ? [] : loadRosters(), loadAllRosters()]).then(([ro, J]) => {
@@ -2779,7 +2801,7 @@ const newsLoad = (season) => { const lid = D.league?.league_id ?? D.league?.data
   return (NEWS[season] ??= fetch(`${WIRE_BASE}/${lid}/news-${season}.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null)); };
 const newsSeasons = () => { const lid = D.league?.league_id ?? D.league?.data?.league_id; if (!lid) return Promise.resolve([]);
   return (newsIdx ??= fetch(`${WIRE_BASE}/${lid}/news-index.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).then((j) => j?.seasons || []).catch(() => [])); };
-const NW_CATS = [["", "All"], ["game", "Games"], ["recruiting", "Recruiting"], ["portal", "Portal"], ["feature", "Features"]];
+const NW_CATS = [["", "All"], ["game", "Games"], ["recruiting", "Recruiting"], ["portal", "Portal"], ["feature", "Features"], ["beat", "Beat writers"]];
 const newsWhen = (st) => /OFF/i.test(st.season_text || "") ? (st.season_text.match(/OFF\s*Stg\s*(\d+)/i) ? `Offseason · Stage ${st.season_text.match(/OFF\s*Stg\s*(\d+)/i)[1]}` : "Offseason") : st.week != null ? weekLabel(st.week) : (st.season_text || "").replace(/^\d{4}\s*/, "").replace(/\bWk\b/, "Week");
 const newsItem = (st) => { const tn = wireTeamName(st.team); const href = st.link || (st.game ? `#game/${st.game}` : "");
   return `<div class="pw${st.user ? " mine" : ""}"><div class="lg">${tn ? badge(tn) : ""}</div><div><div class="kick">${esc(st.kick || "")}<span class="wk">· ${esc(newsWhen(st))}</span></div><h3>${href ? `<a class="tl" href="${href}">${wireHtml(st.h)}</a>` : wireHtml(st.h)}</h3>${st.d ? `<p>${wireHtml(st.d)}</p>` : ""}${wireQuote(st.quote)}${wireBy(st)}</div></div>`; };
@@ -2875,6 +2897,53 @@ function renderApply() {
       f.outerHTML = `<div class="done"><b>Application sent 🏈</b>Thanks, ${esc(d.discord)}. The commish team will review it and reach out on Discord.</div>`;
     } catch (err) { btn.disabled = false; msg.className = "msg err"; msg.textContent = err.message; }
   };
+}
+
+/* =========================================================
+   BEAT WRITERS: one local writer per league coach + school (data/stories/<league>/beat-<season>.json,
+   written by beat-writers.mjs; who covers whom is in beat-writers.json)
+   ========================================================= */
+const BEAT = {}; let beatStateP = null;
+const beatLid = () => D.league?.league_id ?? D.league?.data?.league_id;
+const beatState = () => { const lid = beatLid(); if (!lid) return Promise.resolve(null);
+  return (beatStateP ??= fetch(`${WIRE_BASE}/${lid}/beat-writers.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null)); };
+const beatLoad = (season) => { const lid = beatLid(); if (!lid) return Promise.resolve(null);
+  return (BEAT[season] ??= fetch(`${WIRE_BASE}/${lid}/beat-${season}.json`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null)); };
+async function beatAll() {
+  const st = await beatState(); const cur = +(D.league?.data?.current_period?.season || 0);
+  const seasons = [...new Set([cur, ...(st?.seasons || [])].filter(Boolean))].sort((a, b) => b - a);
+  const arcs = await Promise.all(seasons.map(beatLoad));
+  return arcs.flatMap((a) => a?.articles || []).sort((a, b) => String(b.at).localeCompare(String(a.at)));
+}
+const beatWhen = (a) => a.week != null ? weekLabel(a.week) : newsWhen({ season_text: a.season_text, week: a.week });
+async function renderBeat(id) {
+  const view = $("#view");
+  view.innerHTML = newsNav("") + '<div class="bt-art"><section class="card"><div class="empty">Loading…</div></section></div>';
+  const all = await beatAll(), a = all.find((x) => x.id === id);
+  if (!a) { view.innerHTML = newsNav("") + '<div class="bt-art"><section class="card"><div class="empty">That column isn’t available. Back to <a href="#news">News</a>.</div></section></div>'; return; }
+  document.title = `${a.h.replace(/\[\[\w:[^|\]]*\|([^\]]*)\]\]/g, "$1")} · ${CONFIG.SITE_NAME}`;
+  const tn = a.team_name || wireTeamName(a.team);
+  const more = all.filter((x) => x.id !== a.id && x.writer === a.writer && String(x.team) === String(a.team)).slice(0, 5);
+  const others = all.filter((x) => x.id !== a.id && String(x.team) === String(a.team) && x.writer !== a.writer).slice(0, 3);
+  const li = (x) => `<li><a href="#beat/${esc(x.id)}">${esc(x.h)}</a><small>${esc(x.by)} · ${esc(beatWhen(x))}${x.result ? ` · ${esc(x.result)} ${x.opp ? `vs ${esc(x.opp)}` : ""}` : ""}</small></li>`;
+  view.innerHTML = newsNav("") + `<div class="bt-art">
+    <section class="card"><div class="bt-mast" style="border-top:4px solid ${teamColor(tn)}">${badge(tn)} ${esc(a.outlet)}<small>${esc(a.season_text || "")}</small></div>
+    <div class="bt-in"><div class="bt-kick">${esc(a.kick || "Beat")}</div><h1 class="bt-h">${esc(a.h)}</h1>${a.dek ? `<p class="bt-dek">${esc(a.dek)}</p>` : ""}
+    <div class="bt-by"><span>By <b>${esc(a.by)}</b></span><span>${esc(a.outlet)}</span><span>${esc(beatWhen(a))}</span>${a.game ? `<span><a class="tl" href="#game/${a.game}">${esc(a.result || "Box score")}${a.opp ? ` vs ${esc(a.opp)}` : ""}</a></span>` : ""}<span><a class="tl" href="#team/${a.team}">${esc(tn)}</a></span></div>
+    <div class="bt-body">${a.body.map((p) => `<p>${esc(p)}</p>`).join("")}</div></div></section>
+    ${more.length ? `<section class="card"><h2 class="card-h">More from ${esc(a.by)} <small>${esc(tn)}</small></h2><ul class="bt-list">${more.map(li).join("")}</ul></section>` : ""}
+    ${others.length ? `<section class="card"><h2 class="card-h">Earlier ${esc(tn)} coverage</h2><ul class="bt-list">${others.map(li).join("")}</ul></section>` : ""}
+  </div>`;
+}
+async function beatTeamCard(key) {
+  const [st, all] = await Promise.all([beatState(), beatAll()]);
+  const el = $("#beat-team"); if (!el || location.hash !== "#team/" + key) return;
+  const mine = all.filter((x) => String(x.team) === String(key)), cov = st?.current?.[key];
+  if (!cov && !mine.length) return;
+  el.hidden = false;
+  el.innerHTML = `<h2 class="card-h">Beat coverage <small><a class="tl" href="#news" onclick="try{localStorage.setItem('td-news-team','${key}')}catch(e){}">All ${esc(wireTeamName(key) || "team")} news</a></small></h2>
+    ${cov ? `<div class="bt-who">Covering ${esc(cov.coach || "the program")}: <b>${esc(cov.by)}</b>, ${esc(cov.outlet)}</div>` : ""}
+    ${mine.length ? `<ul class="bt-list">${mine.slice(0, 6).map((x) => `<li><a href="#beat/${esc(x.id)}">${esc(x.h)}</a><small>${esc(x.by)} · ${esc(beatWhen(x))}${x.result ? ` · ${esc(x.result)}` : ""}</small></li>`).join("")}</ul>` : '<div class="empty">First column drops after the next game.</div>'}`;
 }
 
 const newsNav = (sub) => `<nav class="subnav" aria-label="News"><h1>News</h1><a href="#news" ${sub === "" ? 'aria-current="page"' : ""}>Stories</a><a href="#news/temperature" ${sub === "temperature" ? 'aria-current="page"' : ""}>🌡️ Temperature</a></nav>`;
@@ -2974,6 +3043,8 @@ function route() {
   if (hs || cm) { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#history" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); if (cm) renderCoach(decodeURIComponent(cm[1])); else { document.title = `History · ${CONFIG.SITE_NAME}`; renderHistory(hs[1] || "coaches"); } window.scrollTo(0, 0); return; }
   const sc2 = name === "standings/cfp", ft = name.match(/^feature\/(\w+)$/);
   if (sc2 || ft) { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === (sc2 ? "#standings" : "#home") ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `${sc2 ? "Playoff odds" : "Offseason report"} · ${CONFIG.SITE_NAME}`; sc2 ? renderCfp() : renderFeature(ft[1]); window.scrollTo(0, 0); return; }
+  const bm = name.match(/^beat\/([\w-]+)$/);
+  if (bm) { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#news" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); renderBeat(bm[1]); window.scrollTo(0, 0); return; }
   if (name === "news/temperature") { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#news" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `Temperature · ${CONFIG.SITE_NAME}`; renderTemperature(); window.scrollTo(0, 0); return; }
   if (name === "stats/rosters") { location.replace("#players"); return; } // old link
   if (name === "teams") { document.querySelectorAll(".tabs a").forEach((a) => a.getAttribute("href") === "#teams" ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")); document.title = `Teams · ${CONFIG.SITE_NAME}`; renderTeams(); window.scrollTo(0, 0); return; }

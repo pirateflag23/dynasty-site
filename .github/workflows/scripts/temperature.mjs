@@ -53,6 +53,8 @@ const prev = await readJson(FILE, { teams: {} });
 const latest = await readJson(`${DIR}/latest.json`, {});
 const classes = await api("/recruits/classes").catch(() => ({ data: [] }));
 const car = await readJson(`${DIR}/carousel.json`, { moves: [], pending: [] });
+const beat = await readJson(`${DIR}/beat-writers.json`, {}); // who covers each league team (beat-writers.mjs)
+const beatArc = await readJson(`${DIR}/beat-${cur?.season ?? ""}.json`, { articles: [] });
 const byKey = new Map(standings.data.map((t) => [t.team_key, t]));
 const coachOf = (name, tk) => cfg.coaches?.[name] || members.data.find((m) => m.team_key === tk)?.user_name || "the coach";
 const userTeams = [...new Set(members.data.map((m) => m.team_key))].filter((k) => byKey.has(k));
@@ -127,7 +129,7 @@ Hard rules:
 - Criticize performance, decisions, effort and the program. Never: slurs or insults about race, religion, sexuality, gender, disability or other identity; threats or wishing injury/harm/death on anyone; sexual content; anything about players' families, looks or private lives; negativity about high-school recruits.
 - The league coach may be roasted hard as a football coach (use his gamertag as a nickname sometimes), never personally.
 - Never invent quotes attributed to real people. Former players may be wished for or mentioned, not quoted.
-- Platforms are parodies only: "chirp" (short posts, like X), "facespace" (longer, older fans, like Facebook), "snapgram" (photo posts with a caption), "board" (message-board thread). Newspaper clippings use an invented local paper name (never a real outlet).
+- Platforms are parodies only: "chirp" (short posts, like X), "facespace" (longer, older fans, like Facebook), "snapgram" (photo posts with a caption), "board" (message-board thread). Newspaper clippings use an invented local paper name (never a real outlet). If the facts include beat_writer, use that paper for the clipping (fans can also react to or share his latest column).
 
 Return JSON only:
 {"clip": null or {"paper": "invented paper name", "headline": "...", "dek": "one sentence"},
@@ -145,6 +147,7 @@ function facts(tk, c) {
     rank: pollRank(t), prestige_stars: t.prestige_stars, team_overall: t.overall, streak: c.streak, recent_games: recent, recruiting_class_rank: c.cr,
     coaching_news: (car.pending || []).filter((e) => String(e.from) === String(tk)).map((e) => `${e.coach} has accepted the ${e.to_name} job and is leaving ${t.name}. Fans feel betrayed or relieved depending on the season; this dominates the feed.`)
       .concat((car.moves || []).filter((m) => String(m.to) === String(tk) && Date.now() - Date.parse(m.at) < 45 * 86400e3).map((m) => `${m.gt} was just hired as head coach${m.from_name ? ` from ${m.from_name}` : ""}. New-coach honeymoon, but some skeptics.`)),
+    beat_writer: beat.current?.[tk] ? { name: beat.current[tk].by, paper: beat.current[tk].outlet, latest_column: (beatArc.articles || []).find((x) => String(x.team) === String(tk))?.h || null } : null,
     storylines: stories, temperature: `${c.temp}° (${b[1]}: ${b[2]})`, why: c.factors };
 }
 
