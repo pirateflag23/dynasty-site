@@ -128,7 +128,7 @@ ${JSON.stringify(sheet, null, 1)}`;
       const a = cache[s.id];
       if (!a || a.src !== src(s)) return s;
       applied++;
-      return { ...s, kick: a.kick, h: a.h, d: a.d, quote: a.quote || s.quote, by: a.by, rumor: a.rumor, facts: { h: s.h, d: s.d, quote: s.quote ?? null, kick: s.kick } };
+      return { ...s, kick: a.kick, h: a.h, d: a.d, quote: a.quote || s.quote, by: REPORTERS.find((r) => (r.was || []).includes(a.by))?.name || a.by, rumor: a.rumor, facts: { h: s.h, d: s.d, quote: s.quote ?? null, kick: s.kick } };
     });
     // keep the cache from growing forever: last 3 periods
     const keepIds = new Set(Object.values(cache).map((v) => v.at).filter(Boolean).sort((a, b) => b - a).filter((v, i, arr) => arr.indexOf(v) === i).slice(0, 3));
