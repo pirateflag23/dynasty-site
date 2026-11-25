@@ -52,17 +52,17 @@ jobs:
         env:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
           FORCE: ${{ inputs.force && '1' || '' }}
-        run: node .github/workflows/scripts/build-history.mjs
+        run: node .github/workflows/scripts/build-history.mjs || echo "build-history step failed, continuing"
       - name: Write ODL Wire stories
         env:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
           FORCE: ${{ inputs.force && '1' || '' }}
           OUTLOOK_TEST: ${{ inputs.test_offseason && '1' || '' }}
-        run: node .github/workflows/scripts/build-stories.mjs
+        run: node .github/workflows/scripts/build-stories.mjs || echo "build-stories step failed, continuing"
       - name: TD Wire AI desk (beat-writer rewrite of the week's stories)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: node .github/workflows/scripts/ai-writer.mjs
+        run: node .github/workflows/scripts/ai-writer.mjs || echo "ai-writer step failed, continuing"
       - name: Beat writers (one local writer per league coach + school; game, hire and exit columns)
         env:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
@@ -92,7 +92,7 @@ jobs:
           git checkout -q --orphan fresh && git commit -qm "current temperature photos" && git push -qf origin fresh:photos
           rm -rf "$GITHUB_WORKSPACE/photos-out"
       - name: News archive (keep every story for the News tab)
-        run: node .github/workflows/scripts/build-news-archive.mjs
+        run: node .github/workflows/scripts/build-news-archive.mjs || echo "build-news-archive step failed, continuing"
       - name: Register slash commands (only when they change)
         if: ${{ hashFiles('discord.config.json') != '' }}
         env:
