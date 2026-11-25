@@ -5,8 +5,6 @@
   S.Small.push("Eastern Illinois","Morehead State","Texas Southern","South Carolina State","Kutztown","Sonoma State","Southern","Tennessee State","North Carolina A&T","Hofstra","Northern Colorado","Mount Union","Dayton","Florida A&M");
 })();
 window.BKU_PLAYERS += `
-Ken Stabler|QB|1960s|3|Alabama
-John Hannah|OG|1970s|3|Alabama
 Cornelius Bennett|LB|1980s|3|Alabama
 David Palmer|WR|1990s|3|Alabama
 Jay Barker|QB|1990s|3|Alabama
@@ -34,7 +32,6 @@ Dallas Turner|LB|2020s|2|Alabama
 Terrion Arnold|CB|2020s|3|Alabama
 Brian Branch|S|2020s|3|Alabama
 Jermaine Burton|WR|2020s|3|Alabama;Georgia
-Pat Sullivan|QB|1970s|3|Auburn
 Ronnie Brown|RB|2000s|2|Auburn
 Cadillac Williams|RB|2000s|2|Auburn
 Jason Campbell|QB|2000s|3|Auburn
@@ -48,7 +45,6 @@ Carlos Rogers|CB|2000s|3|Auburn
 Kerryon Johnson|RB|2010s|3|Auburn
 Nick Marshall|QB|2010s|3|Auburn;Georgia;Garden City CC
 Jarrett Stidham|QB|2010s|3|Auburn;Baylor
-Steve Spurrier|QB|1960s|2|Florida
 Percy Harvin|WR|2000s|2|Florida
 Chris Leak|QB|2000s|3|Florida
 Jabar Gaffney|WR|2000s|3|Florida
@@ -62,11 +58,9 @@ Dante Fowler Jr.|DE|2010s|3|Florida
 Vernon Hargreaves III|CB|2010s|3|Florida
 Kyle Trask|QB|2020s|2|Florida
 Shane Matthews|QB|1990s|3|Florida
-Jack Youngblood|DE|1970s|3|Florida
 Wilber Marshall|LB|1980s|3|Florida
 Cris Collinsworth|WR|1980s|3|Florida
 Jordan Reed|TE|2010s|3|Florida
-Fran Tarkenton|QB|1960s|2|Georgia
 Sony Michel|RB|2010s|2|Georgia
 Knowshon Moreno|RB|2000s|2|Georgia
 David Pollack|DE|2000s|3|Georgia
@@ -87,7 +81,6 @@ Zamir White|RB|2020s|3|Georgia
 Darnell Washington|TE|2020s|3|Georgia
 Mecole Hardman|WR|2010s|3|Georgia
 Kirby Smart|S|1990s|3|Georgia
-Charley Trippi|RB|1940s|3|Georgia
 Jared Lorenzen|QB|2000s|3|Kentucky
 Randall Cobb|WR|2010s|2|Kentucky
 Benny Snell|RB|2010s|3|Kentucky
@@ -96,9 +89,6 @@ Danny Trevathan|LB|2010s|3|Kentucky
 Bud Dupree|DE|2010s|3|Kentucky
 Wan'Dale Robinson|WR|2020s|3|Kentucky;Nebraska
 Dermontti Dawson|C|1980s|3|Kentucky
-Billy Cannon|RB|1950s|3|LSU
-Y.A. Tittle|QB|1940s|3|LSU
-Bert Jones|QB|1970s|3|LSU
 Kevin Faulk|RB|1990s|3|LSU
 Josh Reed|WR|2000s|3|LSU
 Dwayne Bowe|WR|2000s|3|LSU
@@ -143,8 +133,6 @@ Justin Smith|DE|2000s|3|Missouri
 Dorial Green-Beckham|WR|2010s|3|Missouri;Oklahoma
 Luther Burden III|WR|2020s|2|Missouri
 Cody Schrader|RB|2020s|3|Missouri;Truman State
-Billy Sims|RB|1970s|2|Oklahoma
-Steve Owens|RB|1960s|3|Oklahoma
 Jamelle Holieway|QB|1980s|3|Oklahoma
 Tommie Harris|DT|2000s|3|Oklahoma
 Roy Williams|S|2000s|2|Oklahoma
@@ -173,8 +161,6 @@ Hayden Hurst|TE|2010s|3|South Carolina
 Jaycee Horn|CB|2020s|3|South Carolina
 Xavier Legette|WR|2020s|3|South Carolina
 Nick Emmanwori|S|2020s|3|South Carolina
-Doug Atkins|DE|1950s|3|Tennessee
-Condredge Holloway|QB|1970s|3|Tennessee
 Tee Martin|QB|1990s|3|Tennessee
 Travis Henry|RB|2000s|3|Tennessee
 Al Wilson|LB|1990s|3|Tennessee
@@ -191,8 +177,6 @@ Joe Milton III|QB|2020s|3|Tennessee;Michigan
 Donte Stallworth|WR|2000s|3|Tennessee
 Carl Pickens|WR|1990s|3|Tennessee
 Peerless Price|WR|1990s|3|Tennessee
-Tommy Nobis|LB|1960s|3|Texas
-Bobby Layne|QB|1940s|3|Texas
 Cedric Benson|RB|2000s|2|Texas
 Roy Williams|WR|2000s|2|Texas
 Major Applewhite|QB|2000s|3|Texas
@@ -207,7 +191,6 @@ Byron Murphy II|DT|2020s|3|Texas
 Ja'Tavion Sanders|TE|2020s|3|Texas
 Jonathon Brooks|RB|2020s|3|Texas
 Kelvin Banks Jr.|OT|2020s|3|Texas
-John David Crow|RB|1950s|3|Texas A&M
 Dat Nguyen|LB|1990s|3|Texas A&M
 Jake Matthews|OT|2010s|3|Texas A&M
 Luke Joeckel|OT|2010s|3|Texas A&M
@@ -226,13 +209,9 @@ Ryan Mallett|QB|2010s|3|Arkansas;Michigan
 Tyler Wilson|QB|2010s|3|Arkansas
 Knile Davis|RB|2010s|3|Arkansas
 Brandon Burlsworth|OG|1990s|3|Arkansas
-Jerry Jones|OG|1960s|3|Arkansas
-Lance Alworth|WR|1960s|3|Arkansas
-Dan Hampton|DT|1970s|3|Arkansas
 Steve Atwater|S|1980s|3|Arkansas
 Treylon Burks|WR|2020s|3|Arkansas
 KJ Jefferson|QB|2020s|3|Arkansas;UCF
-Hopalong Cassady|RB|1950s|3|Ohio State
 Chris Spielman|LB|1980s|2|Ohio State
 Cris Carter|WR|1980s|2|Ohio State
 Keith Byars|RB|1980s|3|Ohio State
@@ -270,8 +249,6 @@ Paris Johnson Jr.|OT|2020s|3|Ohio State
 Art Schlichter|QB|1980s|3|Ohio State
 Mike Doss|S|2000s|3|Ohio State
 Anthony Carter|WR|1980s|3|Michigan
-Tom Harmon|RB|1940s|3|Michigan
-Gerald Ford|C|1930s|3|Michigan
 Jake Long|OT|2000s|3|Michigan
 Braylon Edwards|WR|2000s|2|Michigan
 Mike Hart|RB|2000s|3|Michigan
@@ -296,14 +273,10 @@ Kenneth Grant|DT|2020s|3|Michigan
 Mike Sainristil|CB|2020s|3|Michigan
 Cade McNamara|QB|2020s|3|Michigan;Iowa
 Shea Patterson|QB|2010s|3|Michigan;Ole Miss
-Franco Harris|RB|1970s|2|Penn State
-Lenny Moore|RB|1950s|3|Penn State
-John Cappelletti|RB|1970s|3|Penn State
 Curt Warner|RB|1980s|3|Penn State
 LaVar Arrington|LB|1990s|2|Penn State
 Courtney Brown|DE|1990s|3|Penn State
 Paul Posluszny|LB|2000s|3|Penn State
-Jack Ham|LB|1970s|3|Penn State
 Shane Conlan|LB|1980s|3|Penn State
 Todd Blackledge|QB|1980s|3|Penn State
 Michael Robinson|QB|2000s|3|Penn State
@@ -320,7 +293,6 @@ Abdul Carter|LB|2020s|2|Penn State
 Joey Porter Jr.|CB|2020s|3|Penn State
 Drew Allar|QB|2020s|3|Penn State
 Kyle Brady|TE|1990s|3|Penn State
-Johnny Rodgers|WR|1970s|2|Nebraska
 Mike Rozier|RB|1980s|2|Nebraska
 Irving Fryar|WR|1980s|3|Nebraska
 Turner Gill|QB|1980s|3|Nebraska
@@ -338,7 +310,6 @@ Neil Smith|DE|1980s|3|Nebraska
 Trev Alberts|LB|1990s|3|Nebraska
 Roger Craig|RB|1980s|3|Nebraska
 Adrian Martinez|QB|2020s|3|Nebraska;Kansas State
-Nile Kinnick|RB|1930s|3|Iowa
 Chuck Long|QB|1980s|3|Iowa
 Ronnie Harmon|RB|1980s|3|Iowa
 Tim Dwight|WR|1990s|3|Iowa
@@ -354,7 +325,6 @@ A.J. Epenesa|DE|2010s|3|Iowa
 Tristan Wirfs|OT|2010s|3|Iowa
 Jack Campbell|LB|2020s|3|Iowa
 Desmond King|CB|2010s|3|Iowa
-Alan Ameche|RB|1950s|3|Wisconsin
 Michael Bennett|RB|2000s|3|Wisconsin
 Anthony Davis|RB|2000s|3|Wisconsin
 Lee Evans|WR|2000s|3|Wisconsin
@@ -365,7 +335,6 @@ Ryan Ramczyk|OT|2010s|3|Wisconsin;Wisconsin-Stevens Point
 Jared Abbrederis|WR|2010s|3|Wisconsin
 Braelon Allen|RB|2020s|3|Wisconsin
 Graham Mertz|QB|2020s|3|Wisconsin;Florida
-Bubba Smith|DE|1960s|3|Michigan State
 Lorenzo White|RB|1980s|3|Michigan State
 Andre Rison|WR|1980s|3|Michigan State
 Plaxico Burress|WR|1990s|2|Michigan State
@@ -377,19 +346,14 @@ Darqueze Dennard|CB|2010s|3|Michigan State
 Jayden Reed|WR|2020s|3|Michigan State;Western Michigan
 Tony Mandarich|OT|1980s|3|Michigan State
 Flozell Adams|OT|1990s|3|Michigan State
-Bob Griese|QB|1960s|2|Purdue
-Len Dawson|QB|1950s|3|Purdue
 Mark Herrmann|QB|1980s|3|Purdue
 Jim Everett|QB|1980s|3|Purdue
-Leroy Keyes|RB|1960s|3|Purdue
 Rondale Moore|WR|2020s|3|Purdue
 David Bell|WR|2020s|3|Purdue
 George Karlaftis|DE|2020s|3|Purdue
 Ryan Kerrigan|DE|2010s|2|Purdue
 Kyle Orton|QB|2000s|3|Purdue
 Aidan O'Connell|QB|2020s|3|Purdue
-Red Grange|RB|1920s|3|Illinois
-Ray Nitschke|LB|1950s|3|Illinois
 Kevin Hardy|LB|1990s|3|Illinois
 Simeon Rice|DE|1990s|2|Illinois
 Rashard Mendenhall|RB|2000s|3|Illinois
@@ -404,20 +368,16 @@ Vaughn Dunbar|RB|1990s|3|Indiana
 Tevin Coleman|RB|2010s|3|Indiana
 Jordan Howard|RB|2010s|3|Indiana;UAB
 Trent Green|QB|1990s|3|Indiana
-Bronko Nagurski|FB|1920s|3|Minnesota
 Laurence Maroney|RB|2000s|3|Minnesota
 Marion Barber III|RB|2000s|3|Minnesota
 Eric Decker|WR|2000s|3|Minnesota
-Tony Dungy|QB|1970s|3|Minnesota
 Rashod Bateman|WR|2020s|3|Minnesota
 Mohamed Ibrahim|RB|2020s|3|Minnesota
 Tyler Johnson|WR|2010s|3|Minnesota
 Antoine Winfield Jr.|S|2010s|3|Minnesota
 Darnell Autry|RB|1990s|3|Northwestern
-Otto Graham|QB|1940s|3|Northwestern
 Pat Fitzgerald|LB|1990s|3|Northwestern
 Justin Jackson|RB|2010s|3|Northwestern
-Randy White|DT|1970s|3|Maryland
 Frank Reich|QB|1980s|3|Maryland
 Shawne Merriman|LB|2000s|2|Maryland
 E.J. Henderson|LB|2000s|3|Maryland
@@ -428,16 +388,13 @@ Torrey Smith|WR|2010s|3|Maryland
 Neil O'Donnell|QB|1980s|3|Maryland
 Taulia Tagovailoa|QB|2020s|3|Maryland;Alabama
 Jermaine Lewis|WR|1990s|3|Maryland
-Paul Robeson|E|1910s|3|Rutgers
 Mohamed Sanu|WR|2010s|3|Rutgers
 Kenny Britt|WR|2000s|3|Rutgers
 Devin McCourty|CB|2000s|2|Rutgers
 Jason McCourty|CB|2000s|3|Rutgers
 Logan Ryan|CB|2010s|3|Rutgers
 Kyle Monangai|RB|2020s|3|Rutgers
-Gary Beban|QB|1960s|3|UCLA
 Kenny Easley|S|1980s|3|UCLA
-Jackie Robinson|RB|1940s|3|UCLA
 Brett Hundley|QB|2010s|3|UCLA
 Anthony Barr|LB|2010s|2|UCLA
 Eric Kendricks|LB|2010s|3|UCLA
@@ -448,10 +405,6 @@ Zach Charbonnet|RB|2020s|3|UCLA;Michigan
 Freeman McNeil|RB|1980s|3|UCLA
 Gaston Green|RB|1980s|3|UCLA
 J.J. Stokes|WR|1990s|3|UCLA
-Mike Garrett|RB|1960s|3|USC
-Charles White|RB|1970s|3|USC
-Lynn Swann|WR|1970s|2|USC
-Anthony Munoz|OT|1970s|3|USC
 Bruce Matthews|OG|1980s|3|USC
 Rodney Peete|QB|1980s|3|USC
 Keyshawn Johnson|WR|1990s|2|USC
@@ -470,8 +423,6 @@ Ronald Jones II|RB|2010s|3|USC
 Michael Pittman Jr.|WR|2010s|3|USC
 Amon-Ra St. Brown|WR|2020s|2|USC
 Joey Harrington|QB|2000s|2|Oregon
-Dan Fouts|QB|1970s|3|Oregon
-Ahmad Rashad|WR|1970s|3|Oregon
 Jonathan Stewart|RB|2000s|3|Oregon
 Kenjon Barner|RB|2010s|3|Oregon
 De'Anthony Thomas|RB|2010s|3|Oregon
@@ -493,10 +444,8 @@ Jake Browning|QB|2010s|3|Washington
 Danny Shelton|DT|2010s|3|Washington
 Vita Vea|DT|2010s|3|Washington
 Jalen McMillan|WR|2020s|3|Washington
-Sonny Sixkiller|QB|1970s|3|Washington
 Corey Dillon|RB|1990s|3|Washington;Garden City CC
 Lincoln Kennedy|OT|1990s|3|Washington
-Hugh McElhenny|RB|1950s|3|Washington
 Kendall Wright|WR|2010s|3|Baylor
 Terrance Williams|WR|2010s|3|Baylor
 Josh Gordon|WR|2010s|3|Baylor
@@ -509,17 +458,14 @@ Siaki Ika|DT|2020s|3|Baylor;LSU
 Thomas Everett|S|1980s|3|Baylor
 Jim McMahon|QB|1980s|2|BYU
 Robbie Bosco|QB|1980s|3|BYU
-Marc Wilson|QB|1970s|3|BYU
 Kyle Van Noy|LB|2010s|3|BYU
 Ziggy Ansah|DE|2010s|3|BYU
 Max Hall|QB|2000s|3|BYU
 Jamaal Williams|RB|2010s|3|BYU
 Jaren Hall|QB|2020s|3|BYU
 Andy Reid|OL|1980s|3|BYU;Glendale CC
-Greg Cook|QB|1960s|3|Cincinnati
 Alec Pierce|WR|2020s|3|Cincinnati
 Coby Bryant|CB|2020s|3|Cincinnati
-Byron White|RB|1930s|3|Colorado
 Alfred Williams|LB|1990s|3|Colorado
 Michael Westbrook|WR|1990s|3|Colorado
 Darian Hagan|QB|1990s|3|Colorado
@@ -542,8 +488,6 @@ Hakeem Butler|WR|2010s|3|Iowa State
 Charlie Kolar|TE|2020s|3|Iowa State
 Will McDonald IV|DE|2020s|3|Iowa State
 Xavier Hutchinson|WR|2020s|3|Iowa State;Blinn College
-Gale Sayers|RB|1960s|2|Kansas
-John Riggins|RB|1970s|3|Kansas
 Todd Reesing|QB|2000s|3|Kansas
 Aqib Talib|CB|2000s|2|Kansas
 Devin Neal|RB|2020s|3|Kansas
@@ -562,8 +506,6 @@ James Washington|WR|2010s|3|Oklahoma State
 Justice Hill|RB|2010s|3|Oklahoma State
 Ollie Gordon II|RB|2020s|3|Oklahoma State
 Leslie O'Neal|DE|1980s|3|Oklahoma State
-Davey O'Brien|QB|1930s|3|TCU
-Sammy Baugh|QB|1930s|3|TCU
 Jerry Hughes|DE|2000s|3|TCU
 Trevone Boykin|QB|2010s|3|TCU
 Josh Doctson|WR|2010s|3|TCU;Wyoming
@@ -590,7 +532,6 @@ Tyler Huntley|QB|2010s|3|Utah
 Cam Rising|QB|2020s|3|Utah;Texas
 Jaylon Johnson|CB|2010s|3|Utah
 Clark Phillips III|CB|2020s|3|Utah
-Sam Huff|LB|1950s|3|West Virginia
 Major Harris|QB|1980s|3|West Virginia
 Jeff Hostetler|QB|1980s|3|West Virginia;Penn State
 Marc Bulger|QB|1990s|3|West Virginia
@@ -612,7 +553,6 @@ Scooby Wright III|LB|2010s|3|Arizona
 Khalil Tate|QB|2010s|3|Arizona
 Lance Briggs|LB|2000s|3|Arizona
 Chris McAlister|CB|1990s|3|Arizona
-Danny White|QB|1970s|3|Arizona State
 Pat Tillman|LB|1990s|2|Arizona State
 Zach Miller|TE|2000s|3|Arizona State
 Brock Osweiler|QB|2010s|3|Arizona State
@@ -631,11 +571,8 @@ Phil Jurkovec|QB|2020s|3|Boston College;Notre Dame;Pittsburgh
 Jahvid Best|RB|2000s|3|California
 DeSean Jackson|WR|2000s|2|California
 Keenan Allen|WR|2010s|2|California
-Craig Morton|QB|1960s|3|California
-Steve Bartkowski|QB|1970s|3|California
 Kyle Boller|QB|2000s|3|California
 Shane Vereen|RB|2010s|3|California
-Chuck Muncie|RB|1970s|3|California
 William Perry|DT|1980s|2|Clemson
 Terry Kinard|S|1980s|3|Clemson
 C.J. Spiller|RB|2000s|2|Clemson
@@ -653,12 +590,9 @@ Bryan Bresee|DT|2020s|3|Clemson
 Cade Klubnik|QB|2020s|3|Clemson
 Gaines Adams|DE|2000s|3|Clemson
 Andre Ellington|RB|2010s|3|Clemson
-Sonny Jurgensen|QB|1950s|3|Duke
 Jamison Crowder|WR|2010s|3|Duke
 Laken Tomlinson|OG|2010s|3|Duke
-Fred Biletnikoff|WR|1960s|3|Florida State
 Ron Simmons|DT|1980s|3|Florida State
-Burt Reynolds|RB|1950s|3|Florida State
 LeRoy Butler|S|1980s|3|Florida State
 Peter Warrick|WR|1990s|2|Florida State
 Corey Simon|DT|1990s|3|Florida State
@@ -695,7 +629,6 @@ Chris Redman|QB|1990s|3|Louisville
 Jerome Brown|DT|1980s|3|Miami
 Russell Maryland|DT|1990s|3|Miami
 Cortez Kennedy|DT|1980s|3|Miami;Northwest Mississippi CC
-Ted Hendricks|LB|1960s|3|Miami
 Steve Walsh|QB|1980s|3|Miami
 Bryant McKinnie|OT|2000s|3|Miami
 Willis McGahee|RB|2000s|2|Miami
@@ -715,9 +648,6 @@ Dwayne Johnson|DT|1990s|2|Miami
 Xavier Restrepo|WR|2020s|3|Miami
 Tyler Van Dyke|QB|2020s|3|Miami;Wisconsin
 Alonzo Highsmith|RB|1980s|3|Miami
-Ottis Anderson|RB|1970s|3|Miami
-Roman Gabriel|QB|1960s|3|NC State
-Ted Brown|RB|1970s|3|NC State
 Bradley Chubb|DE|2010s|2|NC State
 Nyheim Hines|RB|2010s|3|NC State
 Jacoby Brissett|QB|2010s|3|NC State;Florida
@@ -725,7 +655,6 @@ Ryan Finley|QB|2010s|3|NC State;Boise State
 Jerricho Cotchery|WR|2000s|3|NC State
 Payton Wilson|LB|2020s|3|NC State
 Devin Leary|QB|2020s|3|NC State;Kentucky
-Charlie Justice|RB|1940s|3|North Carolina
 Dre' Bly|CB|1990s|3|North Carolina
 Hakeem Nicks|WR|2000s|3|North Carolina
 Eric Ebron|TE|2010s|3|North Carolina
@@ -739,7 +668,6 @@ Omarion Hampton|RB|2020s|2|North Carolina
 Josh Downs|WR|2020s|3|North Carolina
 Jeff Saturday|C|1990s|3|North Carolina
 Robert Quinn|DE|2010s|3|North Carolina
-Mike Ditka|TE|1960s|2|Pittsburgh
 Russ Grimm|OG|1980s|3|Pittsburgh
 Mark May|OT|1980s|3|Pittsburgh
 Craig Heyward|RB|1980s|3|Pittsburgh
@@ -750,13 +678,9 @@ James Conner|RB|2010s|2|Pittsburgh
 Tyler Boyd|WR|2010s|3|Pittsburgh
 Calijah Kancey|DT|2020s|3|Pittsburgh
 Craig James|RB|1980s|3|SMU
-Don Meredith|QB|1950s|3|SMU
-Doak Walker|RB|1940s|3|SMU
 Courtland Sutton|WR|2010s|2|SMU
 Shane Buechele|QB|2020s|3|SMU;Texas
 Tanner Mordecai|QB|2020s|3|SMU;Oklahoma;Wisconsin
-John Brodie|QB|1950s|3|Stanford
-Ernie Nevers|FB|1920s|3|Stanford
 Darrin Nelson|RB|1980s|3|Stanford
 Coby Fleener|TE|2010s|3|Stanford
 Doug Baldwin|WR|2010s|3|Stanford
@@ -767,16 +691,10 @@ Bryce Love|RB|2010s|3|Stanford
 JJ Arcega-Whiteside|WR|2010s|3|Stanford
 Trent Edwards|QB|2000s|3|Stanford
 Ed McCaffrey|WR|1990s|3|Stanford
-Jim Brown|RB|1950s|2|Syracuse
-Ernie Davis|RB|1960s|2|Syracuse
-Floyd Little|RB|1960s|3|Syracuse
-Larry Csonka|FB|1960s|2|Syracuse
-Art Monk|WR|1970s|3|Syracuse
 Joe Morris|RB|1980s|3|Syracuse
 Don McPherson|QB|1980s|3|Syracuse
 Rob Moore|WR|1980s|3|Syracuse
 Tim Green|DE|1980s|3|Syracuse
-Tom Coughlin|RB|1960s|3|Syracuse
 Chandler Jones|DE|2010s|2|Syracuse
 Garrett Shrader|QB|2020s|3|Syracuse;Mississippi State
 Sean Tucker|RB|2020s|3|Syracuse
@@ -793,7 +711,6 @@ Bryce Perkins|QB|2010s|3|Virginia;Arizona State;Arizona Western
 Olamide Zaccheaus|WR|2010s|3|Virginia
 Brennan Armstrong|QB|2020s|3|Virginia;NC State
 Anthony Poindexter|S|1990s|3|Virginia
-Frank Beamer|CB|1960s|3|Virginia Tech
 Antonio Freeman|WR|1990s|3|Virginia Tech
 DeAngelo Hall|CB|2000s|2|Virginia Tech
 Kevin Jones|RB|2000s|3|Virginia Tech
@@ -810,16 +727,10 @@ Terrell Edmunds|S|2010s|3|Virginia Tech
 Macho Harris|CB|2000s|3|Virginia Tech
 Eddie Royal|WR|2000s|3|Virginia Tech
 Jim Druckenmiller|QB|1990s|3|Virginia Tech
-Brian Piccolo|RB|1960s|3|Wake Forest
 Aaron Curry|LB|2000s|3|Wake Forest
 Alphonso Smith|CB|2000s|3|Wake Forest
 Sam Hartman|QB|2020s|3|Wake Forest;Notre Dame
 Jessie Bates III|S|2010s|3|Wake Forest
-Norm Snead|QB|1960s|3|Wake Forest
-Paul Hornung|QB|1950s|2|Notre Dame
-Johnny Lujack|QB|1940s|3|Notre Dame
-John Huarte|QB|1960s|3|Notre Dame
-Alan Page|DT|1960s|3|Notre Dame
 Raghib Ismail|WR|1990s|2|Notre Dame
 Ricky Watters|RB|1990s|3|Notre Dame
 Tony Rice|QB|1980s|3|Notre Dame
@@ -836,7 +747,6 @@ Jeremiah Owusu-Koramoah|LB|2020s|3|Notre Dame
 Kyle Hamilton|S|2020s|2|Notre Dame
 Ian Book|QB|2020s|3|Notre Dame
 Michael Mayer|TE|2020s|3|Notre Dame
-Rudy Ruettiger|DE|1970s|3|Notre Dame;Holy Cross College
 Xavier Watts|S|2020s|3|Notre Dame
 Byron Jones|CB|2010s|3|UConn
 Dan Orlovsky|QB|2000s|3|UConn
@@ -851,7 +761,6 @@ Ryan Mathews|RB|2000s|3|Fresno State
 Logan Mankins|OG|2000s|3|Fresno State
 Jake Haener|QB|2020s|3|Fresno State;Washington
 Billy Volek|QB|1990s|3|Fresno State
-Merlin Olsen|DT|1960s|3|Utah State
 Kevin Curtis|WR|2000s|3|Utah State
 Robert Turbin|RB|2010s|3|Utah State
 Nate Burleson|WR|2000s|3|Nevada
@@ -863,7 +772,6 @@ Davone Bess|WR|2000s|3|Hawaii
 Jason Elam|K|1990s|3|Hawaii
 Rashaad Penny|RB|2010s|3|San Diego State
 Donnel Pumphrey|RB|2010s|3|San Diego State
-Brian Sipe|QB|1970s|3|San Diego State
 Kyle Turley|OT|1990s|3|San Diego State
 Logan Wilson|LB|2010s|3|Wyoming
 Jay Novacek|TE|1980s|3|Wyoming
@@ -887,13 +795,9 @@ Zay Jones|WR|2010s|3|East Carolina
 Shane Carden|QB|2010s|3|East Carolina
 Linval Joseph|DT|2000s|3|East Carolina
 Holton Ahlers|QB|2020s|3|East Carolina
-Joe Bellino|RB|1960s|3|Navy
 Napoleon McCallum|RB|1980s|3|Navy
 Keenan Reynolds|QB|2010s|3|Navy
 Malcolm Perry|QB|2010s|3|Navy
-Glenn Davis|RB|1940s|3|Army
-Doc Blanchard|FB|1940s|3|Army
-Pete Dawkins|RB|1950s|3|Army
 Alejandro Villanueva|OT|2010s|3|Army
 Matt Forte|RB|2000s|2|Tulane
 Shaun King|QB|1990s|3|Tulane
@@ -912,18 +816,15 @@ Troy Brown|WR|1990s|3|Marshall
 Ahmad Bradshaw|RB|2000s|3|Marshall;Virginia
 Vinny Curry|DE|2010s|3|Marshall
 Rakeem Cato|QB|2010s|3|Marshall
-Ray Guy|P|1970s|3|Southern Miss
 Austin Davis|QB|2010s|3|Southern Miss
 Osi Umenyiora|DE|2000s|3|Troy
 Ryan Moats|RB|2000s|3|Louisiana Tech
 Tim Rattay|QB|1990s|3|Louisiana Tech
 Willie Roaf|OT|1990s|3|Louisiana Tech
-Fred Dean|DE|1970s|3|Louisiana Tech
 Troy Edwards|WR|1990s|3|Louisiana Tech
 Bobby Rainey|RB|2010s|3|Western Kentucky
 Brandon Doughty|QB|2010s|3|Western Kentucky
 Taywan Taylor|WR|2010s|3|Western Kentucky
-Don Maynard|WR|1950s|3|UTEP
 Jordan Palmer|QB|2000s|3|UTEP
 James Starks|RB|2000s|3|Buffalo
 Jaret Patterson|RB|2020s|3|Buffalo
@@ -934,32 +835,23 @@ Cooper Rush|QB|2010s|3|Central Michigan
 Titus Davis|WR|2010s|3|Central Michigan
 Dri Archer|RB|2010s|3|Kent State
 Josh Cribbs|QB|2000s|2|Kent State
-Nick Saban|DB|1970s|2|Kent State
-Lou Holtz|LB|1950s|3|Kent State
 Eric Page|WR|2010s|3|Toledo
-Paul Brown|QB|1920s|3|Miami (OH)
 Sean McVay|WR|2000s|3|Miami (OH)
 John Harbaugh|DB|1980s|3|Miami (OH)
-Bo Schembechler|OT|1950s|3|Miami (OH)
-Steve Largent|WR|1970s|3|Tulsa
 Gus Frerotte|QB|1990s|3|Tulsa
 Armanti Edwards|QB|2000s|3|App State
 Darrynton Evans|RB|2010s|3|App State
-Joe Greene|DT|1960s|2|North Texas
 Michael Turner|RB|2000s|3|Northern Illinois
 Garrett Wolfe|RB|2000s|3|Northern Illinois
 Jordan Lynch|QB|2010s|3|Northern Illinois
 Corey Davis|WR|2010s|3|Western Michigan
 Greg Jennings|WR|2000s|3|Western Michigan
-Walter Payton|RB|1970s|2|Jackson State
 Tony Romo|QB|2000s|2|Eastern Illinois
 Jimmy Garoppolo|QB|2010s|2|Eastern Illinois
-Phil Simms|QB|1970s|3|Morehead State
 Michael Strahan|DE|1990s|2|Texas Southern
 Darius Leonard|LB|2010s|3|South Carolina State
 Andre Reed|WR|1980s|3|Kutztown
 Larry Allen|OG|1990s|3|Sonoma State;Butte College
-Mel Blount|CB|1960s|3|Southern
 Aeneas Williams|CB|1990s|3|Southern
 Richard Dent|DE|1980s|3|Tennessee State
 Tarik Cohen|RB|2010s|3|North Carolina A&T
@@ -967,7 +859,6 @@ Marques Colston|WR|2000s|3|Hofstra
 Vincent Jackson|WR|2000s|3|Northern Colorado
 Pierre Garcon|WR|2000s|3|Mount Union;Norwich
 Jon Gruden|QB|1980s|3|Dayton
-Bob Hayes|WR|1960s|3|Florida A&M
 Adam Vinatieri|K|1990s|3|South Dakota State
 Brian Westbrook|RB|2000s|2|Villanova
 Riley Leonard|QB|2020s|3|Notre Dame;Duke

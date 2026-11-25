@@ -69,7 +69,6 @@ Shedeur Sanders|QB|2020s|1|Colorado;Jackson State
 Bo Nix|QB|2020s|1|Oregon;Auburn
 Michael Penix Jr.|QB|2020s|1|Washington;Indiana
 C.J. Stroud|QB|2020s|1|Ohio State
-Joe Montana|QB|1970s|1|Notre Dame
 Brian Bosworth|LB|1980s|1|Oklahoma
 Doug Flutie|QB|1980s|1|Boston College
 Troy Polamalu|S|2000s|1|USC
@@ -129,9 +128,6 @@ Danny Wuerffel|QB|1990s|2|Florida
 Eddie George|RB|1990s|2|Ohio State
 Ron Dayne|RB|1990s|2|Wisconsin
 Desmond Howard|WR|1990s|2|Michigan
-Archie Griffin|RB|1970s|2|Ohio State
-Tony Dorsett|RB|1970s|2|Pittsburgh
-Earl Campbell|RB|1970s|2|Texas
 Marcus Allen|RB|1980s|2|USC
 Eric Dickerson|RB|1980s|2|SMU
 Thurman Thomas|RB|1980s|2|Oklahoma State
@@ -347,15 +343,6 @@ Dallas Clark|TE|2000s|2|Iowa
 Zach Ertz|TE|2010s|2|Stanford
 Trey McBride|TE|2020s|2|Colorado State
 Tyler Warren|TE|2020s|2|Penn State
-Joe Namath|QB|1960s|2|Alabama
-Roger Staubach|QB|1960s|2|Navy
-Johnny Unitas|QB|1950s|3|Louisville
-Bart Starr|QB|1950s|3|Alabama
-Jim Plunkett|QB|1970s|3|Stanford
-Terry Bradshaw|QB|1960s|3|Louisiana Tech
-Archie Manning|QB|1970s|3|Ole Miss
-Joe Theismann|QB|1970s|3|Notre Dame
-Warren Moon|QB|1970s|3|Washington;West LA College
 Randall Cunningham|QB|1980s|3|UNLV
 Boomer Esiason|QB|1980s|3|Maryland
 Jeff George|QB|1980s|3|Illinois;Purdue
@@ -364,7 +351,6 @@ Steve McNair|QB|1990s|3|Alcorn State
 Kordell Stewart|QB|1990s|3|Colorado
 Rick Mirer|QB|1990s|3|Notre Dame
 Heath Shuler|QB|1990s|3|Tennessee
-Doug Williams|QB|1970s|3|Grambling State
 Jim Harbaugh|QB|1980s|3|Michigan
 Rich Gannon|QB|1980s|3|Delaware
 Kurt Warner|QB|1990s|3|Northern Iowa
@@ -382,10 +368,7 @@ Everett Golson|QB|2010s|3|Notre Dame;Florida State
 Bailey Zappe|QB|2020s|3|Western Kentucky;Houston Baptist
 Spencer Rattler|QB|2020s|3|South Carolina;Oklahoma
 Kyle McCord|QB|2020s|3|Syracuse;Ohio State
-Dick Butkus|LB|1960s|3|Illinois
-Jack Lambert|LB|1970s|3|Kent State
 Mike Singletary|LB|1980s|3|Baylor
-Lee Roy Selmon|DT|1970s|3|Oklahoma
 Hugh Green|DE|1980s|3|Pittsburgh
 Tedy Bruschi|DE|1990s|3|Arizona
 Zach Thomas|LB|1990s|3|Texas Tech
@@ -399,7 +382,6 @@ Cooper DeJean|CB|2020s|3|Iowa
 Isaac Bruce|WR|1990s|3|Memphis;Santa Monica College
 Chad Johnson|WR|2000s|3|Oregon State;Santa Monica College
 Shannon Sharpe|TE|1980s|3|Savannah State
-Kellen Winslow|TE|1970s|3|Missouri
 Kellen Winslow II|TE|2000s|3|Miami
 Hunter Henry|TE|2010s|3|Arkansas
 Evan Engram|TE|2010s|3|Ole Miss
