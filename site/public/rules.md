@@ -1,7 +1,7 @@
 # RULES & GUIDELINES
 
 ## 1. GAME SETUP
-- Quarter Length: 7 Min w/Accel
+- Quarter Length: 7 Min No Accel Clock
 - Difficulty: Heisman
 - Offense / Defense: Custom Playbooks allowed
 - Both coaches are required to stream via Twitch/YouTube.
@@ -25,7 +25,7 @@ Mix up your plays, concepts and formations.
 - Any variation of a pass where the ball changes hands before being thrown (double-pass, HB pass, etc.).
 
 ### Play Action:
-Allowed on 3rd and 4th down and 6 or less yards.
+Allowed on 3rd/4th down and 6 or less yards.
 You may not hot route the HB out of the play-action animation or cancel the PA
 
 ### NO HUDDLE
