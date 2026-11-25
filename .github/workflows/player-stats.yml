@@ -42,7 +42,7 @@ jobs:
         env:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
           FORCE: ${{ inputs.force && '1' || '' }}
-        run: node .github/workflows/scripts/build-player-stats.mjs
+        run: node .github/workflows/scripts/build-player-stats.mjs || echo "player stats step failed (normal before the first games of a new dynasty), continuing"
       - name: Build data/rosters-all.json (every player, Roster-tab columns)
         env:
           DYNASTY_API_KEY: ${{ secrets.DYNASTY_API_KEY }}
