@@ -1,0 +1,67 @@
+{
+ "assignments": {
+  "agerm40@832438366": {
+   "gt": "Agerm40",
+   "team": 832438366,
+   "team_name": "Penn State",
+   "writer": "brandt",
+   "outlet": "The Penn State Playbill",
+   "since": "2030 OFF Stg 7",
+   "notes": []
+  },
+  "h0ldstillplease@832438379": {
+   "gt": "H0ldStillPlease",
+   "team": 832438379,
+   "team_name": "Stanford",
+   "writer": "albanese",
+   "outlet": "Cardinal Talk",
+   "since": "2030 OFF Stg 7",
+   "notes": [
+    "2030 OFF Stg 7: Grudgingly impressed by Harrell's trail pull, still sour on 2-10 and a class with no four-stars. Hates UCLA. Wants proof it turns into wins."
+   ]
+  },
+  "tuddy_roosevelt@832438359": {
+   "gt": "Tuddy_Roosevelt",
+   "team": 832438359,
+   "team_name": "Ohio State",
+   "writer": "sauer",
+   "outlet": "The Ohio State Bulletin",
+   "since": "2030 OFF Stg 7",
+   "notes": []
+  }
+ },
+ "done": [
+  "beat:rec:832438379:803"
+ ],
+ "start": {
+  "season": 2030,
+  "week": 21
+ },
+ "current": {
+  "832438359": {
+   "writer": "sauer",
+   "by": "Clint Sauer",
+   "outlet": "The Ohio State Bulletin",
+   "since": "2030 OFF Stg 7",
+   "coach": "Coach Goh"
+  },
+  "832438366": {
+   "writer": "brandt",
+   "by": "Ollie Brandt",
+   "outlet": "The Penn State Playbill",
+   "since": "2030 OFF Stg 7",
+   "coach": "Andy Penn St"
+  },
+  "832438379": {
+   "writer": "albanese",
+   "by": "Vince Albanese",
+   "outlet": "Cardinal Talk",
+   "since": "2030 OFF Stg 7",
+   "coach": "Coach Harrell"
+  }
+ },
+ "seasons": [
+  2030
+ ],
+ "updated": "2026-11-25T00:03:54.855Z"
+}
