@@ -115,7 +115,7 @@ async function main() {
 
   /* ---- load league data ---- */
   const [league, schedule, standings, teamStats, members, awards, periods] = await Promise.all([
-    api("/league"), api("/schedule"), api("/standings"), api("/team-stats"), api("/members"), api("/awards"), api("/periods"),
+    api("/league"), api("/schedule"), api("/standings"), api("/team-stats"), api("/members"), api("/awards").catch((e) => { if (!/ 404 /.test(e.message)) throw e; log("No awards cached yet (new dynasty) — skipping awards."); return { data: [] }; }), api("/periods"),
   ]);
   const cur = league.data.current_period;
   const prevPeriod = periods.data.find((p) => p.id !== cur.id);
