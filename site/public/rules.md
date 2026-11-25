@@ -22,6 +22,7 @@ Mix up your plays, concepts and formations.
 - Formation – Shotgun Monster
 - Formation – Wildcat Wing Flex
 - IForm - Power I Tight
+- IForm - Hulk
 - Any variation of a pass where the ball changes hands before being thrown (double-pass, HB pass, etc.).
 
 ### Play Action:
