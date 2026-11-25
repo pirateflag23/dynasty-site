@@ -1019,16 +1019,22 @@ async function main() {
   async function commishBoard() {
     const id = textCh(cfg.channels.commish); if (!id) return;
     const rta = members.data.filter((m) => m.ready_to_advance).length;
+    // Recruiting hours: the API gives hours LEFT this week, not the team's weekly total. The first sync after an advance
+    // sees everyone's full allotment, so the highest value seen this week is that team's total ("120/900 hrs left").
+    const wkKey = `${cur.season} ${nowWeek()}`;
+    if (state.rec_hours?.week !== wkKey) state.rec_hours = { week: wkKey, cap: {} };
+    for (const m of members.data) if (m.recruiting_hours != null) state.rec_hours.cap[m.team_key] = Math.max(state.rec_hours.cap[m.team_key] || 0, m.recruiting_hours);
+    const hrs = (m) => { if (m.recruiting_hours == null) return ""; const cap = state.rec_hours.cap[m.team_key]; return ` · ⏱ ${m.recruiting_hours}${cap ? `/${cap}` : ""} hrs left`; };
     const open = games.filter((g) => !g.played); const wk = open.length ? Math.min(...open.map((g) => g.week)) : null;
     const lines = [...members.data].sort((a, b) => a.ready_to_advance - b.ready_to_advance || a.team_name.localeCompare(b.team_name)).map((m) => {
       const g = wk != null && games.find((x) => x.week === wk && (x.home.team_key === m.team_key || x.away.team_key === m.team_key));
       const game = !g ? "bye" : g.played ? `✅ ${m.game_result}` : `⏳ vs ${m.opponent}${state.chats[g.key] ? ` · <#${state.chats[g.key].id}>` : ""}`;
-      return `${m.ready_to_advance ? "🟢" : "🔴"} **${m.team_name}** · ${coachTag(m.team_key)} · ${game}${m.auto_pilot !== "Off" ? " · 🤖 autopilot" : ""}${m.online ? "" : " · offline"}`;
+      return `${m.ready_to_advance ? "🟢" : "🔴"} **${m.team_name}** · ${coachTag(m.team_key)} · ${game}${m.auto_pilot !== "Off" ? " · 🤖 autopilot" : ""}${m.online ? "" : " · offline"}${hrs(m)}`;
     });
     const unplayed = wk == null ? [] : games.filter((g) => g.week === wk && isUserGame(g) && !g.played);
     const embed = {
       title: `🧑‍⚖️ Commish board · ${cur.season} ${nowWeek()}`, color: rta === members.data.length ? GREEN : RED,
-      description: `**Ready to advance: ${rta}/${members.data.length}** · Unplayed league games: **${unplayed.length}**\n\n` + clip(lines.join("\n"), 3800),
+      description: `**Ready to advance: ${rta}/${members.data.length}** · Unplayed league games: **${unplayed.length}**\n⏱ = recruiting hours left this week (0 = done recruiting)\n\n` + clip(lines.join("\n"), 3800),
       footer: { text: `Updated ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })} ET · last sync ${league.data.last_sync_at}` },
     };
     const body = { embeds: [embed], allowed_mentions: { parse: [] } };

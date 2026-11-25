@@ -22,7 +22,7 @@ Create these **text channels** (names must match `discord.config.json`; rename t
 | #transfer-portal | Portal entries (3★+ or leaving a user team) and commitments |
 | #national-potw | National offensive + defensive POTW |
 | #acc #big-12 #big-ten #sec | Conference POTW, pinging that conference's role |
-| #commish-board | One message, edited every run: RTA, unplayed games, autopilot |
+| #commish-board | One message, edited every run: RTA, unplayed games, autopilot, recruiting hours left |
 | #live-stream | (yours — the bot only mentions it) |
 
 Create a **category** named **Matchups**. The bot makes one chat per user-vs-user game each week inside it:
