@@ -54,6 +54,8 @@ async function api(path, tries = 5) {
     throw new Error(`API ${path} → ${r.status} ${await r.text()}`);
   }
 }
+// New dynasty: some endpoints 404 ("no data yet") until the first sync of that kind. Treat as empty.
+const soft = (path) => api(path).catch((e) => { if (!/ 404 /.test(e.message)) throw e; console.log(`${path}: no data yet, using empty list`); return { data: [] }; });
 // files: [{ name, data: Buffer }] → sent as a multipart upload; embeds can show them with image.url "attachment://<name>"
 async function dc(method, path, body, tries = 6, files = null) {
   if (DRY && method !== "GET") {
@@ -115,7 +117,7 @@ async function main() {
 
   /* ---- load league data ---- */
   const [league, schedule, standings, teamStats, members, awards, periods] = await Promise.all([
-    api("/league"), api("/schedule"), api("/standings"), api("/team-stats"), api("/members"), api("/awards").catch((e) => { if (!/ 404 /.test(e.message)) throw e; log("No awards cached yet (new dynasty) — skipping awards."); return { data: [] }; }), api("/periods"),
+    api("/league"), soft("/schedule"), soft("/standings"), soft("/team-stats"), api("/members"), soft("/awards"), api("/periods"),
   ]);
   const cur = league.data.current_period;
   const prevPeriod = periods.data.find((p) => p.id !== cur.id);
@@ -810,7 +812,7 @@ async function main() {
     // One league-wide report per advance: top classes, top battles, biggest commits, flips.
     const prevCls = prevPeriod ? await api(`/recruits/classes?period=${prevPeriod.id}`).catch(() => null) : null;
     const prevRank = new Map((prevCls?.data || []).map((c) => [c.team_key, c.rank]));
-    const [commits, board] = await Promise.all([api("/recruits/commits?type=recruits"), api("/recruits?type=recruits&committed=false")]);
+    const [commits, board] = await Promise.all([soft("/recruits/commits?type=recruits"), soft("/recruits?type=recruits&committed=false")]);
     const thisWeek = commits.data.filter((c) => c.period_id === cur.id);
     const userIds = new Set([...userTeams].map((k) => tstats.get(k)?.team_id).filter(Boolean));
     const sch = (x) => (x && userIds.has(x.team_id) ? `**${x.name}** 🎮` : x?.name || "?");
