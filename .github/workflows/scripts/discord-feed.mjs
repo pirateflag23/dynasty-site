@@ -219,6 +219,16 @@ async function main() {
       const dn = m && (m.nick || m.user?.global_name || m.user?.username);
       if (dn) state.display_names[gt.toLowerCase()] = { gt, name: dn };
     }
+  }
+  // Manual overrides from discord.config.json "display_names" (gamertag → name) beat Discord nicknames. Gamertags match
+  // loosely (case, "×" vs "x", punctuation) and are stored under the exact gamertag the API returns, so lookups never miss.
+  const gtKey = (s) => String(s).toLowerCase().replace(/×/g, "x").replace(/[^a-z0-9]/g, "");
+  const nameOverrides = new Map(Object.entries(cfg.display_names || {}).map(([gt, name]) => [gtKey(gt), name]));
+  for (const m of memberByTeam.values()) {
+    const name = m?.user_name && m.user_name !== "CPU" && nameOverrides.get(gtKey(m.user_name));
+    if (name) state.display_names[m.user_name.toLowerCase()] = { gt: m.user_name, name };
+  }
+  if (!DRY || TOKEN) {
     if (!DRY) await writeFile("data/coach-names.json", JSON.stringify(Object.fromEntries(Object.values(state.display_names).map((v) => [v.gt, v.name])), null, 1)).catch(() => {});
   }
   const disp = (gt) => (gt && state.display_names[String(gt).toLowerCase()]?.name) || gt || "";
